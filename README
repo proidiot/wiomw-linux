@@ -1,0 +1,21 @@
+For x86_64, configure with:
+	--enable-custom-config-location=/path/to/file (e.g. /tmp/wiomw.conf)
+
+For DD-WRT, configure with: 
+	--prefix=/path/to/toolchain (e.g. ../../toolchain-mipsel_4.1.1_BCM24)
+	--build=local-arch (e.g. x86_64-linux-gnu)
+	--host=mipsel-linux-uclibc
+	--target=mipsel-linux-uclibc
+
+Dependencies:
+ - libc
+ - libcurl
+ - polarssl
+ - libnl-3
+ - libnl-route-3
+
+Includes:
+ - pedantic autoconf macro
+ - nbtscan?
+ - cjson?
+

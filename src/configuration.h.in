@@ -1,0 +1,15 @@
+#ifndef _WIOMW_CONFIGURATION_H_
+#define _WIOMW_CONFIGURATION_H_
+
+#undef MAX_USERNAME_LENGTH
+#undef MAX_PASSHASH_LENGTH
+#undef MAX_CONFIG_LINE_LENGTH
+
+typedef struct {
+	char str_username[MAX_USERNAME_LENGTH];
+	char str_passhash[MAX_PASSHASH_LENGTH];
+} config_t;
+
+config_t get_configuration(const char* const config_file_location);
+
+#endif
