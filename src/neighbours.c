@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 void print_rtnl_addr(struct rtnl_addr* addr)
 {
@@ -284,8 +285,19 @@ void print_neighbours()
 						struct sockaddr* remote_addr = (struct sockaddr*)malloc(socklen_remote_addr);
 						memset(remote_addr, 0, socklen_remote_addr);
 						while (increment_addr(local_addr, socklen_local_addr, prefix, remote_addr, socklen_remote_addr) > 0) {
-							/*
 							int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+							/*
+							struct rtnl_neigh* neighbor;
+							struct nl_addr* mac_addr;
+							struct nl_addr* neigh_addr;
+							if (remote_addr->sa_family == AF_INET) {
+								neigh_addr = nl_addr_build(AF_INET, &((struct sockaddr_in*)remote_addr)->sin_addr.s_addr, sizeof(((struct sockaddr_in*)remote_addr)->sin_addr.s_addr));
+								nl_addr_set_prefixlen(neigh_addr, 32);
+							} else {
+								neigh_addr = nl_addr_build(AF_INET6, &((struct sockaddr_in6*)remote_addr)->sin6_addr.s6_addr, sizeof(((struct sockaddr_in6*)remote_addr)->sin6_addr.s6_addr));
+								nl_addr_set_prefixlen(neigh_addr, 128);
+							}
+							*/
 							if (sockfd == -1) {
 								print_syserror("Unable to create socket");
 							} else {
@@ -295,17 +307,7 @@ void print_neighbours()
 								}
 							}
 							close(sockfd);
-							*/
-							struct rtnl_neigh* neighbor;
-							struct nl_addr* neigh_addr;
-							struct nl_addr* mac_addr;
-							if (remote_addr->sa_family == AF_INET) {
-								neigh_addr = nl_addr_build(AF_INET, &((struct sockaddr_in*)remote_addr)->sin_addr.s_addr, sizeof(((struct sockaddr_in*)remote_addr)->sin_addr.s_addr));
-								nl_addr_set_prefixlen(neigh_addr, 32);
-							} else {
-								neigh_addr = nl_addr_build(AF_INET6, &((struct sockaddr_in6*)remote_addr)->sin6_addr.s6_addr, sizeof(((struct sockaddr_in6*)remote_addr)->sin6_addr.s6_addr));
-								nl_addr_set_prefixlen(neigh_addr, 128);
-							}
+							/*
 							errcode = nl_addr_parse("00:00:00:00:00:00", AF_LLC, &mac_addr);
 							if (errcode < 0) {
 								print_error("Unable to allocate MAC address: %s", nl_geterror(-errcode));
@@ -317,12 +319,28 @@ void print_neighbours()
 							rtnl_neigh_set_lladdr(neighbor, mac_addr);
 							errcode = rtnl_neigh_add(nlsock_connection, neighbor, 0);
 							if (errcode < 0) {
-								print_error("Unable to add: %s", nl_geterror(-errcode));
+								print_error("Unable to add: %s (%d)", nl_geterror(-errcode), errcode);
+							}
+							*/
+						}
+						memset(remote_addr, 0, socklen_remote_addr);
+						while (increment_addr(local_addr, socklen_local_addr, prefix, remote_addr, socklen_remote_addr) > 0) {
+							struct rtnl_neigh* neighbor;
+							struct nl_addr* neigh_addr;
+							if (remote_addr->sa_family == AF_INET) {
+								neigh_addr = nl_addr_build(AF_INET, &((struct sockaddr_in*)remote_addr)->sin_addr.s_addr, sizeof(((struct sockaddr_in*)remote_addr)->sin_addr.s_addr));
+								nl_addr_set_prefixlen(neigh_addr, 32);
+							} else {
+								neigh_addr = nl_addr_build(AF_INET6, &((struct sockaddr_in6*)remote_addr)->sin6_addr.s6_addr, sizeof(((struct sockaddr_in6*)remote_addr)->sin6_addr.s6_addr));
+								nl_addr_set_prefixlen(neigh_addr, 128);
 							}
 							neighbor = rtnl_neigh_get(cache_neighborhood, rtnl_link_get_ifindex(link), neigh_addr);
 							if (neighbor != NULL) {
-								printf(",");
-								print_rtnl_neigh(neighbor, link);
+								int state = rtnl_neigh_get_state(neighbor);
+								if (state != NUD_FAILED && state != NUD_NOARP && state != 0) {
+									printf(",");
+									print_rtnl_neigh(neighbor, link);
+								}
 							}
 						}
 						free(remote_addr);
