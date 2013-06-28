@@ -115,7 +115,10 @@ void wiomw_get_updates(const char* const str_url, const config_t config, const c
 /* TODO: make a better prototype for this function. */
 void wiomw_send_updates(const char* const str_url, const config_t config, const char* const str_session_id)
 {
-	print_neighbours();
+	char str_temp[MAX_SEND_UPDATES_SIZE];
+	FILE* fd = fmemopen(str_temp, MAX_SEND_UPDATES_SIZE, "w");
+	print_neighbours(fd);
+	fclose(fd);
 	/* TODO: functionality */
 	if (str_url == NULL) {
 		wiomw_get_updates(str_url, config, str_session_id);

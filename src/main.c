@@ -10,9 +10,16 @@
 #include "api.h"
 #include "neighbours.h"
 
+#define MAX_SEND_UPDATES_SIZE 131072
+
 int main()
 {
-	print_neighbours();
+	char str_temp[MAX_SEND_UPDATES_SIZE];
+	FILE* fd = fmemopen(str_temp, MAX_SEND_UPDATES_SIZE, "w");
+	print_neighbours(fd);
+	fclose(fd);
+
+	printf("%s\n", str_temp);
 
 /*
 	config_t config;

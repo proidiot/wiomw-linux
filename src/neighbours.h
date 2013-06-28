@@ -1,6 +1,8 @@
 #ifndef _WIOMW_NEIGHBOURS_H_
 #define _WIOMW_NEIGHBOURS_H_
 
+#include <stdio.h>
+
 /*
 #define MAC_ADDR_LENGTH 18
 #undef IP_ADDR_LENGTH
@@ -22,6 +24,6 @@ typedef struct __neighbourhood_struct {
 	struct __neighbourhood_struct* next;
 } * neighbourhood_t;
 */
-void print_neighbours();
+void print_neighbours(FILE* fd);
 
 #endif

@@ -49,7 +49,7 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_wiomw_plugin_OBJECTS = main.$(OBJEXT) configuration.$(OBJEXT) \
 	signal_handler.$(OBJEXT) print_error.$(OBJEXT) api.$(OBJEXT) \
-	neighbours.$(OBJEXT)
+	neighbours.$(OBJEXT) sockaddr_helpers.$(OBJEXT)
 wiomw_plugin_OBJECTS = $(am_wiomw_plugin_OBJECTS)
 wiomw_plugin_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -163,7 +163,8 @@ wiomw_plugin_SOURCES = main.c \
 		       signal_handler.c \
 		       print_error.c \
 		       api.c \
-		       neighbours.c
+		       neighbours.c \
+		       sockaddr_helpers.c
 
 #AM_CFLAGS=${CURL_CFLAGS} ${LIBNL3_CFLAGS}
 AM_CFLAGS = ${CURL_CFLAGS} -isystem /usr/include/libnl3
@@ -270,6 +271,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/neighbours.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/print_error.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/signal_handler.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockaddr_helpers.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
