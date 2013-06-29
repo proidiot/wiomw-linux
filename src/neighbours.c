@@ -149,7 +149,7 @@ void print_neighbours(config_t* config, FILE* fd)
 						struct sockaddr* remote_addr = (struct sockaddr*)malloc(socklen_remote_addr);
 						memset(remote_addr, 0, socklen_remote_addr);
 						while (increment_addr(local_addr, socklen_local_addr, prefix, remote_addr, socklen_remote_addr) > 0) {
-							int sockfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+							int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 							/*
 							struct rtnl_neigh* neighbor;
 							struct nl_addr* mac_addr;
