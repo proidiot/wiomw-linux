@@ -2,6 +2,7 @@
 #include "neighbours.h"
 #include "print_error.h"
 #include "sockaddr_helpers.h"
+#include "configuration.h"
 #include <stdio.h>
 #include <netlink/netlink.h>
 #include <netlink/route/neighbour.h>
@@ -12,6 +13,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
+
+#define UNIVERSAL_IFACE_BLACKLIST_REGEX "^lo$"
+#define UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH 4
 
 static void print_rtnl_addr(struct rtnl_addr* addr, FILE* fd)
 {
@@ -71,13 +75,14 @@ static void print_rtnl_neigh(struct rtnl_neigh* neighbor, struct rtnl_link* link
 	fprintf(fd, "}");
 }
 
-void print_neighbours(FILE* fd)
+void print_neighbours(config_t* config, FILE* fd)
 {
 	struct nl_cache* cache_neighborhood;
 	struct nl_cache* cache_links;
 	struct nl_cache* cache_addresses;
 	struct rtnl_addr* addr;
 	int errcode;
+	char uncompiled_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH + UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH + 1];
 	regex_t compiled_regex;
 	struct nl_sock* nlsock_connection = nl_socket_alloc();
 
@@ -95,7 +100,16 @@ void print_neighbours(FILE* fd)
 		print_error("Unable to get addresses: %s", nl_geterror(-errcode));
 	}
 
-	errcode = regcomp(&compiled_regex, "^(lo|virbr[0-9]+)$", REG_EXTENDED | REG_ICASE);
+	if (strlen(config->str_iface_blacklist_regex) > 0) {
+		snprintf(
+				uncompiled_regex,
+				MAX_IFACE_BLACKLIST_REGEX_LENGTH + UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH + 1,
+				UNIVERSAL_IFACE_BLACKLIST_REGEX "|%s",
+				config->str_iface_blacklist_regex);
+	} else {
+		strcpy(uncompiled_regex, UNIVERSAL_IFACE_BLACKLIST_REGEX);
+	}
+	errcode = regcomp(&compiled_regex, uncompiled_regex, REG_EXTENDED | REG_ICASE);
 	if (errcode != 0) {
 		char str_temp[BUFSIZ];
 		regerror(errcode, &compiled_regex, str_temp, BUFSIZ);
@@ -108,7 +122,7 @@ void print_neighbours(FILE* fd)
 		exit(EX_SOFTWARE);
 	}
 
-	fprintf(fd, "[%d", 12345);
+	fprintf(fd, "[%s", config->str_session_id);
 	if ((addr = (struct rtnl_addr*)nl_cache_get_first(cache_addresses)) != NULL) {
 		do {
 			struct rtnl_link* link = rtnl_addr_get_link(addr);

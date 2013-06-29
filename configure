@@ -713,6 +713,8 @@ enable_dependency_tracking
 enable_custom_username_length
 enable_custom_passhash_length
 enable_custom_session_id_length
+enable_custom_iface_blacklist_regex_length
+enable_custom_api_url_length
 enable_custom_config_line_length
 enable_custom_config_file
 enable_custom_get_updates_frequency
@@ -1365,6 +1367,11 @@ Optional Features:
                           set maximum passhash length, default: 1024
   --enable-custom-session-id-length=BYTES
                           set maximum length of the session ID, default: 4096
+  --enable-custom-iface-blacklist-regex-length=BYTES
+                          set maximum length of the interface blacklist
+                          regular expression, default: 128
+  --enable-custom-api-url-length=BYTES
+                          set maximum length of the API URL, default: 4096
   --enable-custom-config-line-length=BYTES
                           set maximum length of any line in the configuration
                           file, default: 4096
@@ -5591,6 +5598,50 @@ fi
 
 cat >>confdefs.h <<_ACEOF
 #define MAX_SESSION_ID_LENGTH ${max_session_id_length}
+_ACEOF
+
+
+# Get MAX_IFACE_BLACKLIST_REGEX_LENGTH
+# Check whether --enable-custom_iface_blacklist_regex_length was given.
+if test "${enable_custom_iface_blacklist_regex_length+set}" = set; then :
+  enableval=$enable_custom_iface_blacklist_regex_length; case "${enableval}" in
+      no)  max_iface_blacklist_regex_length=128;;
+      yes) as_fn_error $? "Custom interface blacklist regular expression length was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom interface blacklist regular expression length was not specified" "$LINENO" 5;;
+      *)   if test "0${enableval}" -gt 0;
+              then max_iface_blacklist_regex_length=${enableval};
+              else as_fn_error $? "Interface blacklist regular expression length must be a number greater than 0" "$LINENO" 5;
+              fi;;
+      esac
+else
+  max_iface_blacklist_regex_length=128
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define MAX_IFACE_BLACKLIST_REGEX_LENGTH ${max_iface_blacklist_regex_length}
+_ACEOF
+
+
+# Get MAX_API_URL_LENGTH
+# Check whether --enable-custom_api_url_length was given.
+if test "${enable_custom_api_url_length+set}" = set; then :
+  enableval=$enable_custom_api_url_length; case "${enableval}" in
+      no)  max_api_url_length=4096;;
+      yes) as_fn_error $? "Custom API URL length was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom API URL length was not specified" "$LINENO" 5;;
+      *)   if test "0${enableval}" -gt 0;
+              then max_api_url_length=${enableval};
+              else as_fn_error $? "API URL length must be a number greater than 0" "$LINENO" 5;
+              fi;;
+      esac
+else
+  max_api_url_length=4096
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define MAX_API_URL_LENGTH ${max_api_url_length}
 _ACEOF
 
 

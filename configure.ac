@@ -84,6 +84,40 @@ AC_ARG_ENABLE([custom_session_id_length],
 AC_DEFINE_UNQUOTED(MAX_SESSION_ID_LENGTH, ${max_session_id_length},
    [Maximum session ID length])
 
+# Get MAX_IFACE_BLACKLIST_REGEX_LENGTH
+AC_ARG_ENABLE([custom_iface_blacklist_regex_length],
+   AC_HELP_STRING([--enable-custom-iface-blacklist-regex-length=BYTES],
+      [set maximum length of the interface blacklist regular expression, default: 128]),
+   [case "${enableval}" in
+      no)  max_iface_blacklist_regex_length=128;;
+      yes) AC_MSG_ERROR([Custom interface blacklist regular expression length was not specified]);;
+      "")  AC_MSG_ERROR([Custom interface blacklist regular expression length was not specified]);;
+      *)   if test "0${enableval}" -gt 0;
+              then max_iface_blacklist_regex_length=${enableval};
+              else AC_MSG_ERROR([Interface blacklist regular expression length must be a number greater than 0]);
+              fi;;
+      esac],
+   [max_iface_blacklist_regex_length=128])
+AC_DEFINE_UNQUOTED(MAX_IFACE_BLACKLIST_REGEX_LENGTH, ${max_iface_blacklist_regex_length},
+   [Maximum interface blacklist regular expression length])
+
+# Get MAX_API_URL_LENGTH
+AC_ARG_ENABLE([custom_api_url_length],
+   AC_HELP_STRING([--enable-custom-api-url-length=BYTES],
+      [set maximum length of the API URL, default: 4096]),
+   [case "${enableval}" in
+      no)  max_api_url_length=4096;;
+      yes) AC_MSG_ERROR([Custom API URL length was not specified]);;
+      "")  AC_MSG_ERROR([Custom API URL length was not specified]);;
+      *)   if test "0${enableval}" -gt 0;
+              then max_api_url_length=${enableval};
+              else AC_MSG_ERROR([API URL length must be a number greater than 0]);
+              fi;;
+      esac],
+   [max_api_url_length=4096])
+AC_DEFINE_UNQUOTED(MAX_API_URL_LENGTH, ${max_api_url_length},
+   [Maximum API URL length])
+
 # Get MAX_CONFIG_LINE_LENGTH
 AC_ARG_ENABLE([custom_config_line_length],
    AC_HELP_STRING([--enable-custom-config-line-length=BYTES],

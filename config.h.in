@@ -88,8 +88,14 @@
 /* URL of login API */
 #undef LOGIN_API_URL
 
+/* Maximum API URL length */
+#undef MAX_API_URL_LENGTH
+
 /* Maximum config line length */
 #undef MAX_CONFIG_LINE_LENGTH
+
+/* Maximum interface blacklist regular expression length */
+#undef MAX_IFACE_BLACKLIST_REGEX_LENGTH
 
 /* Maximum passhash length */
 #undef MAX_PASSHASH_LENGTH

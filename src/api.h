@@ -3,12 +3,12 @@
 
 #include "configuration.h"
 
-char* wiomw_login(const char* const str_url, const config_t config);
+void wiomw_login(config_t* config);
 
 /* TODO: make a better prototype for this function. */
-void wiomw_get_updates(const char* const str_url, const config_t config, const char* const str_session_id);
+void wiomw_get_updates(config_t* config);
 
 /* TODO: make a better prototype for this function. */
-void wiomw_send_updates(const char* const str_url, const config_t config, const char* const str_session_id);
+void wiomw_send_updates(config_t* config);
 
 #endif

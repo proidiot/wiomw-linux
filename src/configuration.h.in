@@ -4,12 +4,20 @@
 #undef MAX_USERNAME_LENGTH
 #undef MAX_PASSHASH_LENGTH
 #undef MAX_CONFIG_LINE_LENGTH
+#undef MAX_SESSION_ID_LENGTH
+#undef MAX_IFACE_BLACKLIST_REGEX_LENGTH
+#undef MAX_API_URL_LENGTH
 
 typedef struct {
 	char str_username[MAX_USERNAME_LENGTH];
 	char str_passhash[MAX_PASSHASH_LENGTH];
+	char str_session_id[MAX_SESSION_ID_LENGTH];
+	char str_iface_blacklist_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH];
+	char str_login_url[MAX_API_URL_LENGTH];
+	char str_get_url[MAX_API_URL_LENGTH];
+	char str_send_url[MAX_API_URL_LENGTH];
 } config_t;
 
-config_t get_configuration(const char* const config_file_location);
+config_t get_configuration(int argc, char** argv);
 
 #endif
