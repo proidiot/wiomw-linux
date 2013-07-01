@@ -21,11 +21,11 @@ int main(int argc, char** argv)
 
 
 	wiomw_login(&config);
-	fprintf(stderr, "DEBUG: %lX: got: %s\n", (unsigned long)time(NULL), config.str_session_id);
+	print_debug("Got: %s", config.str_session_id);
 
 	while (!stop_signal_received()) {
-		fprintf(stderr, "DEBUG: %lX: no stop signal yet\n", (unsigned long)time(NULL));
-		/*wiomw_get_updates(&config);*/
+		print_debug("no stop signal yet");
+		wiomw_get_updates(&config);
 		wiomw_send_updates(&config);
 		alarm(GET_UPDATES_FREQUENCY);
 		sleep_until_signalled();

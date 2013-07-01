@@ -40,6 +40,10 @@ static void print_rtnl_addr(struct rtnl_addr* addr, FILE* fd)
 			fprintf(fd, "\"ipaddress\":\"%s\",", str_temp);
 		}
 		fprintf(fd, "\"iface\":\"%s\",", rtnl_link_get_name(link));
+		rtnl_link_operstate2str(rtnl_link_get_operstate(link), str_temp, BUFSIZ);
+		fprintf(fd, "\"operation\":\"%s\",",str_temp);
+		rtnl_link_mode2str(rtnl_link_get_linkmode(link), str_temp, BUFSIZ);
+		fprintf(fd, "\"mode\":\"%s\",",str_temp);
 		fprintf(fd, "\"state\":\"reachable\"}");
 	} else if (ipaddr != NULL && nl_addr_get_family(ipaddr) == AF_INET6) {
 		char str_temp[BUFSIZ];
@@ -58,6 +62,10 @@ static void print_rtnl_addr(struct rtnl_addr* addr, FILE* fd)
 			fprintf(fd, "\"ip6\":\"%s\",", str_temp);
 		}
 		fprintf(fd, "\"iface\":\"%s\",", rtnl_link_get_name(link));
+		rtnl_link_operstate2str(rtnl_link_get_operstate(link), str_temp, BUFSIZ);
+		fprintf(fd, "\"operation\":\"%s\",",str_temp);
+		rtnl_link_mode2str(rtnl_link_get_linkmode(link), str_temp, BUFSIZ);
+		fprintf(fd, "\"mode\":\"%s\",",str_temp);
 		fprintf(fd, "\"state\":\"reachable\"}");
 	}
 }
