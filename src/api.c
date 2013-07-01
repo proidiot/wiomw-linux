@@ -13,6 +13,11 @@ typedef struct holder_t_struct {
 	char* str_data;
 } * holder_t;
 
+char* get_unique_agent_key()
+{
+	return "4";
+}
+
 size_t curl_cb_process_buffer(void* data_buffer, size_t unit_size, size_t unit_count, void* passed_holder_t_data)
 {
 	size_t buffer_count = 0;
@@ -66,9 +71,11 @@ void wiomw_login(config_t* config)
 	snprintf(
 			str_post_json,
 			30 + MAX_USERNAME_LENGTH + MAX_PASSHASH_LENGTH,
-			"{\"username\":\"%s\",\"password\":\"%s\"}",
+			"{\"username\":\"%s\",\"password\":\"%s\",\"agentkey\":\"%s-%s\"}",
 			config->str_username,
-			config->str_passhash);
+			config->str_passhash,
+			API_AGENT_KEY,
+			get_unique_agent_key());
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->str_login_url);
@@ -117,6 +124,7 @@ void wiomw_send_updates(config_t* config)
 	holder_t holder_t_data;
 	CURL* curl_handle;
 	FILE* fd;
+	long fd_size;
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));
 	if (holder_t_data == NULL) {
@@ -130,6 +138,8 @@ void wiomw_send_updates(config_t* config)
 		print_syserror("Unable to open the temproary file to store data to send to the server");
 	}
 	print_neighbours(config, fd);
+	fseek(fd, 0, SEEK_END);
+	fd_size = ftell(fd);
 	rewind(fd);
 
 	curl_handle = curl_easy_init();
@@ -139,6 +149,7 @@ void wiomw_send_updates(config_t* config)
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
 	curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
+	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
 
 	if (curl_easy_perform(curl_handle) == 0) {
 		size_t size_data_length;
@@ -152,7 +163,7 @@ void wiomw_send_updates(config_t* config)
 			print_error("Session ID received was larger than %d bytes", MAX_SESSION_ID_LENGTH);
 			exit(EX_PROTOCOL);
 		} else {
-			strncpy(config->str_session_id, holder_t_data->str_data, MAX_SESSION_ID_LENGTH);
+			fprintf(stderr, "Got: %s\n", holder_t_data->str_data);
 		}
 	} else {
 		print_error("Send devices failed: %s", str_error_buffer);

@@ -722,6 +722,7 @@ enable_sigquit_handling
 enable_custom_login_url
 enable_custom_get_updates_url
 enable_custom_send_updates_url
+enable_custom_api_agent_key
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1393,6 +1394,8 @@ Optional Features:
   --enable-custom-send-updates-url=URL
                           set send updates API URL, default:
                           https://www.whoisonmywifi.net/api/rest/senddevice
+  --enable-custom-api-agent-key=STRING
+                          API agent key, default: ddwrt
 
 Some influential environment variables:
   CC          C compiler command
@@ -5224,7 +5227,7 @@ fi
 done
 
 
-for ac_header in arpa/inet.h stdint.h stdlib.h string.h sys/socket.h unistd.h
+for ac_header in arpa/inet.h fcntl.h stdint.h stdlib.h string.h sys/socket.h unistd.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -5781,6 +5784,25 @@ fi
 
 cat >>confdefs.h <<_ACEOF
 #define SEND_UPDATES_API_URL "${send_updates_url}"
+_ACEOF
+
+
+# Get API_AGENT_KEY
+# Check whether --enable-custom_api_agent_key was given.
+if test "${enable_custom_api_agent_key+set}" = set; then :
+  enableval=$enable_custom_api_agent_key; case "${enableval}" in
+      no)  api_agent_key="ddwrt";;
+      yes) as_fn_error $? "Custom API agent key was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom API agent key was not specified" "$LINENO" 5;;
+      *)   api_agent_key="${enableval}";;
+      esac
+else
+  api_agent_key="ddwrt"
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define API_AGENT_KEY "${api_agent_key}"
 _ACEOF
 
 

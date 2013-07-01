@@ -19,7 +19,7 @@ PKG_CHECK_MODULES([LIBNL3], [libnl-3.0 >= 3.1, libnl-route-3.0 >= 3.1])
 AC_CHECK_LIB([m], [rint])
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -220,6 +220,20 @@ AC_ARG_ENABLE([custom_send_updates_url],
    [send_updates_url="https://www.whoisonmywifi.net/api/rest/senddevice"])
 AC_DEFINE_UNQUOTED(SEND_UPDATES_API_URL, "${send_updates_url}",
     [URL of send updates API])
+
+# Get API_AGENT_KEY
+AC_ARG_ENABLE([custom_api_agent_key],
+   AC_HELP_STRING([--enable-custom-api-agent-key=STRING],
+      [API agent key, default: ddwrt]),
+   [case "${enableval}" in
+      no)  api_agent_key="ddwrt";;
+      yes) AC_MSG_ERROR([Custom API agent key was not specified]);;
+      "")  AC_MSG_ERROR([Custom API agent key was not specified]);;
+      *)   api_agent_key="${enableval}";;
+      esac],
+   [api_agent_key="ddwrt"])
+AC_DEFINE_UNQUOTED(API_AGENT_KEY, "${api_agent_key}",
+    [API agent key])
 
 
 AC_CONFIG_FILES([Makefile

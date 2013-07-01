@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #define UNIVERSAL_IFACE_BLACKLIST_REGEX "^lo$"
 #define UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH 4
@@ -27,16 +28,16 @@ static void print_rtnl_addr(struct rtnl_addr* addr, FILE* fd)
 		struct sockaddr_in saddr;
 		socklen_t slen = sizeof(struct sockaddr_in);
 		memset(&saddr, 0, slen);
-		fprintf(fd, "{\"agent\":1,");
+		fprintf(fd, "{\"isagent\":1,");
 		nl_addr2str(rtnl_link_get_addr(link), str_temp, BUFSIZ);
-		fprintf(fd, "\"mac\":\"%s\",", str_temp);
+		fprintf(fd, "\"macaddress\":\"%s\",", str_temp);
 		errcode = nl_addr_fill_sockaddr(ipaddr, (struct sockaddr*)&saddr, &slen);
 		if (errcode < 0) {
 			print_error("Unable to parse address: %s", nl_geterror(-errcode));
 		} else if (inet_ntop(AF_INET, &saddr.sin_addr.s_addr, str_temp, slen) ==  NULL) {
 			print_syserror("Unable to parse address");
 		} else {
-			fprintf(fd, "\"ip\":\"%s\",", str_temp);
+			fprintf(fd, "\"ipaddress\":\"%s\",", str_temp);
 		}
 		fprintf(fd, "\"iface\":\"%s\",", rtnl_link_get_name(link));
 		fprintf(fd, "\"state\":\"reachable\"}");
@@ -45,9 +46,9 @@ static void print_rtnl_addr(struct rtnl_addr* addr, FILE* fd)
 		struct sockaddr_in6 saddr;
 		socklen_t slen = sizeof(struct sockaddr_in6);
 		memset(&saddr, 0, slen);
-		fprintf(fd, "{\"agent\":1,");
+		fprintf(fd, "{\"isagent\":1,");
 		nl_addr2str(rtnl_link_get_addr(link), str_temp, BUFSIZ);
-		fprintf(fd, "\"mac\":\"%s\",", str_temp);
+		fprintf(fd, "\"macaddress\":\"%s\",", str_temp);
 		errcode = nl_addr_fill_sockaddr(ipaddr, (struct sockaddr*)&saddr, &slen);
 		if (errcode < 0) {
 			print_error("Unable to parse address: %s", nl_geterror(-errcode));
@@ -66,9 +67,31 @@ static void print_rtnl_neigh(struct rtnl_neigh* neighbor, struct rtnl_link* link
 	char str_temp[BUFSIZ];
 	fprintf(fd, "{");
 	nl_addr2str(rtnl_neigh_get_lladdr(neighbor), str_temp, BUFSIZ);
-	fprintf(fd, "\"mac\":\"%s\",", str_temp);
+	fprintf(fd, "\"macaddress\":\"%s\",", str_temp);
 	nl_addr2str(rtnl_neigh_get_dst(neighbor), str_temp, BUFSIZ);
-	fprintf(fd, "\"ip\":\"%s\",", str_temp);
+	if (rtnl_neigh_get_family(neighbor) == AF_INET) {
+		struct sockaddr_in saddr;
+		socklen_t slen = sizeof(struct sockaddr_in);
+		int errcode = nl_addr_fill_sockaddr(rtnl_neigh_get_dst(neighbor), (struct sockaddr*)&saddr, &slen);
+		if (errcode < 0) {
+			print_error("Unable to parse address: %s", nl_geterror(-errcode));
+		} else if (inet_ntop(AF_INET, &saddr.sin_addr.s_addr, str_temp, slen) == NULL) {
+			print_syserror("Unable to parse address");
+		} else {
+			fprintf(fd, "\"ipaddress\":\"%s\",", str_temp);
+		}
+	} else {
+		struct sockaddr_in6 saddr;
+		socklen_t slen = sizeof(struct sockaddr_in6);
+		int errcode = nl_addr_fill_sockaddr(rtnl_neigh_get_dst(neighbor), (struct sockaddr*)&saddr, &slen);
+		if (errcode < 0) {
+			print_error("Unable to parse address: %s", nl_geterror(-errcode));
+		} else if (inet_ntop(AF_INET6, &saddr.sin6_addr.s6_addr, str_temp, slen) == NULL) {
+			print_syserror("Unable to parse address");
+		} else {
+			fprintf(fd, "\"ip6\":\"%s\",", str_temp);
+		}
+	}
 	rtnl_neigh_state2str(rtnl_neigh_get_state(neighbor), str_temp, BUFSIZ);
 	fprintf(fd, "\"state\":\"%s\",", str_temp);
 	fprintf(fd, "\"iface\":\"%s\"", rtnl_link_get_name(link));
@@ -122,7 +145,7 @@ void print_neighbours(config_t* config, FILE* fd)
 		exit(EX_SOFTWARE);
 	}
 
-	fprintf(fd, "[%s", config->str_session_id);
+	fprintf(fd, "[\"%s\"", config->str_session_id);
 	if ((addr = (struct rtnl_addr*)nl_cache_get_first(cache_addresses)) != NULL) {
 		do {
 			struct rtnl_link* link = rtnl_addr_get_link(addr);
@@ -149,6 +172,7 @@ void print_neighbours(config_t* config, FILE* fd)
 						struct sockaddr* remote_addr = (struct sockaddr*)malloc(socklen_remote_addr);
 						memset(remote_addr, 0, socklen_remote_addr);
 						while (increment_addr(local_addr, socklen_local_addr, prefix, remote_addr, socklen_remote_addr) > 0) {
+							int fdfl = 0;
 							int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 							/*
 							struct rtnl_neigh* neighbor;
@@ -164,6 +188,10 @@ void print_neighbours(config_t* config, FILE* fd)
 							*/
 							if (sockfd == -1) {
 								print_syserror("Unable to create socket");
+							} else if ((fdfl = fcntl(sockfd, F_GETFL)) == -1) {
+								print_syserror("Unable to get socket metadata");
+							} else if (fcntl(sockfd, F_SETFL, fdfl | O_NONBLOCK) == -1) {
+								print_syserror("Unable to put socket into non-blocking mode");
 							} else {
 								char str_temp[BUFSIZ];
 								if (remote_addr->sa_family == AF_INET) {
@@ -211,7 +239,7 @@ void print_neighbours(config_t* config, FILE* fd)
 							}
 							*/
 						}
-						sleep(5);
+						sleep(15);
 						memset(remote_addr, 0, socklen_remote_addr);
 						while (increment_addr(local_addr, socklen_local_addr, prefix, remote_addr, socklen_remote_addr) > 0) {
 							struct rtnl_neigh* neighbor;
