@@ -53,7 +53,9 @@ am_wiomw_plugin_OBJECTS = main.$(OBJEXT) configuration.$(OBJEXT) \
 	signal_handler.$(OBJEXT) print_error.$(OBJEXT) api.$(OBJEXT) \
 	neighbours.$(OBJEXT) sockaddr_helpers.$(OBJEXT)
 wiomw_plugin_OBJECTS = $(am_wiomw_plugin_OBJECTS)
-wiomw_plugin_LDADD = $(LDADD)
+am__DEPENDENCIES_1 =
+wiomw_plugin_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -98,7 +100,7 @@ LDFLAGS = @LDFLAGS@
 LIBNL3_CFLAGS = @LIBNL3_CFLAGS@
 LIBNL3_LIBS = @LIBNL3_LIBS@
 LIBOBJS = @LIBOBJS@
-LIBS = @LIBS@ ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBNL3_LIBS}
+LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
@@ -182,6 +184,7 @@ wiomw_plugin_SOURCES = main.c \
 
 #AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBNL3_CFLAGS}
 AM_CFLAGS = ${CURL_CFLAGS} ${PTHREAD_CFLAGS} -isystem /usr/include/libnl3
+wiomw_plugin_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBNL3_LIBS}
 all: configuration.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 

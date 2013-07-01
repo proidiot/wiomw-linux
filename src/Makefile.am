@@ -9,5 +9,5 @@ wiomw_plugin_SOURCES = main.c \
 		       sockaddr_helpers.c
 #AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBNL3_CFLAGS}
 AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} -isystem /usr/include/libnl3
-LIBS+=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBNL3_LIBS}
+wiomw_plugin_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBNL3_LIBS}
 
