@@ -237,5 +237,6 @@ AC_DEFINE_UNQUOTED(API_AGENT_KEY, "${api_agent_key}",
 
 
 AC_CONFIG_FILES([Makefile
+		 etc/Makefile
                  src/Makefile])
 AC_OUTPUT
