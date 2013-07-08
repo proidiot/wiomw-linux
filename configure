@@ -1378,7 +1378,7 @@ Optional Features:
                           file, default: 4096
   --enable-custom-config-file=/PATH/TO/FILE.CONF
                           set config file location, default:
-                          /jffs/etc/wiomw.conf
+                          SYSCONFDIR/wiomw.conf
   --enable-custom-get-updates-frequency=SECS
                           set get_updates frequency, default: 300 (i.e. 5
                           mins)
@@ -5674,13 +5674,13 @@ _ACEOF
 # Check whether --enable-custom_config_file was given.
 if test "${enable_custom_config_file+set}" = set; then :
   enableval=$enable_custom_config_file; case "${enableval}" in
-      no)  config_file_location="/jffs/etc/wiomw.conf";;
+      no)  config_file_location="\"SYSCONFDIR\"/wiomw.conf";;
       yes) as_fn_error $? "Custom config file location was not specified" "$LINENO" 5;;
       "")  as_fn_error $? "Custom config file location was not specified" "$LINENO" 5;;
       *)   config_file_location="${enableval}";;
       esac
 else
-  config_file_location="/jffs/etc/wiomw.conf"
+  config_file_location="\"SYSCONFDIR\"/wiomw.conf"
 fi
 
 

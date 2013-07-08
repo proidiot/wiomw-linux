@@ -138,14 +138,14 @@ AC_DEFINE_UNQUOTED(MAX_CONFIG_LINE_LENGTH, ${max_config_line_length},
 # Get CONFIG_FILE_LOCATION
 AC_ARG_ENABLE([custom_config_file],
    AC_HELP_STRING([--enable-custom-config-file=/PATH/TO/FILE.CONF],
-      [set config file location, default: /jffs/etc/wiomw.conf]),
+      [set config file location, default: SYSCONFDIR/wiomw.conf]),
    [case "${enableval}" in
-      no)  config_file_location="/jffs/etc/wiomw.conf";;
+      no)  config_file_location="\"SYSCONFDIR\"/wiomw.conf";;
       yes) AC_MSG_ERROR([Custom config file location was not specified]);;
       "")  AC_MSG_ERROR([Custom config file location was not specified]);;
       *)   config_file_location="${enableval}";;
       esac],
-   [config_file_location="/jffs/etc/wiomw.conf"])
+   [config_file_location="\"SYSCONFDIR\"/wiomw.conf"])
 AC_DEFINE_UNQUOTED(CONFIG_FILE_LOCATION, "${config_file_location}",
     [Location of config file])
 
