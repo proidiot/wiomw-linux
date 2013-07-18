@@ -106,8 +106,266 @@ static void print_rtnl_neigh(struct rtnl_neigh* neighbor, struct rtnl_link* link
 	fprintf(fd, "}");
 }
 
+typedef struct get_if_item_cb_data_struct {
+	regex_t* compiled_regex;
+	if_item_t if_item;
+} get_if_item_cb_data_t;
+
+static get_if_item_cb_data_t new_get_if_item_cb_data()
+{
+	get_if_item_cb_data_t result;
+	return result;
+}
+
+static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
+{
+	if (cb_data == NULL || ((get_if_item_cb_data_t*)cb_data)->compiled_regex == NULL) {
+		print_error("Inavlid argument received in interface item callback");
+		return MNL_CB_ERROR;
+	} else if (mnl_attr_type_valid(nl_attr, IFLA_MAX) < 0) {
+		print_syserror("Received invalid netlink attribute type");
+		return MNL_CB_ERROR;
+	} else if (((if_item_t*)cb_data)->blacklisted) {
+		return MNL_CB_OK;
+	} else {
+		get_if_item_cb_data_t* item_cb_data = (get_if_item_cb_data_t*)cb_data;
+		switch (mnl_attr_get_type(nl_attr)) {
+		case IFLA_IFNAME:
+			if (mnl_attr_validate(nl_attr, MNL_TYPE_STRING) < 0) {
+				print_syserror("Received invalid interface name from netlink");
+				return MNL_CB_ERROR;
+			} else {
+				char* if_name = mnl_attr_get_str(nl_attr);
+				item_cb_data->if_item.name = (char*)malloc(strlen(if_name) + 1);
+				strcpy(item_cb_data->if_item.name, if_name);
+				errcode = regexec(item_cb_data->compiled_regex, item_cb_data->if_item.name, 0, NULL, REG_EXTENDED);
+				if (errcode == 0) {
+					item_cb_data->if_item.blacklisted = true;
+				} else if (errcode == REG_NOMATCH) {
+					item_cb_data->if_item.blacklisted = false;
+				} else {
+					print_syserror("Unable to evaluate the interface blacklist regex");
+					return MNL_CB_ERROR;
+				}
+			}
+			break;
+		case IFLA_ADDRESS:
+			if (mnl_attr_validate(nl_attr, MNL_TYPE_HWADDR) < 0) {
+				print_syserror("Received invalid MAC address from netlink");
+				return MNL_CB_ERROR;
+			} else {
+				item_cb_data->if_item.mac = TODO;
+			}
+			break;
+		case IFLA_BROADCAST:
+			if (mnl_attr_validate(nl_attr, MNL_TYPE_HWADDR) < 0) {
+				print_syserror("Received invalid broadcast MAC address from netlink");
+				return MNL_CB_ERROR;
+			} else {
+				item_cb_data->if_item.bmac = TODO;
+			}
+			break;
+		case IFLA_MTU:
+			if (mnl_attr_validate(nl_attr, MNL_TYPE_U32) < 0) {
+				print_syserror("Received invalid MTU from netlink");
+				return MNL_CB_ERROR;
+			} else {
+				item_cb_data->if_item.mtu = mnl_attr_get_u32(nl_attr);
+			}
+			break;
+		case IFLA_LINK:
+			if (mnl_attr_validate(nl_attr, MNL_TYPE_INT) < 0) {
+				print_syserror("Received invalid link type from netlink");
+				return MNL_CB_ERROR;
+			} else {
+				item_cb_data->if_item.link = TODO;
+			}
+			break;
+		case IFLA_QDISC:
+			if (mnl_attr_validate(nl_attr, MNL_TYPE_STRING) < 0) {
+				print_syserror("Received invalid queue discipline from netlink");
+				return MNL_CB_ERROR;
+			} else {
+				item_cb_data->if_item.qdsp = TODO;
+			}
+			break;
+		}
+		return MNL_CB_OK;
+	}
+}
+
+typedef struct if_list_struct {
+	if_item_t data;
+	struct if_list_struct* next;
+} * if_list_t;
+
+static if_list_t new_if_list()
+{
+	return (if_list_t)NULL;
+}
+
+static if_list_t push_if_item(if_list_t* if_list, if_item_t if_item)
+{
+	if_list_t temp = (if_list_t)malloc(sizeof(struct if_list_struct));
+	temp->data = if_item;
+	temp->next = if_list;
+	*if_list = temp;
+	return temp;
+}
+
+static if_item_t pop_if_item(if_list_t* if_list)
+{
+	if_list_t temp = *if_list;
+	if_item_t if_item = temp->data;
+	*if_list = temp->next;
+	free(temp);
+	return if_item;
+}
+
+typedef struct get_if_list_cb_data_struct {
+	regex_t* compiled_regex;
+	if_list_t if_list;
+} get_if_list_cb_data_t;
+
+static get_if_list_cb_data_t new_get_if_list_cb_data()
+{
+	get_if_list_cb_data_t result;
+	result.compiled_regex = NULL;
+	result.if_list = new_if_list();
+	return result;
+}
+
+static get_if_list_cb_data_t new_get_if_list_cb_data(regex_t* compiled_regex)
+{
+	get_if_list_cb_data_t result;
+	result.compiled_regex = compiled_regex;
+	result.if_list = new_if_list();
+	return result;
+}
+
+static void destroy_get_if_list_cb_data(get_if_list_cb_data_t* get_if_list_cb_data)
+{
+	destroy_if_list(get_if_list_cb_data->if_list);
+}
+
+static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
+{
+	if (cb_data == NULL || ((get_if_list_cb_data_t*)cb_data)->compiled_regex == NULL) {
+		print_error("Invalid argument received in interface list callback");
+		return MNL_CB_ERROR;
+	} else {
+		get_if_list_cb_data_t* list_cb_data = (get_if_list_cb_data_t*)cb_data
+		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
+		int len = nl_head->nlmsg_len;
+	
+		if (if_msg->ifi_flags & IFF_RUNNING) {
+			get_if_item_cb_data_t item_cb_data = new_get_if_item_cb_data();
+			item_cb_data.if_item = new_if_item();
+			item_cb_data.if_item.index = if_msg->ifi_index;
+			item_cb_data.if_item.type = if_msg->ifi_type;
+			item_cb_data.if_item.flags = if_msg->ifi_flags;
+			item_cb_data.if_item.family = if_msg->ifi_family;
+			mnl_attr_parse(nl_head, sizeof(if_msg), &get_if_item_cb, &item_cb_data);
+			if (!item_cb_data.if_item.blacklisted) {
+				list_cb_data->if_list = push_if_item(list_cb_data->if_list, item_cb_data.if_item);
+			}
+		}
+	
+		return MNL_CB_OK;
+	}
+}
+
+static if_list_t get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex)
+{
+	char buf[getpagesize()];
+	struct nlmsghdr* nl_head;
+	struct rtgenmsg* rtnl_head;
+	int errcode = 0;
+	unsigned int seq;
+	unsigned int portid;
+	get_if_list_cb_data_t get_if_list_cb_data = new_get_if_list_cb_data();
+	get_if_list_cb_data.if_list = new_if_list();
+	get_if_list_cb_data.compiled_regex = compiled_regex;
+
+	nl_head = mnl_nlmsg_put_header(buf);
+	nl_head->nlmsg_type = RTM_GETLINK;
+	nl_head->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+	nl_head->nlmsg_seq = seq = time(NULL);
+	rtnl_head = mnl_nlmsg_put_extra_header(nl_head, sizeof(struct rtgenmsg));
+	rtnl_head->rtgen_family = AF_PACKET;
+
+	portid = mnl_socket_get_portid(nl_sock);
+
+	if (mnl_socket_sendto(nl_sock, nl_head, nl_head->nlmsg_len) < 0) {
+		print_syserror("Unable to send message to netlink");
+		exit(EX_OSERR);
+	}
+
+	do {
+		errcode = mnl_socket_recvfrom(nl_sock, buf, sizeof(buf));
+	} while (errcode > 0 && errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_list_cb, &get_if_list_cb_data));
+
+	if (errcode == -1) {
+		print_syserror("Unable to retrieve message from netlink");
+		exit(EX_OSERR);
+	}
+
+	return get_if_list_cb_data.if_list;
+}
+
 void print_neighbours(config_t* config, FILE* fd)
 {
+	char uncompiled_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH + UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH + 1];
+	regex_t compiled_regex;
+	if_list_t if_list;
+
+	if (config == NULL) {
+		print_error("Empty config received");
+		exit(EX_SOFTWARE);
+	} else if (fd == NULL) {
+		print_error("Bad file descriptor received");
+	}
+
+	if (strlen(config->str_iface_blacklist_regex) > 0) {
+		snprintf(
+				uncompiled_regex,
+				MAX_IFACE_BLACKLIST_REGEX_LENGTH + UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH + 1,
+				UNIVERSAL_IFACE_BLACKLIST_REGEX "|%s",
+				config->str_iface_blacklist_regex);
+	} else {
+		strcpy(uncompiled_regex, UNIVERSAL_IFACE_BLACKLIST_REGEX);
+	}
+	errcode = regcomp(&compiled_regex, uncompiled_regex, REG_EXTENDED | REG_ICASE);
+	if (errcode != 0) {
+		char str_temp[BUFSIZ];
+		regerror(errcode, &compiled_regex, str_temp, BUFSIZ);
+		print_error("Unable to prepare the network interface regex: %s", str_temp);
+	}
+
+	nl_sock = mnl_socket_open(NETLINK_ROUTE);
+	if (nl_sock == NULL) {
+		print_syserror("Unable to open netlink socket");
+		exit(EX_OSERR);
+	}
+
+	if (mnl_socket_bind(nl_sock, 0, MNL_SOCKET_AUTOPID) < 0) {
+		print_syserror("Unable to bind netlink socket to port");
+		exit(EX_OSERR);
+	}
+
+
+	if_list = get_if_list(nl_sock, &compiled_regex);
+
+
+
+	mnl_socket_close(nl_sock);
+
+
+
+
+
+
+
 	struct nl_cache* cache_neighborhood;
 	struct nl_cache* cache_links;
 	struct nl_cache* cache_addresses;
