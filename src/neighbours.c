@@ -21,6 +21,9 @@
 #define UNIVERSAL_IFACE_BLACKLIST_REGEX "^lo$"
 #define UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH 4
 
+#define SHOW_BLACKLISTED false
+#define SHOW_NOT_RUNNING false
+
 /*
 static void print_rtnl_addr(struct rtnl_addr* addr, FILE* fd)
 {
@@ -144,6 +147,7 @@ typedef struct if_addr_struct {
 	struct sockaddr* local;
 	char* label;
 	struct sockaddr* bcast;
+	struct sockaddr* acast;
 } * if_addr_t;
 
 typedef struct if_addr_list_struct {
@@ -383,7 +387,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 	} else if (mnl_attr_type_valid(nl_attr, IFLA_MAX) < 0) {
 		print_syserror("Received invalid netlink attribute type");
 		return MNL_CB_ERROR;
-	} else if (((if_item_t*)cb_data)->blacklisted) {
+	} else if (!SHOW_BLACKLISTED && ((if_item_t*)cb_data)->blacklisted) {
 		return MNL_CB_OK;
 	} else {
 		get_if_item_cb_data_t* item_cb_data = (get_if_item_cb_data_t*)cb_data;
@@ -464,6 +468,17 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 	}
 }
 
+static int get_if_addr_cb(const struct nlmsghdr* nl_head, coid* cb_data)
+{
+	if (cb_data == NULL || *cb_data == NULL) {
+		print_error("Invalid argument received in interface address callback ");
+		return MNL_CB_ERROR;
+	} else if (mnl_attr_type_valid(nl_attr, IFLA_MAX) < 0) {
+		print_syserror("Received invalid netlink attribute type");
+		return MNL_CB_ERROR;
+	} 
+}
+
 static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
 	if (cb_data == NULL || ((get_if_list_cb_data_t*)cb_data)->compiled_regex == NULL) {
@@ -474,7 +489,7 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 		int len = nl_head->nlmsg_len;
 	
-		if (if_msg->ifi_flags & IFF_RUNNING) {
+		if (SHOW_NOT_RUNNING || if_msg->ifi_flags & IFF_RUNNING) {
 			if_item_t if_item = new_if_item();
 			get_if_item_cb_data_t item_cb_data = new_get_if_item_cb_data(list_cb_data->compiled_regex, &if_item);
 			if_item->index = if_msg->ifi_index;
@@ -484,7 +499,7 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 			mnl_attr_parse(nl_head, sizeof(if_msg), &get_if_item_cb, &item_cb_data);
 			destroy_get_if_item_cb_data(&item_cb_data);
 			if (SHOW_BLACKLISTED || !if_item->blacklisted) {
-				list_cb_data->if_list = push_if_item(list_cb_data->if_list, &if_item);
+				list_cb_data->if_list = push_if_item(&(list_cb_data->if_list), &if_item);
 			} else {
 				destroy_if_item(&if_item);
 			}
@@ -496,6 +511,25 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 
 static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
+	if (cb_data == NULL) {
+		print_error("Invalid argument received in interface address list callback");
+		return MNL_CB_ERROR;
+	} else {
+		struct ifaddrmsg* if_addr_msg = mnl_nlmsg_get_payload(nl_head);
+		if_item_t* if_item = get_if_item_by_index(*(if_list_t*)cb_data, if_addr_msg->ifa_index);
+
+		if (if_item != NULL && *if_item != NULL && (SHOW_SECONDARY || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
+			if_addr_t if_addr = new_if_addr();
+			if_addr->family = if_addr_msg->ifa_family;
+			if_addr->mask = if_addr_msg->ifa_prefixlen;
+			if_addr->flags = if_addr_msg->ifa_flags;
+			if_addr->scope = if_addr_msg->ifa_scope;
+			mnl_attr_parse(nl_head, sizeof(if_addr_msg), &get_if_addr_cb, &if_addr);
+			(*if_item)->addr_list = push_if_addr(if_item, &if_addr);
+		}
+
+		return MNL_CB_OK;
+	}
 }
 
 
