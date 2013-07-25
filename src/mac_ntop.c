@@ -2,6 +2,7 @@
 #include "mac_ntop.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 char* mac_ntop(const unsigned char* src, char* dst, size_t srclen)
 {

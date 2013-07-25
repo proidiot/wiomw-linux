@@ -5,10 +5,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-int increment_addr(
-		struct sockaddr* addr_base,
-		uint8_t prefix,
-		struct sockaddr* addr_to_increment)
+int increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr* addr_to_increment)
 {
 	if (addr_base == NULL) {
 		return -1;
@@ -57,10 +54,7 @@ int increment_addr(
 	}
 }
 
-int check_addr_range(
-		struct sockaddr* addr_base,
-		uint8_t prefix,
-		struct sockaddr* addr_to_check)
+int check_addr_range(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr* addr_to_check)
 {
 	if (addr_base == NULL) {
 		return -1;
@@ -104,12 +98,10 @@ int check_addr_range(
 	}
 }
 
-int check_scannable_range(struct sockaddr* addr, socklen_t slen, uint8_t prefix)
+int check_scannable_range(struct sockaddr* addr, uint8_t prefix)
 {
 	if (addr == NULL) {
 		return -1;
-	} else if (slen == 0) {
-		return -2;
 	} else if (addr->sa_family == AF_INET) {
 		struct sockaddr_in safe_addr;
 		socklen_t safe_len = sizeof(struct sockaddr_in);
@@ -117,17 +109,17 @@ int check_scannable_range(struct sockaddr* addr, socklen_t slen, uint8_t prefix)
 		safe_addr.sin_family = AF_INET;
 
 		inet_pton(AF_INET, "10.0.0.0", &safe_addr.sin_addr.s_addr);
-		if (check_addr_range((struct sockaddr*)&safe_addr, safe_len, 8, addr, slen) && prefix >= 8) {
+		if (check_addr_range((struct sockaddr*)&safe_addr, 8, addr) && prefix >= 8) {
 			return (1==1);
 		}
 
 		inet_pton(AF_INET, "172.16.0.0", &safe_addr.sin_addr.s_addr);
-		if (check_addr_range((struct sockaddr*)&safe_addr, safe_len, 12, addr, slen) && prefix >= 12) {
+		if (check_addr_range((struct sockaddr*)&safe_addr, 12, addr) && prefix >= 12) {
 			return (1==1);
 		}
 
 		inet_pton(AF_INET, "192.168.0.0", &safe_addr.sin_addr.s_addr);
-		if (check_addr_range((struct sockaddr*)&safe_addr, safe_len, 16, addr, slen) && prefix >= 16) {
+		if (check_addr_range((struct sockaddr*)&safe_addr, 16, addr) && prefix >= 16) {
 			return (1==1);
 		}
 

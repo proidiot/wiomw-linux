@@ -51,7 +51,8 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_wiomw_plugin_OBJECTS = main.$(OBJEXT) configuration.$(OBJEXT) \
 	signal_handler.$(OBJEXT) print_error.$(OBJEXT) api.$(OBJEXT) \
-	neighbours.$(OBJEXT) sockaddr_helpers.$(OBJEXT)
+	neighbours.$(OBJEXT) sockaddr_helpers.$(OBJEXT) \
+	mac_ntop.$(OBJEXT)
 wiomw_plugin_OBJECTS = $(am_wiomw_plugin_OBJECTS)
 am__DEPENDENCIES_1 =
 wiomw_plugin_DEPENDENCIES = $(am__DEPENDENCIES_1) \
@@ -97,8 +98,8 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
-LIBNL3_CFLAGS = @LIBNL3_CFLAGS@
-LIBNL3_LIBS = @LIBNL3_LIBS@
+LIBMNL_CFLAGS = @LIBMNL_CFLAGS@
+LIBMNL_LIBS = @LIBMNL_LIBS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
@@ -180,11 +181,12 @@ wiomw_plugin_SOURCES = main.c \
 		       print_error.c \
 		       api.c \
 		       neighbours.c \
-		       sockaddr_helpers.c
+		       sockaddr_helpers.c \
+		       mac_ntop.c
 
-#AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBNL3_CFLAGS}
-AM_CFLAGS = ${CURL_CFLAGS} ${PTHREAD_CFLAGS} -isystem /usr/include/libnl3 -DSYSCONFDIR=\"${sysconfdir}\"
-wiomw_plugin_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBNL3_LIBS}
+AM_CFLAGS = ${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
+#AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} -isystem /usr/include/libnl3 -DSYSCONFDIR=\"${sysconfdir}\"
+wiomw_plugin_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 all: configuration.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -284,6 +286,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/api.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/configuration.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac_ntop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/neighbours.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/print_error.Po@am__quote@
