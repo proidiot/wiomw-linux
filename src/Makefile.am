@@ -6,8 +6,8 @@ wiomw_plugin_SOURCES = main.c \
 		       print_error.c \
 		       api.c \
 		       neighbours.c \
-		       sockaddr_helpers.c
-#AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBNL3_CFLAGS}
-AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} -isystem /usr/include/libnl3 -DSYSCONFDIR=\"${sysconfdir}\"
-wiomw_plugin_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBNL3_LIBS}
+		       sockaddr_helpers.c \
+		       mac_ntop.c
+AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS}
+wiomw_plugin_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 

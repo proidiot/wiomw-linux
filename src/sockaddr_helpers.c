@@ -7,19 +7,13 @@
 
 int increment_addr(
 		struct sockaddr* addr_base,
-		socklen_t size_base,
 		uint8_t prefix,
-		struct sockaddr* addr_to_increment,
-		socklen_t size_sock)
+		struct sockaddr* addr_to_increment)
 {
 	if (addr_base == NULL) {
 		return -1;
-	} else if (size_base == 0) {
-		return -2;
 	} else if (addr_to_increment == NULL) {
 		return -3;
-	} else if (size_sock < size_base) {
-		return -4;
 	} else if (addr_base->sa_family != AF_INET && addr_base->sa_family != AF_INET6) {
 		return -5;
 	} else if (prefix > 32 && addr_base->sa_family == AF_INET) {
@@ -65,19 +59,13 @@ int increment_addr(
 
 int check_addr_range(
 		struct sockaddr* addr_base,
-		socklen_t size_base,
 		uint8_t prefix,
-		struct sockaddr* addr_to_check,
-		socklen_t size_sock)
+		struct sockaddr* addr_to_check)
 {
 	if (addr_base == NULL) {
 		return -1;
-	} else if (size_base == 0) {
-		return -2;
 	} else if (addr_to_check == NULL) {
 		return -3;
-	} else if (size_sock == 0) {
-		return -4;
 	} else if (addr_base->sa_family != AF_INET && addr_base->sa_family != AF_INET6) {
 		return -5;
 	} else if (addr_base->sa_family != addr_to_check->sa_family) {

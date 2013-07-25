@@ -3,6 +3,7 @@
 #include "print_error.h"
 #include "sockaddr_helpers.h"
 #include "configuration.h"
+#include "mac_ntop.h"
 #include <stdio.h>
 /*
 #include <netlink/netlink.h>
@@ -135,7 +136,7 @@ static void print_rtnl_neigh(struct rtnl_neigh* neighbor, struct rtnl_link* link
 
 
 
-typedef struct if_addr_struct {
+typedef struct {
 	unsigned char family;
 	unsigned char mask;
 	unsigned char flags;
@@ -145,14 +146,14 @@ typedef struct if_addr_struct {
 	char* label;
 	struct sockaddr* bcast;
 	struct sockaddr* acast;
-} * if_addr_t;
+} if_addr_t;
 
 typedef struct if_addr_list_struct {
 	if_addr_t data;
 	struct if_addr_list_struct* next;
 } * if_addr_list_t;
 
-typedef struct if_item_struct {
+typedef struct {
 	unsigned char family;
 	unsigned short type;
 	int index;
@@ -164,9 +165,9 @@ typedef struct if_item_struct {
 	int link;
 	char* qdsp;
 	if_addr_list_t addr_list;
-} * if_item_t;
+} if_item_t;
 
-typedef struct get_if_item_cb_data_struct {
+typedef struct {
 	regex_t* compiled_regex;
 	if_item_t* if_item;
 } get_if_item_cb_data_t;
@@ -176,19 +177,17 @@ typedef struct if_list_struct {
 	struct if_list_struct* next;
 } * if_list_t;
 
-typedef if_list_t if_item_iter_t;
-
-typedef struct get_if_list_cb_data_struct {
+typedef struct {
 	regex_t* compiled_regex;
 	if_list_t* if_list;
 } get_if_list_cb_data_t;
 
-typedef struct print_neigh_list_cb_data_struct {
+typedef struct {
 	FILE* fd;
 	if_list_t if_list;
 } print_neigh_list_cb_data_t;
 
-typedef struct print_neigh_cb_data_struct {
+typedef struct {
 	FILE* fd;
 	unsigned char family;
 } print_neigh_cb_data_t;
@@ -198,9 +197,9 @@ typedef struct print_neigh_cb_data_struct {
 
 
 
-static if_addr_t new_if_addr()
+static if_addr_t* new_if_addr()
 {
-	if_addr_t if_addr = (if_addr_t)malloc(sizeof(struct if_addr_struct));
+	if_addr_t* if_addr = (if_addr_t*)malloc(sizeof(struct if_addr_t));
 	if (if_addr == NULL) {
 		print_syserror("Unable to allocate memory for an interface address object");
 		exit(EX_OSERR);
@@ -213,14 +212,15 @@ static if_addr_t new_if_addr()
 	}
 }
 
-static void destroy_if_addr(if_addr_t* if_addr)
+static void destroy_if_addr(if_addr_t** if_addr)
 {
-	if (*if_addr != NULL) {
+	if (if_addr != NULL && *if_addr != NULL) {
 		free((*if_addr)->label);
 		free((*if_addr)->addr);
 		free((*if_addr)->local);
 		free((*if_addr)->bcast);
-		free(if_addr);
+		free(*if_addr);
+		*if_addr = NULL;
 	}
 }
 
@@ -232,18 +232,18 @@ static if_addr_list_t new_if_addr_list()
 
 static void destroy_if_addr_list(if_addr_list_t* if_addr_list)
 {
-	while (*if_addr_list != NULL) {
+	while (if_addr_list != NULL && *if_addr_list != NULL) {
 		if_addr_list_t temp = *if_addr_list;
-		destroy_if_addr(temp->data);
+		destroy_if_addr(&(temp->data));
 		*if_addr_list = temp->next;
 		free(temp);
 	}
 }
 
 
-static if_item_t new_if_item()
+static if_item_t* new_if_item()
 {
-	if_item_t if_item = (if_item_t)malloc(sizeof(struct if_item_struct));
+	if_item_t* if_item = (if_item_t*)malloc(sizeof(struct if_item_struct));
 	if (if_item == NULL) {
 		print_syserror("Unable to allocate memory for an interface object");
 		exit(EX_OSERR);
@@ -254,15 +254,16 @@ static if_item_t new_if_item()
 	return if_item;
 }
 
-static void destroy_if_item(if_item_t* if_item)
+static void destroy_if_item(if_item_t** if_item)
 {
-	if (if_item == NULL) {
+	if (if_item == NULL || *if_item == NULL) {
 		print_error("Unable to destroy an empty interface object");
 	} else {
 		free((*if_item)->name);
 		free((*if_item)->qdsp);
 		destroy_if_addr_list((*if_item)->addr_list);
-		free(if_item);
+		free(*if_item);
+		*if_item = NULL;
 	}
 }
 
@@ -288,9 +289,9 @@ static if_list_t new_if_list()
 
 static void destroy_if_list(if_list_t* if_list)
 {
-	while (*if_list != NULL) {
+	while (if_list != NULL && *if_list != NULL) {
 		if_list_t temp = *if_list;
-		destroy_if_item(temp->data);
+		destroy_if_item(&(temp->data));
 		*if_list = temp->next;
 		free(temp);
 	}
@@ -367,26 +368,31 @@ static void destroy_print_neigh_cb_data(print_neigh_cb_data_t* print_neigh_cb_da
 
 
 
-static if_addr_list_t push_if_addr(if_addr_list_t* if_addr_list, if_addr_t if_addr)
+static if_addr_list_t push_if_addr(if_addr_list_t* if_addr_list, if_addr_t* if_addr)
 {
 	if_addr_list_t temp = (if_addr_list_t)malloc(sizeof(struct if_addr_list_struct));
 	if (temp == NULL) {
 		print_syserror("Unable to allocate interface address list entry");
 		exit(EX_OSERR);
 	}
+
+	temp->data = if_addr;
+	temp->next = *if_addr_list;
+	*if_addr_list = temp;
+	return *if_addr_list;
 }
 
-static if_addr_t pop_if_addr(if_addr_list_t* if_addr_list)
+static if_addr_t* pop_if_addr(if_addr_list_t* if_addr_list)
 {
 	if_addr_list_t temp = *if_addr_list;
-	if_addr_t if_addr = temp->data;
+	if_addr_t* if_addr = temp->data;
 	*if_addr_list = temp->next;
 	free(temp);
 	return if_addr;
 }
 
 
-static if_list_t push_if_item(if_list_t* if_list, if_item_t if_item)
+static if_list_t push_if_item(if_list_t* if_list, if_item_t* if_item)
 {
 	if_list_t temp = (if_list_t)malloc(sizeof(struct if_list_struct));
 	if (temp == NULL) {
@@ -394,28 +400,28 @@ static if_list_t push_if_item(if_list_t* if_list, if_item_t if_item)
 		exit(EX_OSERR);
 	}
 	temp->data = if_item;
-	temp->next = if_list;
+	temp->next = *if_list;
 	*if_list = temp;
-	return temp;
+	return *if_list;
 }
 
-static if_item_t pop_if_item(if_list_t* if_list)
+static if_item_t* pop_if_item(if_list_t* if_list)
 {
 	if_list_t temp = *if_list;
-	if_item_t if_item = temp->data;
+	if_item_t* if_item = temp->data;
 	*if_list = temp->next;
 	free(temp);
 	return if_item;
 }
 
 
-static if_item_t next_if_item(if_item_iter_t* if_item_iter)
+static if_item_t* next_if_item(if_item_iter_t* if_item_iter)
 {
 	if (if_item_iter == NULL || *if_item_iter == NULL) {
 		return (if_item_t)NULL;
 	}
 
-	if_item_t if_item = (*if_item_iter)->data;
+	if_item_t* if_item = (*if_item_iter)->data;
 	*if_item_iter = (*if_item_iter)->next;
 	return if_item;
 }
@@ -429,16 +435,16 @@ static if_item_t next_if_item(if_item_iter_t* if_item_iter)
 
 static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 {
-	if (cb_data == NULL || ((get_if_item_cb_data_t*)cb_data)->compiled_regex == NULL) {
+	get_if_item_cb_data_t* item_cb_data = (get_if_item_cb_data_t*)cb_data;
+	if (item_cb_data == NULL || item_cb_data->compiled_regex == NULL || item_cb_data->if_item == NULL) {
 		print_error("Inavlid argument received in interface item callback");
 		return MNL_CB_ERROR;
 	} else if (mnl_attr_type_valid(nl_attr, IFLA_MAX) < 0) {
 		print_syserror("Received invalid netlink attribute type");
 		return MNL_CB_ERROR;
-	} else if (!SHOW_BLACKLISTED && ((if_item_t*)cb_data)->blacklisted) {
+	} else if (!SHOW_BLACKLISTED && item_cb_data->if_item->blacklisted) {
 		return MNL_CB_OK;
 	} else {
-		get_if_item_cb_data_t* item_cb_data = (get_if_item_cb_data_t*)cb_data;
 		switch (mnl_attr_get_type(nl_attr)) {
 		case IFLA_IFNAME:
 			if (mnl_attr_validate(nl_attr, MNL_TYPE_NUL_STRING) < 0) {
@@ -446,17 +452,17 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 				return MNL_CB_ERROR;
 			} else {
 				const char* if_name = mnl_attr_get_str(nl_attr);
-				item_cb_data->if_item.name = (char*)malloc(strlen(if_name) + 1);
-				if (item_cb_name->if_item.name == NULL) {
+				item_cb_data->if_item->name = (char*)malloc(strlen(if_name) + 1);
+				if (item_cb_name->if_item->name == NULL) {
 					print_syserror("Unable to allocate interface name");
 					exit(EX_OSERR);
 				}
-				strcpy(item_cb_data->if_item.name, if_name);
-				errcode = regexec(item_cb_data->compiled_regex, item_cb_data->if_item.name, 0, NULL, REG_EXTENDED);
+				strcpy(item_cb_data->if_item->name, if_name);
+				errcode = regexec(item_cb_data->compiled_regex, item_cb_data->if_item->name, 0, NULL, REG_EXTENDED);
 				if (errcode == 0) {
-					item_cb_data->if_item.blacklisted = true;
+					item_cb_data->if_item->blacklisted = true;
 				} else if (errcode == REG_NOMATCH) {
-					item_cb_data->if_item.blacklisted = false;
+					item_cb_data->if_item->blacklisted = false;
 				} else {
 					print_syserror("Unable to evaluate the interface blacklist regex");
 					return MNL_CB_ERROR;
@@ -469,7 +475,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 				return MNL_CB_ERROR;
 			} else {
 				const unsigned char* mac = mnl_attr_get_payload(nl_attr);
-				memcpy(item_cb_data->if_item.mac, mac, 6);
+				memcpy(item_cb_data->if_item->mac, mac, 6);
 			}
 			break;
 		case IFLA_BROADCAST:
@@ -478,7 +484,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 				return MNL_CB_ERROR;
 			} else {
 				const unsigned char* bmac = mnl_attr_get_payload(nl_attr);
-				memcpy(item_cb_data->if_item.bmac, bmac, 6);
+				memcpy(item_cb_data->if_item->bmac, bmac, 6);
 			}
 			break;
 		case IFLA_MTU:
@@ -486,7 +492,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 				print_syserror("Received invalid MTU from netlink");
 				return MNL_CB_ERROR;
 			} else {
-				item_cb_data->if_item.mtu = mnl_attr_get_u32(nl_attr);
+				item_cb_data->if_item->mtu = mnl_attr_get_u32(nl_attr);
 			}
 			break;
 		case IFLA_LINK:
@@ -494,7 +500,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 				print_syserror("Received invalid link type from netlink");
 				return MNL_CB_ERROR;
 			} else {
-				item_cb_data->if_item.link = TODO;
+				item_cb_data->if_item->link = TODO;
 			}
 			break;
 		case IFLA_QDISC:
@@ -503,12 +509,12 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 				return MNL_CB_ERROR;
 			} else {
 				const char* qdsp = mnl_attr_get_str(nl_attr);
-				item_cb_data->if_item.qdsp = (char*)malloc(strlen(qdsp) + 1);
-				if (item_cb_data->if_item.qdsp == NULL) {
+				item_cb_data->if_item->qdsp = (char*)malloc(strlen(qdsp) + 1);
+				if (item_cb_data->if_item->qdsp == NULL) {
 					print_syserror("Unable to allocate interface queue discipline name");
 					exit(EX_OSERR);
 				}
-				strcpy(item_cb_data->if_item.qdsp, qdsp);
+				strcpy(item_cb_data->if_item->qdsp, qdsp);
 			}
 			break;
 		}
@@ -518,17 +524,17 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 
 static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 {
-	if (cb_data == NULL || *cb_data == NULL) {
+	if_addr_t* if_addr = (if_addr_t*)cb_data;
+	if (if_addr == NULL) {
 		print_error("Invalid argument received in interface address callback ");
 		return MNL_CB_ERROR;
 	} else if (mnl_attr_type_valid(nl_attr, IFA_MAX) < 0) {
 		print_syserror("Received invalid netlink attribute type");
 		return MNL_CB_ERROR;
 	} else {
-		if_addr_t* if_addr = (if_addr_t*)cb_data;
 		switch(mnl_attr_get_type(nl_attr)) {
 		case IFA_ADDRESS:
-			if ((*if_addr)->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
+			if (if_addr->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
 				struct in_addr* s_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 				if (addr == NULL) {
@@ -538,8 +544,8 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in));
 				addr->family = AF_INET;
 				memcpy(&(addr->sin_addr.s_addr), s_addr, sizeof(struct in_addr));
-				*(*if_addr)->addr = addr;
-			} else if ((*if_addr)->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
+				if_addr->addr = addr;
+			} else if (if_addr->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
 				struct in6_addr* s6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 				if (addr == NULL) {
@@ -549,14 +555,14 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in6));
 				addr->family = AF_INET6;
 				memcpy(&(addr->sin6_addr.s6_addr), s6_addr, sizeof(struct in6_addr));
-				*(*if_addr)->addr = addr;
+				if_addr->addr = addr;
 			} else {
 				print_syserror("Received invalid address from netlink");
 				return MNL_CB_ERROR;
 			}
 			break;
 		case IFA_LOCAL:
-			if ((*if_addr)->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
+			if (if_addr->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
 				struct in_addr* s_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 				if (addr == NULL) {
@@ -566,8 +572,8 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in));
 				addr->family = AF_INET;
 				memcpy(&(addr->sin_addr.s_addr), s_addr, sizeof(struct in_addr));
-				*(*if_addr)->local = addr;
-			} else if ((*if_addr)->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
+				if_addr->local = addr;
+			} else if (if_addr->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
 				struct in6_addr* s6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 				if (addr == NULL) {
@@ -577,7 +583,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in6));
 				addr->family = AF_INET6;
 				memcpy(&(addr->sin6_addr.s6_addr), s6_addr, sizeof(struct in6_addr));
-				*(*if_addr)->local = addr;
+				if_addr->local = addr;
 			} else {
 				print_syserror("Received invalid local address from netlink");
 				return MNL_CB_ERROR;
@@ -589,16 +595,16 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				return MNL_CB_ERROR;
 			} else {
 				const char* label = mnl_attr_get_payload(nl_attr);
-				(*if_addr)->label = (char*)malloc(strlen(label) + 1);
-				if ((*if_addr)->label == NULL) {
+				if_addr->label = (char*)malloc(strlen(label) + 1);
+				if (if_addr->label == NULL) {
 					print_syserror("Unable to allocate memory for an address label");
 					exit(EX_OSERR);
 				}
-				strcpy((*if_addr)->label, label);
+				strcpy(if_addr->label, label);
 			}
 			break;
 		case IFA_BROADCAST:
-			if ((*if_addr)->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
+			if (if_addr->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
 				struct in_addr* s_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 				if (addr == NULL) {
@@ -608,8 +614,8 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in));
 				addr->family = AF_INET;
 				memcpy(&(addr->sin_addr.s_addr), s_addr, sizeof(struct in_addr));
-				*(*if_addr)->bcast = addr;
-			} else if ((*if_addr)->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
+				if_addr->bcast = addr;
+			} else if (if_addr->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
 				struct in6_addr* s6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 				if (addr == NULL) {
@@ -619,14 +625,14 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in6));
 				addr->family = AF_INET6;
 				memcpy(&(addr->sin6_addr.s6_addr), s6_addr, sizeof(struct in6_addr));
-				*(*if_addr)->bcast = addr;
+				if_addr->bcast = addr;
 			} else {
 				print_syserror("Received invalid broadcast address from netlink");
 				return MNL_CB_ERROR;
 			}
 			break;
 		case IFA_ANYCAST:
-			if ((*if_addr)->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
+			if (if_addr->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
 				struct in_addr* s_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 				if (addr == NULL) {
@@ -636,8 +642,8 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in));
 				addr->family = AF_INET;
 				memcpy(&(addr->sin_addr.s_addr), s_addr, sizeof(struct in_addr));
-				*(*if_addr)->acast = addr;
-			} else if ((*if_addr)->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
+				if_addr->acast = addr;
+			} else if (if_addr->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
 				struct in6_addr* s6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 				if (addr == NULL) {
@@ -647,7 +653,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, coid* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in6));
 				addr->family = AF_INET6;
 				memcpy(&(addr->sin6_addr.s6_addr), s6_addr, sizeof(struct in6_addr));
-				*(*if_addr)->acast = addr;
+				if_addr->acast = addr;
 			} else {
 				print_syserror("Received invalid anycast address from netlink");
 				return MNL_CB_ERROR;
@@ -697,11 +703,12 @@ static int print_neigh_cb(const struct nlmsghdr* nl_head, void* cb_data)
 				return MNL_CB_ERROR;
 			} else {
 				const unsigned char* mac = mnl_attr_get_payload(nl_attr);
-				if (BIG_ENDIAN) {
-					fprintf(neigh_cb_data->fd, "\"macaddress\":\"%2x:%2x:%2x:%2x:%2x:%2x\",", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-				} else {
-					fprintf(neigh_cb_data->fd, "\"macaddress\":\"%2x:%2x:%2x:%2x:%2x:%2x\",", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+				char str_temp[BUFSIZ];
+				if (NULL == mac_ntop(mac, str_temp, 6)) {
+					print_error("Unable to print MAC address");
+					return MNL_CB_ERROR;
 				}
+				fprintf(neigh_cb_data->fd, "\"macaddress\":\"%s\",", str_temp);
 			}
 			break;
 		}
@@ -711,17 +718,17 @@ static int print_neigh_cb(const struct nlmsghdr* nl_head, void* cb_data)
 
 static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
-	if (cb_data == NULL || ((get_if_list_cb_data_t*)cb_data)->compiled_regex == NULL) {
+	get_if_list_cb_data_t* list_cb_data = (get_if_list_cb_data_t*)cb_data;
+	if (list_cb_data == NULL || list_cb_data->compiled_regex == NULL) {
 		print_error("Invalid argument received in interface list callback");
 		return MNL_CB_ERROR;
 	} else {
-		get_if_list_cb_data_t* list_cb_data = (get_if_list_cb_data_t*)cb_data
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 		int len = nl_head->nlmsg_len;
 	
-		if (SHOW_NOT_RUNNING || if_msg->ifi_flags & IFF_RUNNING) {
-			if_item_t if_item = new_if_item();
-			get_if_item_cb_data_t item_cb_data = new_get_if_item_cb_data(list_cb_data->compiled_regex, &if_item);
+		if (!(if_msg->ifi_flags & IFF_LOOPBACK) && (SHOW_NOT_RUNNING || if_msg->ifi_flags & IFF_RUNNING)) {
+			if_item_t* if_item = new_if_item();
+			get_if_item_cb_data_t item_cb_data = new_get_if_item_cb_data(list_cb_data->compiled_regex, if_item);
 			if_item->index = if_msg->ifi_index;
 			if_item->type = if_msg->ifi_type;
 			if_item->flags = if_msg->ifi_flags;
@@ -729,7 +736,7 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 			mnl_attr_parse(nl_head, sizeof(if_msg), &get_if_item_cb, &item_cb_data);
 			destroy_get_if_item_cb_data(&item_cb_data);
 			if (SHOW_BLACKLISTED || !if_item->blacklisted) {
-				list_cb_data->if_list = push_if_item(&(list_cb_data->if_list), &if_item);
+				list_cb_data->if_list = push_if_item(&(list_cb_data->if_list), if_item);
 			} else {
 				destroy_if_item(&if_item);
 			}
@@ -741,21 +748,22 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 
 static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
+	if_list_t addr_list_cb_data = (if_list_t)cb_data;
 	if (cb_data == NULL) {
 		print_error("Invalid argument received in interface address list callback");
 		return MNL_CB_ERROR;
-	} else {
+	} else {x
 		struct ifaddrmsg* if_addr_msg = mnl_nlmsg_get_payload(nl_head);
-		if_item_t* if_item = get_if_item_by_index(*(if_list_t*)cb_data, if_addr_msg->ifa_index);
+		if_item_t* if_item = get_if_item_by_index(addr_list_cb_data, if_addr_msg->ifa_index);
 
-		if (if_item != NULL && *if_item != NULL && (SHOW_SECONDARY || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
-			if_addr_t if_addr = new_if_addr();
+		if (if_item != NULL && (SHOW_SECONDARY || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
+			if_addr_t* if_addr = new_if_addr();
 			if_addr->family = if_addr_msg->ifa_family;
 			if_addr->mask = if_addr_msg->ifa_prefixlen;
 			if_addr->flags = if_addr_msg->ifa_flags;
 			if_addr->scope = if_addr_msg->ifa_scope;
-			mnl_attr_parse(nl_head, sizeof(if_addr_msg), &get_if_addr_cb, &if_addr);
-			(*if_item)->addr_list = push_if_addr(if_item, &if_addr);
+			mnl_attr_parse(nl_head, sizeof(if_addr_msg), &get_if_addr_cb, if_addr);
+			if_item->addr_list = push_if_addr(if_item, if_addr);
 		}
 
 		return MNL_CB_OK;
@@ -835,7 +843,7 @@ static if_list_t get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex
 	unsigned int seq;
 	unsigned int portid;
 	if_list_t if_list = new_if_list();
-	get_if_list_cb_data_t get_if_list_cb_data = new_get_if_list_cb_data(compiled_regex, &if_list);
+	get_if_list_cb_data_t get_if_list_cb_data = new_get_if_list_cb_data(compiled_regex, if_list);
 
 	nl_head = mnl_nlmsg_put_header(buf);
 	nl_head->nlmsg_type = RTM_GETLINK;
@@ -860,11 +868,12 @@ static if_list_t get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex
 		exit(EX_OSERR);
 	}
 
+	if_list = get_if_list_cb_data->if_list;
 	destroy_get_if_list_cb_data(&get_if_list_cb_data);
 	return if_list;
 }
 
-static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
+static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t if_list)
 {
 	char buf[getpagesize()];
 	struct nlmsghdr* nl_head;
@@ -897,7 +906,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
 	}
 }
 
-static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t* if_list)
+static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_list)
 {
 	char buf[getpagesize()];
 	struct nlmsghdr* nl_head;
@@ -932,14 +941,216 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t* if
 	}
 }
 
+static void print_if_list(FILE* fd, if_list_t if_list)
+{
+	if_list_t if_list_iter = if_list;
+
+	while (if_list_iter != NULL) {
+		if_item_t if_item = *(if_list_iter->data);
+		if (!if_item->blacklisted) {
+			if_addr_list_t if_addr_list_iter = if_item->addr_list;
+			if_item_t real_if_item = NULL;
+
+			if (if_item->iface != if_item->link) {
+				real_if_item = get_if_item_by_index(if_list);
+			}
+
+			while (if_addr_list_iter != NULL) {
+				char str_temp[BUFSIZ];
+				if_addr_t if_addr = *(if_addr_list_iter->data);
+				fprintf(fd, ",{");
+
+				if (if_item->flags & IFF_UP) {
+					fprintf(fd, "\"ifup\":1,");
+				}
+				if (if_item->flags & IFF_BROADCAST) {
+					fprintf(fd, "\"bcastset\":1,");
+				}
+				if (if_item->flags & IFF_POINTOPOINT) {
+					fprintf(fd, "\"ptp\":1,");
+				}
+				if (if_item->flags & IFF_NOARP) {
+					fprintf(fd, "\"noarp\":1,");
+				}
+				if (if_item->flags & IFF_PROMISC) {
+					fprintf(fd, "\"promiscuous\":1,");
+				}
+				if (if_item->flags & IFF_NOTRAILERS) {
+					fprintf(fd, "\"notrailers\":1,");
+				}
+				if (if_item->flags & IFF_ALLMULTI) {
+					fprintf(fd, "\"recvallmcast\":1,");
+				}
+				if (if_item->flags & IFF_MASTER) {
+					fprintf(fd, "\"lbmaster\":1,");
+				}
+				if (if_item->flags & IFF_SLAVE) {
+					fprintf(fd, "\"lbslave\":1,");
+				}
+				if (if_item->flags & IFF_MULTICAST) {
+					fprintf(fd, "\"supportmcast\":1,");
+				}
+				if (if_item->flags & IFF_PORTSEL) {
+					fprintf(fd, "\"portsel\":1,");
+				}
+				if (if_item->flags & IFF_AUTOMEDIA) {
+					fprintf(fd, "\"automedia\":1,");
+				}
+				if (if_item->flags & IFF_DYNAMIC) {
+					fprintf(fd, "\"dynamic\":1,");
+				}
+				fprintf(fd, "\"iface\":\"%s\",", if_item->name);
+				if (NULL == mac_ntop(if_item->mac, str_temp, 6)) {
+					print_error("Unable to print MAC address for %s", if_item->name);
+				} else {
+					fprintf(fd, "\"macaddress\":\"%s\",", str_temp);
+				}
+				if (NULL == mac_ntop(if_item->bmac, str_temp, 6)) {
+					print_error("Unable to print broadcast MAC address for %s", if_item->name);
+				} else {
+					fprintf(fd, "\"bmac\":\"%s\",", str_temp);
+				}
+				fprintf(fd, "\"mtu\":%lu,", if_item->mtu);
+				if (real_if_item != NULL) {
+					fprintf(fd, "\"realiface\":\"%s\",", real_if_item->name);
+				}
+				fprintf(fd, "\"qdiscipline\":\"%s\",", if_item->qdsp);
+				if (if_addr->flags & IFA_F_SECONDARY) {
+					fprintf(fd, "\"secondaryaddr\":1,");
+				}
+				if (if_addr->flags & IFA_F_PERMANENT) {
+					fprintf(fd, "\"permanent\":1,");
+				}
+				fprintf(fd, "\"addrname\":\"%s\",", if_addr->label);
+				fprintf(fd, "\"masklength\":%u,", if_addr->mask);
+				if (if_addr->family == AF_INET) {
+					if (NULL == inet_ntop(AF_INET, if_addr->addr->sin_addr.s_addr, str_temp, sizeof(struct in_addr))) {
+						print_syserror("Unable to print an IP address for %s", if_item->name);
+					} else {
+						fprintf(fd, "\"ipaddress\":\"%s\",", str_temp);
+					}
+					if (NULL == inet_ntop(AF_INET, if_addr->local->sin_addr.s_addr, str_temp, sizeof(struct in_addr))) {
+						print_syserror("Unable to print an internal IP address for %s", if_item->name);
+					} else {
+						fprintf(fd, "\"internalip\":\"%s\",", str_temp);
+					}
+					if (NULL == inet_ntop(AF_INET, if_addr->bcast->sin_addr.s_addr, str_temp, sizeof(struct in_addr))) {
+						print_syserror("Unable to print a broadcast IP address for %s", if_item->name);
+					} else {
+						fprintf(fd, "\"bcast\":\"%s\",", str_temp);
+					}
+					if (NULL == inet_ntop(AF_INET, if_addr->acast->sin_addr.s_addr, str_temp, sizeof(struct in_addr))) {
+						print_syserror("Unable to print an anycast IP address for %s", if_item->name);
+					} else {
+						fprintf(fd, "\"acast\":\"%s\",", str_temp);
+					}
+				} else if (if_addr->family == AF_INET6) {
+					if (NULL == inet_ntop(AF_INET6, if_addr->addr->sin6_addr.s6_addr, str_temp, sizeof(struct in6_addr))) {
+						print_syserror("Unable to print an IP address for %s", if_item->name);
+					} else {
+						fprintf(fd, "\"ip6\":\"%s\",", str_temp);
+					}
+					if (NULL == inet_ntop(AF_INET6, if_addr->local->sin6_addr.s6_addr, str_temp, sizeof(struct in6_addr))) {
+						print_syserror("Unable to print an internal IP address for %s", if_item->name);
+					} else {
+						fprintf(fd, "\"internalip\":\"%s\",", str_temp);
+					}
+					if (NULL == inet_ntop(AF_INET6, if_addr->bcast->sin6_addr.s6_addr, str_temp, sizeof(struct in6_addr))) {
+						print_syserror("Unable to print a broadcast IP address for %s", if_item->name);
+					} else {
+						fprintf(fd, "\"bcast\":\"%s\",", str_temp);
+					}
+					if (NULL == inet_ntop(AF_INET6, if_addr->acast->sin6_addr.s6_addr, str_temp, sizeof(struct in6_addr))) {
+						print_syserror("Unable to print an anycast IP address for %s", if_item->name);
+					} else {
+						fprintf(fd, "\"acast\":\"%s\",", str_temp);
+					}
+				}
+				fprintf(fd, "\"isagent\":1}");
+				if_addr_list_iter = if_addr_list_iter->next;
+			}
+		}
+		if_list_iter = if_list_iter->next;
+	}
+}
 
 
 
 
 
+/*
+static void scan_networks(struct mnl_socket* nl_sock, if_list_t* if_list, net_list_t* net_list)
+{
+}
+*/
 
+static void autoscan_networks(struct mnl_socket* nl_sock, if_list_t* if_list)
+{
+	if_list_t if_item_iter = *if_list;
 
+	while (if_item_iter != NULL) {
+		if_item_t* if_item = if_item_iter->data;
 
+		if (!(*if_item)->blacklisted) {
+			if_addr_list_t if_addr_iter = (*item_iter)->addr_list;
+
+			while (if_addr_iter != NULL) {
+				if_addr_t* if_addr = if_addr_iter->data;
+
+				if (check_scannable_range(if_addr->family, if_addr->mask) > 0) {
+					size_t remote_addr_size = (())?sizeof(struct sockaddr_in):sizeof(sockaddr_in6);
+					struct sockaddr* remote_addr = (struct sockaddr*)malloc(socklen);
+					memset(remote_addr, 0, socklen);
+					while (increment_addr(if_addr->addr, if_addr->mask, remote_addr) > 0) {
+						int fdfl = 0;
+						int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+						if (sockfd == -1) {
+							print_syserror("Unable to create socket");
+						} else if ((fdfl = fcntl(sockfd, F_GETFL)) == -1) {
+							print_syserror("Unable to get socket metadata");
+						} else if (fcntl(sockfd, F_SETFL, fdfl | O_NONBLOCK) == -1) {
+							print_syserror("Unable to put socket into non-blocking mode");
+						} else {
+							char str_temp[BUFSIZ];
+							if (remote_addr->sa_family == AF_INET) {
+								struct sockaddr_in* remote_ip4 = (struct sockaddr_in*)remote_addr;
+								if (NULL == inet_ntop(
+										AF_INET,
+										&remote_ip4->sin_addr.s_addr,
+										str_temp,
+										sizeof(struct sockaddr_in))) {
+									print_syserror("Unable to parse IP address");
+								}
+								remote_ip4->sin_port = htons(9);
+							} else {
+								struct sockaddr_in6* remote_ip6 = (struct sockaddr_in6*)remote_addr;
+								if (NULL == inet_ntop(
+										AF_INET,
+										&remote_ip6->sin6_addr.s6_addr,
+										str_temp,
+										sizeof(struct sockaddr_in6))) {
+									print_syserror("Unable to parse IP address");
+								}
+								remote_ip6->sin6_port = htons(9);
+							}
+							errcode = connect(sockfd, remote_addr, socklen_remote_addr);
+							if (errcode == -1) {
+								if (errno != EINPROGRESS) {
+									print_syserror("Unable to connect to %s", str_temp);
+								}
+							}
+						}
+						close(sockfd);
+					}
+				}
+
+				if_addr_iter = if_addr_iter->next;
+			}
+		}
+
+		if_item_iter = if_item_iter->next;
+	}
+}
 
 
 
@@ -995,7 +1206,14 @@ void print_neighbours(config_t* config, FILE* fd)
 
 	get_if_addrs(nl_sock, &if_list);
 
-	probe_neighs(nl_sock, if_list);
+	/*
+	if (config->network_list != NULL) {
+		scan_networks(nl_sock, if_list, config->network_list);
+	} else {
+		autoscan_networks(nl_sock, if_list);
+	}
+	*/
+	autoscan_networks(nl_sock, if_list);
 
 	print_if_list(fd, if_list);
 
