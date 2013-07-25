@@ -107,6 +107,7 @@ static if_addr_t* new_if_addr()
 		if_addr->addr = NULL;
 		if_addr->local = NULL;
 		if_addr->bcast = NULL;
+		if_addr->acast = NULL;
 		return if_addr;
 	}
 }
@@ -118,6 +119,7 @@ static void destroy_if_addr(if_addr_t** if_addr)
 		free((*if_addr)->addr);
 		free((*if_addr)->local);
 		free((*if_addr)->bcast);
+		free((*if_addr)->acast);
 		free(*if_addr);
 		*if_addr = NULL;
 	}
@@ -507,7 +509,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in));
 				addr->sin_family = AF_INET;
 				memcpy(&(addr->sin_addr.s_addr), bin_addr, sizeof(struct in_addr));
-				if_addr->local = (struct sockaddr*)addr;
+				if_addr->bcast = (struct sockaddr*)addr;
 			} else if (if_addr->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
 				struct in6_addr* bin6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
@@ -518,7 +520,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in6));
 				addr->sin6_family = AF_INET6;
 				memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
-				if_addr->local = (struct sockaddr*)addr;
+				if_addr->bcast = (struct sockaddr*)addr;
 			} else {
 				print_syserror("Received invalid broadcast address from netlink");
 				return MNL_CB_ERROR;
@@ -535,7 +537,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in));
 				addr->sin_family = AF_INET;
 				memcpy(&(addr->sin_addr.s_addr), bin_addr, sizeof(struct in_addr));
-				if_addr->local = (struct sockaddr*)addr;
+				if_addr->acast = (struct sockaddr*)addr;
 			} else if (if_addr->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
 				struct in6_addr* bin6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
@@ -546,7 +548,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				memset(addr, 0, sizeof(struct sockaddr_in6));
 				addr->sin6_family = AF_INET6;
 				memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
-				if_addr->local = (struct sockaddr*)addr;
+				if_addr->acast = (struct sockaddr*)addr;
 			} else {
 				print_syserror("Received invalid anycast address from netlink");
 				return MNL_CB_ERROR;
@@ -1057,6 +1059,7 @@ static void autoscan_networks(struct mnl_socket* nl_sock, if_list_t if_list)
 						}
 						close(sockfd);
 					}
+					free(remote_addr);
 				}
 
 				if_addr_iter = if_addr_iter->next;
