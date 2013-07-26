@@ -8,6 +8,8 @@
 #include <string.h>
 #include <sysexits.h>
 
+#define AGENT_VERSION "linux-0.100.0-testing-0"
+
 typedef struct holder_t_struct {
 	size_t size_offset;
 	char* str_data;
@@ -80,11 +82,12 @@ void wiomw_login(config_t* config)
 
 	fprintf(
 			fd,
-			"{\"username\":\"%s\",\"password\":\"%s\",\"agentkey\":\"%s-%s\"}",
+			"{\"username\":\"%s\",\"password\":\"%s\",\"agentkey\":\"%s-%s\",\"agentversion\":\"%s\"}",
 			config->str_username,
 			config->str_passhash,
 			API_AGENT_KEY,
-			get_unique_agent_key());
+			get_unique_agent_key(),
+			AGENT_VERSION);
 
 	fseek(fd, 0, SEEK_END);
 	fd_size = ftell(fd);

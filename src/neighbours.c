@@ -80,7 +80,7 @@ typedef struct {
 	regex_t* compiled_regex;
 	if_list_t* if_list;
 } get_if_list_cb_data_t;
-
+/*
 typedef struct {
 	FILE* fd;
 	if_list_t* if_list;
@@ -90,7 +90,7 @@ typedef struct {
 	FILE* fd;
 	unsigned char family;
 } print_neigh_cb_data_t;
-
+*/
 
 
 
@@ -103,6 +103,10 @@ static if_addr_t* new_if_addr()
 		print_syserror("Unable to allocate memory for an interface address object");
 		exit(EX_OSERR);
 	} else {
+		if_addr->family = AF_UNSPEC;
+		if_addr->mask = 0;
+		if_addr->flags = 0;
+		if_addr->scope = 0;
 		if_addr->label = NULL;
 		if_addr->addr = NULL;
 		if_addr->local = NULL;
@@ -149,8 +153,27 @@ static if_item_t* new_if_item()
 		print_syserror("Unable to allocate memory for an interface object");
 		exit(EX_OSERR);
 	}
+	if_item->family = AF_UNSPEC;
+	if_item->type = 0;
+	if_item->index = -1;
+	if_item->flags = 0;
 	if_item->name = NULL;
+	if_item->mac[0] = 0x00;
+	if_item->mac[1] = 0x00;
+	if_item->mac[2] = 0x00;
+	if_item->mac[3] = 0x00;
+	if_item->mac[4] = 0x00;
+	if_item->mac[5] = 0x00;
+	if_item->bmac[0] = 0x00;
+	if_item->bmac[1] = 0x00;
+	if_item->bmac[2] = 0x00;
+	if_item->bmac[3] = 0x00;
+	if_item->bmac[4] = 0x00;
+	if_item->bmac[5] = 0x00;
+	if_item->mtu = 0;
+	if_item->link = -1;
 	if_item->qdsp = NULL;
+	if_item->blacklisted = false;
 	if_item->addr_list = new_if_addr_list();
 	return if_item;
 }
@@ -169,9 +192,11 @@ static void destroy_if_item(if_item_t** if_item)
 }
 
 
-static get_if_item_cb_data_t new_get_if_item_cb_data()
+static get_if_item_cb_data_t new_get_if_item_cb_data(regex_t* compiled_regex, if_item_t* if_item)
 {
 	get_if_item_cb_data_t result;
+	result.compiled_regex = compiled_regex;
+	result.if_item = if_item;
 	return result;
 }
 
@@ -218,7 +243,7 @@ static void destroy_get_if_list_cb_data(get_if_list_cb_data_t* get_if_list_cb_da
 	}
 }
 
-
+/*
 static print_neigh_list_cb_data_t new_print_neigh_list_cb_data(FILE* fd, if_list_t* if_list)
 {
 	print_neigh_list_cb_data_t result;
@@ -249,7 +274,7 @@ static void destroy_print_neigh_cb_data(print_neigh_cb_data_t* print_neigh_cb_da
 		print_error("Unable to destroy an empty print neighbour callback argument");
 	}
 }
-
+*/
 
 
 
@@ -306,7 +331,7 @@ static if_item_t* pop_if_item(if_list_t* if_list)
 */
 
 
-static if_item_t* get_if_item_by_index(const if_list_t if_list, const int if_index)
+static if_item_t* get_if_item_by_index(if_list_t if_list, const int if_index)
 {
 	if_list_t temp = if_list;
 	while (temp != NULL) {
@@ -420,6 +445,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 {
 	if_addr_t* if_addr = (if_addr_t*)cb_data;
+	print_error("Got an addy");
 	if (if_addr == NULL) {
 		print_error("Invalid argument received in interface address callback ");
 		return MNL_CB_ERROR;
@@ -558,7 +584,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 		return MNL_CB_OK;
 	}
 }
-
+/*
 static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 {
 	print_neigh_cb_data_t* neigh_cb_data = (print_neigh_cb_data_t*)cb_data;
@@ -610,7 +636,7 @@ static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 		return MNL_CB_OK;
 	}
 }
-
+*/
 static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
 	get_if_list_cb_data_t* list_cb_data = (get_if_list_cb_data_t*)cb_data;
@@ -620,17 +646,19 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	} else {
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 	
+		print_error("got if: %d %d", !(if_msg->ifi_flags & IFF_LOOPBACK), if_msg->ifi_flags & IFF_RUNNING);
 		if (!(if_msg->ifi_flags & IFF_LOOPBACK) && (SHOW_NOT_RUNNING || if_msg->ifi_flags & IFF_RUNNING)) {
 			if_item_t* if_item = new_if_item();
 			get_if_item_cb_data_t item_cb_data = new_get_if_item_cb_data(list_cb_data->compiled_regex, if_item);
+			print_error("got if index: %d", if_msg->ifi_index);
 			if_item->index = if_msg->ifi_index;
 			if_item->type = if_msg->ifi_type;
 			if_item->flags = if_msg->ifi_flags;
 			if_item->family = if_msg->ifi_family;
-			mnl_attr_parse(nl_head, sizeof(if_msg), &get_if_item_cb, &item_cb_data);
+			mnl_attr_parse(nl_head, sizeof(struct ifinfomsg), &get_if_item_cb, &item_cb_data);
 			destroy_get_if_item_cb_data(&item_cb_data);
 			if (SHOW_BLACKLISTED || !if_item->blacklisted) {
-				*list_cb_data->if_list = push_if_item(list_cb_data->if_list, if_item);
+				*(list_cb_data->if_list) = push_if_item(list_cb_data->if_list, if_item);
 			} else {
 				destroy_if_item(&if_item);
 			}
@@ -642,28 +670,30 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 
 static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
-	if_list_t addr_list_cb_data = (if_list_t)cb_data;
+	if_list_t* addr_list_cb_data = (if_list_t*)cb_data;
 	if (cb_data == NULL) {
 		print_error("Invalid argument received in interface address list callback");
 		return MNL_CB_ERROR;
 	} else {
 		struct ifaddrmsg* if_addr_msg = mnl_nlmsg_get_payload(nl_head);
-		if_item_t* if_item = get_if_item_by_index(addr_list_cb_data, if_addr_msg->ifa_index);
+		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data, if_addr_msg->ifa_index);
+		print_error("Gettin the addresses: %X %d", *addr_list_cb_data, if_addr_msg->ifa_index);
 
 		if (if_item != NULL && (SHOW_SECONDARY || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
 			if_addr_t* if_addr = new_if_addr();
+			print_error("got address");
 			if_addr->family = if_addr_msg->ifa_family;
 			if_addr->mask = if_addr_msg->ifa_prefixlen;
 			if_addr->flags = if_addr_msg->ifa_flags;
 			if_addr->scope = if_addr_msg->ifa_scope;
-			mnl_attr_parse(nl_head, sizeof(if_addr_msg), &get_if_addr_cb, if_addr);
+			mnl_attr_parse(nl_head, sizeof(struct ifaddrmsg), &get_if_addr_cb, if_addr);
 			if_item->addr_list = push_if_addr(&(if_item->addr_list), if_addr);
 		}
 
 		return MNL_CB_OK;
 	}
 }
-
+/*
 static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
 	print_neigh_list_cb_data_t* neigh_list_cb_data = (print_neigh_list_cb_data_t*)cb_data;
@@ -710,7 +740,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 			if (nd_msg->ndm_flags & NTF_ROUTER) {
 				fprintf(neigh_list_cb_data->fd, "\"router\":1,");
 			}
-			mnl_attr_parse(nl_head, sizeof(nd_msg), &print_neigh_cb, &neigh_cb_data);
+			mnl_attr_parse(nl_head, sizeof(struct ndmsg), &print_neigh_cb, &neigh_cb_data);
 			destroy_print_neigh_cb_data(&neigh_cb_data);
 			fprintf(neigh_list_cb_data->fd, "\"iface\":\"%s\"}", if_item->name);
 		}
@@ -718,6 +748,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		return MNL_CB_OK;
 	}
 }
+*/
 
 
 
@@ -729,8 +760,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 
 
 
-
-static if_list_t get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex)
+static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_list_t* if_list)
 {
 	char* buf;
 	struct nlmsghdr* nl_head;
@@ -738,9 +768,9 @@ static if_list_t get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex
 	int errcode = 0;
 	unsigned int seq;
 	unsigned int portid;
-	if_list_t if_list = new_if_list();
-	get_if_list_cb_data_t get_if_list_cb_data = new_get_if_list_cb_data(compiled_regex, &if_list);
-	buf = (char*)malloc(getpagesize());
+	get_if_list_cb_data_t get_if_list_cb_data = new_get_if_list_cb_data(compiled_regex, if_list);
+	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
+	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
 		print_syserror("Unable to allocate memory for a netlink communication buffer");
 		exit(EX_OSERR);
@@ -761,8 +791,8 @@ static if_list_t get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex
 	}
 
 	do {
-		errcode = mnl_socket_recvfrom(nl_sock, buf, sizeof(buf));
-	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_list_cb, &get_if_list_cb_data)) <= MNL_CB_STOP);
+		errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
+	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_list_cb, &get_if_list_cb_data)) > MNL_CB_STOP);
 
 	if (errcode == -1) {
 		print_syserror("Unable to retrieve interface list from netlink");
@@ -771,7 +801,6 @@ static if_list_t get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex
 
 	destroy_get_if_list_cb_data(&get_if_list_cb_data);
 	free(buf);
-	return if_list;
 }
 
 static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
@@ -782,7 +811,9 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
 	int errcode = 0;
 	unsigned int seq;
 	unsigned int portid;
-	buf = (char*)malloc(getpagesize());
+	int i = 0;
+	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
+	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
 		print_syserror("Unable to allocate memory for a netlink communication buffer");
 		exit(EX_OSERR);
@@ -803,17 +834,21 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
 	}
 
 	do {
-		errcode = mnl_socket_recvfrom(nl_sock, buf, sizeof(buf));
-	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_addr_list_cb, if_list)) <= MNL_CB_STOP);
+		errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
+		i++;
+	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_addr_list_cb, if_list)) > MNL_CB_STOP);
 
 	if (errcode == -1) {
-		print_syserror("Unable to retrieve interface address list from netlink");
+		print_syserror("Unable to retrieve interface address list from netlink %d", i);
 		exit(EX_OSERR);
+	} else {
+		print_syserror("Got %d addrs %d %d", i, errcode, MNL_CB_STOP);
 	}
 
 	free(buf);
 }
 
+/*
 static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_list)
 {
 	char* buf;
@@ -823,7 +858,8 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	unsigned int seq;
 	unsigned int portid;
 	print_neigh_list_cb_data_t neigh_list_cb_data = new_print_neigh_list_cb_data(fd, &if_list);
-	buf = (char*)malloc(getpagesize());
+	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
+	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
 		print_syserror("Unable to allocate memory for a netlink communication buffer");
 		exit(EX_OSERR);
@@ -844,7 +880,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	}
 
 	do {
-		errcode = mnl_socket_recvfrom(nl_sock, buf, sizeof(buf));
+		errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
 	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &print_neigh_list_cb, &neigh_list_cb_data)) <= MNL_CB_STOP);
 	destroy_print_neigh_list_cb_data(&neigh_list_cb_data);
 
@@ -856,6 +892,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 
 	free(buf);
 }
+*/
 
 static void print_if_list(FILE* fd, if_list_t if_list)
 {
@@ -1083,7 +1120,7 @@ void print_neighbours(config_t* config, FILE* fd)
 {
 	char uncompiled_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH + UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH + 1];
 	regex_t compiled_regex;
-	if_list_t if_list;
+	if_list_t if_list = new_if_list();
 	struct mnl_socket* nl_sock;
 	int errcode = 0;
 
@@ -1122,7 +1159,9 @@ void print_neighbours(config_t* config, FILE* fd)
 	}
 
 
-	if_list = get_if_list(nl_sock, &compiled_regex);
+	get_if_list(nl_sock, &compiled_regex, &if_list);
+
+	print_error("In top: %X", if_list);
 
 	get_if_addrs(nl_sock, &if_list);
 
@@ -1135,12 +1174,18 @@ void print_neighbours(config_t* config, FILE* fd)
 	*/
 	autoscan_networks(nl_sock, if_list);
 
+	print_error("ere i am, jh");
+	sleep(30);
+	print_error("here we go yo");
+
+	fprintf(fd, "[\"%s\"", config->str_session_id);
+
 	print_if_list(fd, if_list);
 
-	sleep(30);
+	/*print_neigh_list(nl_sock, fd, if_list);*/
+	print_error("here we go");
 
-	print_neigh_list(nl_sock, fd, if_list);
-
+	fprintf(fd, "]");
 
 	destroy_if_list(&if_list);
 	mnl_socket_close(nl_sock);
