@@ -31,6 +31,7 @@
 #define SHOW_NOT_RUNNING 0
 #define SHOW_SECONDARY 0
 #define SHOW_BLACKLISTED_INTERFACE_NEIGHBOURS 0
+#define SHOW_UNREACHABLE_NEIGHBOURS 0
 
 
 
@@ -80,7 +81,7 @@ typedef struct {
 	regex_t* compiled_regex;
 	if_list_t* if_list;
 } get_if_list_cb_data_t;
-/*
+
 typedef struct {
 	FILE* fd;
 	if_list_t* if_list;
@@ -90,7 +91,7 @@ typedef struct {
 	FILE* fd;
 	unsigned char family;
 } print_neigh_cb_data_t;
-*/
+
 
 
 
@@ -243,7 +244,7 @@ static void destroy_get_if_list_cb_data(get_if_list_cb_data_t* get_if_list_cb_da
 	}
 }
 
-/*
+
 static print_neigh_list_cb_data_t new_print_neigh_list_cb_data(FILE* fd, if_list_t* if_list)
 {
 	print_neigh_list_cb_data_t result;
@@ -274,7 +275,7 @@ static void destroy_print_neigh_cb_data(print_neigh_cb_data_t* print_neigh_cb_da
 		print_error("Unable to destroy an empty print neighbour callback argument");
 	}
 }
-*/
+
 
 
 
@@ -445,7 +446,6 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 {
 	if_addr_t* if_addr = (if_addr_t*)cb_data;
-	print_error("Got an addy");
 	if (if_addr == NULL) {
 		print_error("Invalid argument received in interface address callback ");
 		return MNL_CB_ERROR;
@@ -584,7 +584,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 		return MNL_CB_OK;
 	}
 }
-/*
+
 static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 {
 	print_neigh_cb_data_t* neigh_cb_data = (print_neigh_cb_data_t*)cb_data;
@@ -600,7 +600,7 @@ static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 			if (neigh_cb_data->family == AF_INET && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in_addr)) >= 0) {
 				struct in_addr* bin_addr = mnl_attr_get_payload(nl_attr);
 				char str_temp[BUFSIZ];
-				if (NULL == inet_ntop(AF_INET, bin_addr, str_temp, sizeof(struct in_addr))) {
+				if (NULL == inet_ntop(AF_INET, bin_addr, str_temp, BUFSIZ)) {
 					print_syserror("Unable to print destination address");
 					return MNL_CB_ERROR;
 				}
@@ -608,7 +608,7 @@ static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 			} else if (neigh_cb_data->family == AF_INET6 && mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(struct in6_addr)) >= 0) {
 				struct in6_addr* bin6_addr = mnl_attr_get_payload(nl_attr);
 				char str_temp[BUFSIZ];
-				if (NULL == inet_ntop(AF_INET6, bin6_addr, str_temp, sizeof(struct in6_addr))) {
+				if (NULL == inet_ntop(AF_INET6, bin6_addr, str_temp, BUFSIZ)) {
 					print_syserror("Unable to print destination address");
 					return MNL_CB_ERROR;
 				}
@@ -636,7 +636,7 @@ static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 		return MNL_CB_OK;
 	}
 }
-*/
+
 static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
 	get_if_list_cb_data_t* list_cb_data = (get_if_list_cb_data_t*)cb_data;
@@ -646,11 +646,9 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	} else {
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 	
-		print_error("got if: %d %d", !(if_msg->ifi_flags & IFF_LOOPBACK), if_msg->ifi_flags & IFF_RUNNING);
 		if (!(if_msg->ifi_flags & IFF_LOOPBACK) && (SHOW_NOT_RUNNING || if_msg->ifi_flags & IFF_RUNNING)) {
 			if_item_t* if_item = new_if_item();
 			get_if_item_cb_data_t item_cb_data = new_get_if_item_cb_data(list_cb_data->compiled_regex, if_item);
-			print_error("got if index: %d", if_msg->ifi_index);
 			if_item->index = if_msg->ifi_index;
 			if_item->type = if_msg->ifi_type;
 			if_item->flags = if_msg->ifi_flags;
@@ -677,11 +675,9 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	} else {
 		struct ifaddrmsg* if_addr_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data, if_addr_msg->ifa_index);
-		print_error("Gettin the addresses: %X %d", *addr_list_cb_data, if_addr_msg->ifa_index);
 
 		if (if_item != NULL && (SHOW_SECONDARY || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
 			if_addr_t* if_addr = new_if_addr();
-			print_error("got address");
 			if_addr->family = if_addr_msg->ifa_family;
 			if_addr->mask = if_addr_msg->ifa_prefixlen;
 			if_addr->flags = if_addr_msg->ifa_flags;
@@ -693,7 +689,7 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		return MNL_CB_OK;
 	}
 }
-/*
+
 static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
 	print_neigh_list_cb_data_t* neigh_list_cb_data = (print_neigh_list_cb_data_t*)cb_data;
@@ -704,7 +700,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		struct ndmsg* nd_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*(neigh_list_cb_data->if_list), nd_msg->ndm_ifindex);
 
-		if (if_item != NULL && (SHOW_BLACKLISTED_INTERFACE_NEIGHBOURS || !if_item->blacklisted)) {
+		if (if_item != NULL && (SHOW_UNREACHABLE_NEIGHBOURS || nd_msg->ndm_state & NUD_REACHABLE) && (SHOW_BLACKLISTED_INTERFACE_NEIGHBOURS || !if_item->blacklisted)) {
 			print_neigh_cb_data_t neigh_cb_data = new_print_neigh_cb_data(neigh_list_cb_data->fd, nd_msg->ndm_family);
 			fprintf(neigh_list_cb_data->fd, ",{");
 
@@ -748,7 +744,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		return MNL_CB_OK;
 	}
 }
-*/
+
 
 
 
@@ -841,14 +837,12 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
 	if (errcode == -1) {
 		print_syserror("Unable to retrieve interface address list from netlink %d", i);
 		exit(EX_OSERR);
-	} else {
-		print_syserror("Got %d addrs %d %d", i, errcode, MNL_CB_STOP);
 	}
 
 	free(buf);
 }
 
-/*
+
 static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_list)
 {
 	char* buf;
@@ -870,7 +864,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	nl_head->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
 	nl_head->nlmsg_seq = seq = time(NULL);
 	rtnl_head = mnl_nlmsg_put_extra_header(nl_head, sizeof(struct rtgenmsg));
-	rtnl_head->rtgen_family = AF_PACKET;
+	rtnl_head->rtgen_family = AF_UNSPEC;
 
 	portid = mnl_socket_get_portid(nl_sock);
 
@@ -881,7 +875,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 
 	do {
 		errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
-	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &print_neigh_list_cb, &neigh_list_cb_data)) <= MNL_CB_STOP);
+	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &print_neigh_list_cb, &neigh_list_cb_data)) > MNL_CB_STOP);
 	destroy_print_neigh_list_cb_data(&neigh_list_cb_data);
 
 	if (errcode == -1) {
@@ -892,7 +886,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 
 	free(buf);
 }
-*/
+
 
 static void print_if_list(FILE* fd, if_list_t if_list)
 {
@@ -977,43 +971,59 @@ static void print_if_list(FILE* fd, if_list_t if_list)
 				fprintf(fd, "\"addrname\":\"%s\",", if_addr->label);
 				fprintf(fd, "\"masklength\":%u,", if_addr->mask);
 				if (if_addr->family == AF_INET) {
-					if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->addr))->sin_addr.s_addr), str_temp, sizeof(struct in_addr))) {
+					if (if_addr->addr == NULL) {
+						/*print_error("No address to print for %s", if_item->name);*/
+					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->addr))->sin_addr.s_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an IP address for %s", if_item->name);
 					} else {
 						fprintf(fd, "\"ipaddress\":\"%s\",", str_temp);
 					}
-					if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->local))->sin_addr.s_addr), str_temp, sizeof(struct in_addr))) {
+					if (if_addr->local == NULL) {
+						/*print_error("No local address to print for %s", if_item->name);*/
+					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->local))->sin_addr.s_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an internal IP address for %s", if_item->name);
 					} else {
 						fprintf(fd, "\"internalip\":\"%s\",", str_temp);
 					}
-					if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->bcast))->sin_addr.s_addr), str_temp, sizeof(struct in_addr))) {
+					if (if_addr->bcast == NULL) {
+						/*print_error("No broadcast address to print for %s", if_item->name);*/
+					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->bcast))->sin_addr.s_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print a broadcast IP address for %s", if_item->name);
 					} else {
 						fprintf(fd, "\"bcast\":\"%s\",", str_temp);
 					}
-					if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->acast))->sin_addr.s_addr), str_temp, sizeof(struct in_addr))) {
+					if (if_addr->acast == NULL) {
+						/*print_error("No anycast address to print for %s", if_item->name);*/
+					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->acast))->sin_addr.s_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an anycast IP address for %s", if_item->name);
 					} else {
 						fprintf(fd, "\"acast\":\"%s\",", str_temp);
 					}
 				} else if (if_addr->family == AF_INET6) {
-					if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->addr))->sin6_addr.s6_addr), str_temp, sizeof(struct in6_addr))) {
+					if (if_addr->addr == NULL) {
+						/*print_error("No address to print for %s", if_item->name);*/
+					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->addr))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an IP address for %s", if_item->name);
 					} else {
 						fprintf(fd, "\"ip6\":\"%s\",", str_temp);
 					}
-					if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->local))->sin6_addr.s6_addr), str_temp, sizeof(struct in6_addr))) {
+					if (if_addr->local == NULL) {
+						/*print_error("No local address to print for %s", if_item->name);*/
+					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->local))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an internal IP address for %s", if_item->name);
 					} else {
 						fprintf(fd, "\"internalip\":\"%s\",", str_temp);
 					}
-					if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->bcast))->sin6_addr.s6_addr), str_temp, sizeof(struct in6_addr))) {
+					if (if_addr->bcast == NULL) {
+						/*print_error("No broadcast address to print for %s", if_item->name);*/
+					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->bcast))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print a broadcast IP address for %s", if_item->name);
 					} else {
 						fprintf(fd, "\"bcast\":\"%s\",", str_temp);
 					}
-					if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->acast))->sin6_addr.s6_addr), str_temp, sizeof(struct in6_addr))) {
+					if (if_addr->acast == NULL) {
+						/*print_error("No anycast address to print for %s", if_item->name);*/
+					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->acast))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an anycast IP address for %s", if_item->name);
 					} else {
 						fprintf(fd, "\"acast\":\"%s\",", str_temp);
@@ -1072,7 +1082,7 @@ static void autoscan_networks(struct mnl_socket* nl_sock, if_list_t if_list)
 										AF_INET,
 										&remote_ip4->sin_addr.s_addr,
 										str_temp,
-										sizeof(struct sockaddr_in))) {
+										BUFSIZ)) {
 									print_syserror("Unable to parse IP address");
 								}
 								remote_ip4->sin_port = htons(9);
@@ -1082,7 +1092,7 @@ static void autoscan_networks(struct mnl_socket* nl_sock, if_list_t if_list)
 										AF_INET,
 										&remote_ip6->sin6_addr.s6_addr,
 										str_temp,
-										sizeof(struct sockaddr_in6))) {
+										BUFSIZ)) {
 									print_syserror("Unable to parse IP address");
 								}
 								remote_ip6->sin6_port = htons(9);
@@ -1161,8 +1171,6 @@ void print_neighbours(config_t* config, FILE* fd)
 
 	get_if_list(nl_sock, &compiled_regex, &if_list);
 
-	print_error("In top: %X", if_list);
-
 	get_if_addrs(nl_sock, &if_list);
 
 	/*
@@ -1174,21 +1182,34 @@ void print_neighbours(config_t* config, FILE* fd)
 	*/
 	autoscan_networks(nl_sock, if_list);
 
-	print_error("ere i am, jh");
+	/*mnl_socket_close(nl_sock);*/
+
 	sleep(30);
-	print_error("here we go yo");
 
 	fprintf(fd, "[\"%s\"", config->str_session_id);
 
 	print_if_list(fd, if_list);
 
-	/*print_neigh_list(nl_sock, fd, if_list);*/
-	print_error("here we go");
+	/*
+	nl_sock = mnl_socket_open(NETLINK_ROUTE);
+	if (nl_sock == NULL) {
+		print_syserror("Unable to open netlink socket");
+		exit(EX_OSERR);
+	}
+
+	if (mnl_socket_bind(nl_sock, 0, MNL_SOCKET_AUTOPID) < 0) {
+		print_syserror("Unable to bind netlink socket to port");
+		exit(EX_OSERR);
+	}
+	*/
+
+	print_neigh_list(nl_sock, fd, if_list);
+
+	mnl_socket_close(nl_sock);
 
 	fprintf(fd, "]");
 
 	destroy_if_list(&if_list);
-	mnl_socket_close(nl_sock);
 }
 
 
