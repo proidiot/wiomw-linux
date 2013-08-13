@@ -335,7 +335,7 @@ static if_item_t* get_if_item_by_index(if_list_t if_list, const int if_index)
 
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
 
 typedef struct {
 	FILE* fd;
