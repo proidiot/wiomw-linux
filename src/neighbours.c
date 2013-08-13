@@ -9,6 +9,7 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/if.h>
+#include <linux/neighbour.h>
 #include <libmnl/libmnl.h>
 #include <asm/types.h>
 #include <sys/socket.h>
@@ -26,6 +27,30 @@
 #define UNIVERSAL_IFACE_BLACKLIST_REGEX "^lo$"
 #define UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH 4
 
+#ifndef IFA_RTA
+#define IFA_RTA(r) \
+ ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ifaddrmsg))))
+#endif
+#ifndef IFA_PAYLOAD
+#define IFA_PAYLOAD(n) NLMSG_PAYLOAD(n,sizeof(struct ifaddrmsg))
+#endif
+
+#ifndef IFLA_RTA
+#define IFLA_RTA(r) \
+ ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ifinfomsg))))
+#endif
+#ifndef IFLA_PAYLOAD
+#define IFLA_PAYLOAD(n) NLMSG_PAYLOAD(n,sizeof(struct ifinfomsg))
+#endif
+
+#ifndef NDA_RTA
+#define NDA_RTA(r) \
+ ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ndmsg))))
+#endif
+#ifndef NDA_PAYLOAD
+#define NDA_PAYLOAD(n) NLMSG_PAYLOAD(n,sizeof(struct ndmsg))
+#endif
+ 
 
 /* to go in config */
 #define SHOW_BLACKLISTED 0
@@ -66,11 +91,6 @@ typedef struct {
 	bool blacklisted;
 	if_addr_list_t addr_list;
 } if_item_t;
-
-typedef struct {
-	regex_t* compiled_regex;
-	if_item_t* if_item;
-} get_if_item_cb_data_t;
 
 typedef struct if_list_struct {
 	if_item_t* data;
@@ -188,21 +208,6 @@ static void destroy_if_item(if_item_t** if_item)
 	}
 }
 
-
-static get_if_item_cb_data_t new_get_if_item_cb_data(regex_t* compiled_regex, if_item_t* if_item)
-{
-	get_if_item_cb_data_t result;
-	result.compiled_regex = compiled_regex;
-	result.if_item = if_item;
-	return result;
-}
-
-static void destroy_get_if_item_cb_data(get_if_item_cb_data_t* get_if_item_cb_data)
-{
-	if (get_if_item_cb_data == NULL) {
-		print_error("Unable to destroy an empty interface item callback argument");
-	}
-}
 
 
 static if_list_t new_if_list()
@@ -337,6 +342,12 @@ typedef struct {
 	unsigned char family;
 } print_neigh_cb_data_t;
 
+typedef struct {
+	regex_t* compiled_regex;
+	if_item_t* if_item;
+} get_if_item_cb_data_t;
+
+
 static print_neigh_cb_data_t new_print_neigh_cb_data(FILE* fd, unsigned char family)
 {
 	print_neigh_cb_data_t result;
@@ -349,6 +360,21 @@ static void destroy_print_neigh_cb_data(print_neigh_cb_data_t* print_neigh_cb_da
 {
 	if (print_neigh_cb_data == NULL) {
 		print_error("Unable to destroy an empty print neighbour callback argument");
+	}
+}
+
+static get_if_item_cb_data_t new_get_if_item_cb_data(regex_t* compiled_regex, if_item_t* if_item)
+{
+	get_if_item_cb_data_t result;
+	result.compiled_regex = compiled_regex;
+	result.if_item = if_item;
+	return result;
+}
+
+static void destroy_get_if_item_cb_data(get_if_item_cb_data_t* get_if_item_cb_data)
+{
+	if (get_if_item_cb_data == NULL) {
+		print_error("Unable to destroy an empty interface item callback argument");
 	}
 }
 
@@ -765,56 +791,71 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 	
 		if (!(if_msg->ifi_flags & IFF_LOOPBACK) && (SHOW_NOT_RUNNING || if_msg->ifi_flags & IFF_RUNNING)) {
+			struct rtattr* attr;
+			size_t attrlen = IFLA_PAYLOAD(nl_head);
 			if_item_t* if_item = new_if_item();
 			if_item->index = if_msg->ifi_index;
 			if_item->type = if_msg->ifi_type;
 			if_item->flags = if_msg->ifi_flags;
 			if_item->family = if_msg->ifi_family;
 
-			for (attr = IFLA_RTA(if_msg); RTA_OK(attr, len); attr = RTA_NEXT(attr, len)) {
+			for (attr = IFLA_RTA(if_msg); RTA_OK(attr, attrlen); attr = RTA_NEXT(attr, attrlen)) {
 				switch (attr->rta_type) {
 				case IFLA_IFNAME:
-					int errcode = 0;
-					const char* if_name = RTA_DATA(attr);
-					if_item->name = (char*)malloc(strlen(if_name) + 1);
-					if (if_item->name == NULL) {
-						print_syserror("Unable to allocate interface name");
-						exit(EX_OSERR);
-					}
-					strcpy(if_item->name, if_name);
-					errcode = regexec(list_cb_data->compiled_regex, if_item->name, 0, NULL, REG_EXTENDED);
-					if (errcode == 0) {
-						if_item->blacklisted = true;
-					} else if (errcode == REG_NOMATCH) {
-						if_item->blacklisted = false;
-					} else {
-						print_syserror("Unable to evaluate the interface blacklist regex");
-						return MNL_CB_ERROR;
+					{
+						int errcode = 0;
+						const char* if_name = RTA_DATA(attr);
+						if_item->name = (char*)malloc(strlen(if_name) + 1);
+						if (if_item->name == NULL) {
+							print_syserror("Unable to allocate interface name");
+							exit(EX_OSERR);
+						}
+						strcpy(if_item->name, if_name);
+						errcode = regexec(list_cb_data->compiled_regex, if_item->name, 0, NULL, REG_EXTENDED);
+						if (errcode == 0) {
+							if_item->blacklisted = true;
+						} else if (errcode == REG_NOMATCH) {
+							if_item->blacklisted = false;
+						} else {
+							print_syserror("Unable to evaluate the interface blacklist regex");
+							return MNL_CB_ERROR;
+						}
 					}
 					break;
 				case IFLA_ADDRESS:
-					const unsigned char* mac = RTA_DATA(attr);
-					memcpy(if_item->mac, mac, 6);
+					{
+						const unsigned char* mac = RTA_DATA(attr);
+						memcpy(if_item->mac, mac, 6);
+					}
 					break;
 				case IFLA_BROADCAST:
-					const unsigned char* bmac = RTA_DATA(attr);
-					memcpy(if_item->bmac, bmac, 6);
+					{
+						const unsigned char* bmac = RTA_DATA(attr);
+						memcpy(if_item->bmac, bmac, 6);
+					}
 					break;
 				case IFLA_MTU:
-					if_item->mtu = RTA_DATA(attr);
+					{
+						const uint32_t* mtu = RTA_DATA(attr);
+						memcpy(&(if_item->mtu), mtu, sizeof(uint32_t));
+					}
 					break;
 				case IFLA_LINK:
-					int* link_ptr = RTA_DATA(attr);
-					if_item->link = *link_ptr;
+					{
+						int* link_ptr = RTA_DATA(attr);
+						if_item->link = *link_ptr;
+					}
 					break;
 				case IFLA_QDISC:
-					const char* qdsp = RTA_DATA(attr);
-					if_item->qdsp = (char*)malloc(strlen(qdsp) + 1);
-					if (if_item->qdsp == NULL) {
-						print_syserror("Unable to allocate interface queue discipline name");
-						exit(EX_OSERR);
+					{
+						const char* qdsp = RTA_DATA(attr);
+						if_item->qdsp = (char*)malloc(strlen(qdsp) + 1);
+						if (if_item->qdsp == NULL) {
+							print_syserror("Unable to allocate interface queue discipline name");
+							exit(EX_OSERR);
+						}
+						strcpy(if_item->qdsp, qdsp);
 					}
-					strcpy(if_item->qdsp, qdsp);
 					break;
 				default:
 					if (attr->rta_type > IFLA_MAX) {
@@ -847,17 +888,15 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data, if_addr_msg->ifa_index);
 
 		if (if_item != NULL && (SHOW_SECONDARY || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
+			struct rtattr* attr;
+			size_t attrlen = IFA_PAYLOAD(nl_head);
 			if_addr_t* if_addr = new_if_addr();
 			if_addr->family = if_addr_msg->ifa_family;
 			if_addr->mask = if_addr_msg->ifa_prefixlen;
 			if_addr->flags = if_addr_msg->ifa_flags;
 			if_addr->scope = if_addr_msg->ifa_scope;
 
-
-			mnl_attr_parse(nl_head, sizeof(struct ifaddrmsg), &get_if_addr_cb, if_addr);
-
-
-			for (attr = IFA_RTA(if_addr_msg); RTA_OK(attr, len); attr = RTA_NEXT(attr, len)) {
+			for (attr = IFA_RTA(if_addr_msg); RTA_OK(attr, attrlen); attr = RTA_NEXT(attr, attrlen)) {
 				switch(attr->rta_type) {
 				case IFA_ADDRESS:
 					if (if_addr->family == AF_INET) {
@@ -883,7 +922,7 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 						memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
 						if_addr->addr = (struct sockaddr*)addr;
 					} else {
-						print_syserror("Received invalid address from netlink");
+						print_error("Received invalid address from netlink");
 						return MNL_CB_ERROR;
 					}
 					break;
@@ -911,18 +950,20 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 						memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
 						if_addr->local = (struct sockaddr*)addr;
 					} else {
-						print_syserror("Received invalid local address from netlink");
+						print_error("Received invalid local address from netlink");
 						return MNL_CB_ERROR;
 					}
 					break;
 				case IFA_LABEL:
-					const char* label = RTA_DATA(attr);
-					if_addr->label = (char*)malloc(strlen(label) + 1);
-					if (if_addr->label == NULL) {
-						print_syserror("Unable to allocate memory for an address label");
-						exit(EX_OSERR);
+					{
+						const char* label = RTA_DATA(attr);
+						if_addr->label = (char*)malloc(strlen(label) + 1);
+						if (if_addr->label == NULL) {
+							print_syserror("Unable to allocate memory for an address label");
+							exit(EX_OSERR);
+						}
+						strcpy(if_addr->label, label);
 					}
-					strcpy(if_addr->label, label);
 					break;
 				case IFA_BROADCAST:
 					if (if_addr->family == AF_INET) {
@@ -948,7 +989,7 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 						memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
 						if_addr->bcast = (struct sockaddr*)addr;
 					} else {
-						print_syserror("Received invalid broadcast address from netlink");
+						print_error("Received invalid broadcast address from netlink");
 						return MNL_CB_ERROR;
 					}
 					break;
@@ -976,13 +1017,13 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 						memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
 						if_addr->acast = (struct sockaddr*)addr;
 					} else {
-						print_syserror("Received invalid anycast address from netlink");
+						print_error("Received invalid anycast address from netlink");
 						return MNL_CB_ERROR;
 					}
 					break;
 				default:
 					if (attr->rta_type > IFA_MAX) {
-						print_syserror("Received invalid netlink attribute type");
+						print_error("Received invalid netlink attribute type");
 						return MNL_CB_ERROR;
 					}
 				}
@@ -1007,6 +1048,9 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		if_item_t* if_item = get_if_item_by_index(*(neigh_list_cb_data->if_list), nd_msg->ndm_ifindex);
 
 		if (if_item != NULL && (SHOW_UNREACHABLE_NEIGHBOURS || nd_msg->ndm_state & NUD_REACHABLE) && (SHOW_BLACKLISTED_INTERFACE_NEIGHBOURS || !if_item->blacklisted)) {
+			struct rtattr* attr;
+			size_t attrlen = NDA_PAYLOAD(nl_head);
+
 			fprintf(neigh_list_cb_data->fd, ",{");
 
 			if (nd_msg->ndm_state & NUD_INCOMPLETE) {
@@ -1042,10 +1086,10 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 				fprintf(neigh_list_cb_data->fd, "\"router\":1,");
 			}
 
-			for (attr = NDA_RTA(nd_msg); RTA_OK(attr, len); attr = RTA_NEXT(attr, len)) {
+			for (attr = NDA_RTA(nd_msg); RTA_OK(attr, attrlen); attr = RTA_NEXT(attr, attrlen)) {
 				switch(attr->rta_type) {
 				case NDA_DST:
-					if (if_item->family == AF_INET) {
+					if (nd_msg->ndm_family == AF_INET) {
 						struct in_addr* bin_addr = RTA_DATA(attr);
 						char str_temp[BUFSIZ];
 						if (NULL == inet_ntop(AF_INET, bin_addr, str_temp, BUFSIZ)) {
@@ -1053,7 +1097,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 							return MNL_CB_ERROR;
 						}
 						fprintf(neigh_list_cb_data->fd, "\"ipaddress\":\"%s\",", str_temp);
-					} else if (if_item->family == AF_INET6) {
+					} else if (nd_msg->ndm_family == AF_INET6) {
 						struct in6_addr* bin6_addr = RTA_DATA(attr);
 						char str_temp[BUFSIZ];
 						if (NULL == inet_ntop(AF_INET6, bin6_addr, str_temp, BUFSIZ)) {
@@ -1062,22 +1106,24 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 						}
 						fprintf(neigh_list_cb_data->fd, "\"ip6\":\"%s\",", str_temp);
 					} else {
-						print_syserror("Received invalid destination address from netlink");
+						print_error("Received invalid destination address from netlink");
 						return MNL_CB_ERROR;
 					}
 					break;
 				case NDA_LLADDR:
-					const unsigned char* mac = RTA_DATA(attr);
-					char str_temp[BUFSIZ];
-					if (NULL == mac_ntop(mac, str_temp, 6)) {
-						print_error("Unable to print MAC address");
-						return MNL_CB_ERROR;
+					{
+						const unsigned char* mac = RTA_DATA(attr);
+						char str_temp[BUFSIZ];
+						if (NULL == mac_ntop(mac, str_temp, 6)) {
+							print_error("Unable to print MAC address");
+							return MNL_CB_ERROR;
+						}
+						fprintf(neigh_list_cb_data->fd, "\"macaddress\":\"%s\",", str_temp);
 					}
-					fprintf(neigh_list_cb_data->fd, "\"macaddress\":\"%s\",", str_temp);
 					break;
 				default:
 					if (attr->rta_type > NDA_MAX) {
-						print_syserror("Received invalid netlink attribute type");
+						print_error("Received invalid netlink attribute type");
 						return MNL_CB_ERROR;
 					}
 				}
@@ -1222,7 +1268,8 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	destroy_print_neigh_list_cb_data(&neigh_list_cb_data);
 
 	if (errcode == -1) {
-		print_syserror("Unable to retrieve neighbour list from netlink");
+		/* TODO: get upstream error message */
+		print_error("Unable to retrieve neighbour list from netlink");
 		exit(EX_OSERR);
 	}
 
@@ -1370,6 +1417,8 @@ static void print_if_list(FILE* fd, if_list_t if_list)
 					} else {
 						fprintf(fd, "\"acast\":\"%s\",", str_temp);
 					}
+				} else {
+					print_error("Interface address was neither IPv4 nor IPv6");
 				}
 				fprintf(fd, "\"isagent\":1}");
 				if_addr_list_iter = if_addr_list_iter->next;
@@ -1428,7 +1477,7 @@ static void autoscan_networks(struct mnl_socket* nl_sock, if_list_t if_list)
 									print_syserror("Unable to parse IP address");
 								}
 								remote_ip4->sin_port = htons(9);
-							} else {
+							} else if (remote_addr->sa_family == AF_INET6) {
 								struct sockaddr_in6* remote_ip6 = (struct sockaddr_in6*)remote_addr;
 								if (NULL == inet_ntop(
 										AF_INET,
@@ -1438,6 +1487,8 @@ static void autoscan_networks(struct mnl_socket* nl_sock, if_list_t if_list)
 									print_syserror("Unable to parse IP address");
 								}
 								remote_ip6->sin6_port = htons(9);
+							} else {
+								print_error("Internal address iterator has an unexpected address family.");
 							}
 							errcode = connect(sockfd, remote_addr, remote_addr_size);
 							if (errcode == -1) {
