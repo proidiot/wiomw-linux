@@ -6,12 +6,14 @@
 #include "mac_ntop.h"
 #include <stdio.h>
 #include <linux/version.h>
+#include <asm/types.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/if.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19) && LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
 #include <linux/neighbour.h>
+#endif
 #include <libmnl/libmnl.h>
-#include <asm/types.h>
 #include <sys/socket.h>
 #include <sysexits.h>
 #include <regex.h>
