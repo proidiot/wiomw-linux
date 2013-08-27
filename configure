@@ -710,6 +710,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_dependency_tracking
+with_openssl
 enable_custom_username_length
 enable_custom_passhash_length
 enable_custom_session_id_length
@@ -1396,6 +1397,12 @@ Optional Features:
                           https://www.whoisonmywifi.net/api/rest/senddevice
   --enable-custom-api-agent-key=STRING
                           API agent key, default: ddwrt
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-openssl          assume cURL uses OpenSSL and not PolarSSL, default:
+                          no
 
 Some influential environment variables:
   CC          C compiler command
@@ -4187,7 +4194,20 @@ $as_echo "yes" >&6; }
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ssl_init in -lpolarssl" >&5
+# Check whether --with-openssl was given.
+if test "${with_openssl+set}" = set; then :
+  withval=$with_openssl; case "${withval}" in
+      no)  with_polarssl=yes;;
+      yes) with_polarssl=no;;
+      *)   as_fn_error $? "Custom OpenSSL path not yet supported" "$LINENO" 5;;
+    esac
+else
+  with_polarssl=yes
+fi
+
+
+if test "x$with_polarssl" != xno; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ssl_init in -lpolarssl" >&5
 $as_echo_n "checking for ssl_init in -lpolarssl... " >&6; }
 if ${ac_cv_lib_polarssl_ssl_init+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -4232,6 +4252,53 @@ _ACEOF
 
 fi
 
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
+$as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
+if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lssl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char SSL_library_init ();
+int
+main ()
+{
+return SSL_library_init ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ssl_SSL_library_init=yes
+else
+  ac_cv_lib_ssl_SSL_library_init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_library_init" >&5
+$as_echo "$ac_cv_lib_ssl_SSL_library_init" >&6; }
+if test "x$ac_cv_lib_ssl_SSL_library_init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSSL 1
+_ACEOF
+
+  LIBS="-lssl $LIBS"
+
+fi
+
+fi
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||
   as_fn_error $? "cannot run $SHELL $ac_aux_dir/config.sub" "$LINENO" 5

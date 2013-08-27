@@ -13,7 +13,18 @@ AM_PROG_CC_C_O
 
 # Checks for libraries.
 PKG_CHECK_MODULES([CURL], [libcurl])
-AC_CHECK_LIB([polarssl], [ssl_init])
+AC_ARG_WITH([openssl],
+   AC_HELP_STRING([--with-openssl],
+      [assume cURL uses OpenSSL and not PolarSSL, default: no]),
+   [case "${withval}" in
+      no)  with_polarssl=yes;;
+      yes) with_polarssl=no;;
+      *)   AC_MSG_ERROR([Custom OpenSSL path not yet supported]);;
+    esac],
+   [with_polarssl=yes])
+AS_IF([test "x$with_polarssl" != xno],
+   [AC_CHECK_LIB([polarssl], [ssl_init])],
+   [AC_CHECK_LIB([ssl], [SSL_library_init])])
 AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
 AC_CHECK_LIB([m], [rint])
