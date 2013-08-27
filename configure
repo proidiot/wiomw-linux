@@ -4197,12 +4197,12 @@ fi
 # Check whether --with-openssl was given.
 if test "${with_openssl+set}" = set; then :
   withval=$with_openssl; case "${withval}" in
-      no)  with_polarssl=yes;;
+      no)  with_polarssl=check;;
       yes) with_polarssl=no;;
       *)   as_fn_error $? "Custom OpenSSL path not yet supported" "$LINENO" 5;;
     esac
 else
-  with_polarssl=yes
+  with_polarssl=check
 fi
 
 
@@ -4244,15 +4244,15 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_polarssl_ssl_init" >&5
 $as_echo "$ac_cv_lib_polarssl_ssl_init" >&6; }
 if test "x$ac_cv_lib_polarssl_ssl_init" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPOLARSSL 1
-_ACEOF
-
-  LIBS="-lpolarssl $LIBS"
-
+  with_openssl=no
+else
+  with_openssl=check
 fi
 
 else
+  with_openssl=check
+fi
+if test "x$with_openssl" != xno; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
 if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
@@ -4290,14 +4290,16 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_library_init" >&5
 $as_echo "$ac_cv_lib_ssl_SSL_library_init" >&6; }
 if test "x$ac_cv_lib_ssl_SSL_library_init" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSSL 1
-_ACEOF
-
-  LIBS="-lssl $LIBS"
-
+  found_ssl=yes
+else
+  found_ssl=no
 fi
 
+else
+  found_ssl=yes
+fi
+if test "x$found_ssl" = xno; then :
+  as_fn_error $? "Neither PolarSSL nor OpenSSL was found" "$LINENO" 5
 fi
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||

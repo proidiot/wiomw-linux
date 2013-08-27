@@ -17,14 +17,22 @@ AC_ARG_WITH([openssl],
    AC_HELP_STRING([--with-openssl],
       [assume cURL uses OpenSSL and not PolarSSL, default: no]),
    [case "${withval}" in
-      no)  with_polarssl=yes;;
+      no)  with_polarssl=check;;
       yes) with_polarssl=no;;
       *)   AC_MSG_ERROR([Custom OpenSSL path not yet supported]);;
     esac],
-   [with_polarssl=yes])
+   [with_polarssl=check])
 AS_IF([test "x$with_polarssl" != xno],
-   [AC_CHECK_LIB([polarssl], [ssl_init])],
-   [AC_CHECK_LIB([ssl], [SSL_library_init])])
+   [AC_CHECK_LIB([polarssl], [ssl_init],
+      [with_openssl=no], [with_openssl=check])],
+   [with_openssl=check])
+AS_IF([test "x$with_openssl" != xno],
+   [AC_CHECK_LIB([ssl], [SSL_library_init],
+      [found_ssl=yes], [found_ssl=no])],
+   [found_ssl=yes])
+AS_IF([test "x$found_ssl" = xno],
+   [AC_MSG_ERROR([Neither PolarSSL nor OpenSSL was found])],
+   [])
 AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
 AC_CHECK_LIB([m], [rint])
