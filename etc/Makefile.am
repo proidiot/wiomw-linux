@@ -1,3 +1,3 @@
 configdir=@sysconfdir@
-config_DATA=wiomw.conf wiomw-ca.crt
+dist_config_DATA=wiomw.conf wiomw-ca.crt
 
