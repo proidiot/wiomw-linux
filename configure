@@ -1388,13 +1388,13 @@ Optional Features:
                           SIGINT, default: no
   --enable-custom-login-url=URL
                           set login API URL, default:
-                          https://www.whoisonmywifi.net/api/rest/login
+                          https://www.whoisonmywifi.net/api/v100/rest/login
   --enable-custom-get-updates-url=URL
                           set get updates API URL, default:
-                          https://www.whoisonmywifi.net/api/rest/getupdate
+                          https://www.whoisonmywifi.net/api/v100/rest/getupdate
   --enable-custom-send-updates-url=URL
                           set send updates API URL, default:
-                          https://www.whoisonmywifi.net/api/rest/senddevice
+                          https://www.whoisonmywifi.net/api/v100/rest/senddevice
   --enable-custom-api-agent-key=STRING
                           API agent key, default: ddwrt
 
@@ -5817,13 +5817,13 @@ _ACEOF
 # Check whether --enable-custom_login_url was given.
 if test "${enable_custom_login_url+set}" = set; then :
   enableval=$enable_custom_login_url; case "${enableval}" in
-      no)  login_url="https://www.whoisonmywifi.net/api/rest/login";;
+      no)  login_url="https://www.whoisonmywifi.net/api/v100/rest/login";;
       yes) as_fn_error $? "Custom login API URL was not specified" "$LINENO" 5;;
       "")  as_fn_error $? "Custom login API URL was not specified" "$LINENO" 5;;
       *)   login_url="${enableval}";;
       esac
 else
-  login_url="https://www.whoisonmywifi.net/api/rest/login"
+  login_url="https://www.whoisonmywifi.net/api/v100/rest/login"
 fi
 
 
@@ -5836,13 +5836,13 @@ _ACEOF
 # Check whether --enable-custom_get_updates_url was given.
 if test "${enable_custom_get_updates_url+set}" = set; then :
   enableval=$enable_custom_get_updates_url; case "${enableval}" in
-      no)  get_updates_url="https://www.whoisonmywifi.net/api/rest/getupdate";;
+      no)  get_updates_url="https://www.whoisonmywifi.net/api/v100/rest/getupdate";;
       yes) as_fn_error $? "Custom get updates API URL was not specified" "$LINENO" 5;;
       "")  as_fn_error $? "Custom get updates API URL was not specified" "$LINENO" 5;;
       *)   get_updates_url="${enableval}";;
       esac
 else
-  get_updates_url="https://www.whoisonmywifi.net/api/rest/getupdate"
+  get_updates_url="https://www.whoisonmywifi.net/api/v100/rest/getupdate"
 fi
 
 
@@ -5855,13 +5855,13 @@ _ACEOF
 # Check whether --enable-custom_send_updates_url was given.
 if test "${enable_custom_send_updates_url+set}" = set; then :
   enableval=$enable_custom_send_updates_url; case "${enableval}" in
-      no)  send_updates_url="https://www.whoisonmywifi.net/api/rest/senddevice";;
+      no)  send_updates_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice";;
       yes) as_fn_error $? "Custom send updates API URL was not specified" "$LINENO" 5;;
       "")  as_fn_error $? "Custom send updates API URL was not specified" "$LINENO" 5;;
       *)   send_updates_url="${enableval}";;
       esac
 else
-  send_updates_url="https://www.whoisonmywifi.net/api/rest/senddevice"
+  send_updates_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice"
 fi
 
 

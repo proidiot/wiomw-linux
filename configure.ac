@@ -202,42 +202,42 @@ AC_DEFINE_UNQUOTED(SHOULD_HANDLE_SIGQUIT, ${handle_sigquit}, [Handle SIGQUIT])
 # Get LOGIN_URL
 AC_ARG_ENABLE([custom_login_url],
    AC_HELP_STRING([--enable-custom-login-url=URL],
-      [set login API URL, default: https://www.whoisonmywifi.net/api/rest/login]),
+      [set login API URL, default: https://www.whoisonmywifi.net/api/v100/rest/login]),
    [case "${enableval}" in
-      no)  login_url="https://www.whoisonmywifi.net/api/rest/login";;
+      no)  login_url="https://www.whoisonmywifi.net/api/v100/rest/login";;
       yes) AC_MSG_ERROR([Custom login API URL was not specified]);;
       "")  AC_MSG_ERROR([Custom login API URL was not specified]);;
       *)   login_url="${enableval}";;
       esac],
-   [login_url="https://www.whoisonmywifi.net/api/rest/login"])
+   [login_url="https://www.whoisonmywifi.net/api/v100/rest/login"])
 AC_DEFINE_UNQUOTED(LOGIN_API_URL, "${login_url}",
     [URL of login API])
 
 # Get GET_UPDATES_URL
 AC_ARG_ENABLE([custom_get_updates_url],
    AC_HELP_STRING([--enable-custom-get-updates-url=URL],
-      [set get updates API URL, default: https://www.whoisonmywifi.net/api/rest/getupdate]),
+      [set get updates API URL, default: https://www.whoisonmywifi.net/api/v100/rest/getupdate]),
    [case "${enableval}" in
-      no)  get_updates_url="https://www.whoisonmywifi.net/api/rest/getupdate";;
+      no)  get_updates_url="https://www.whoisonmywifi.net/api/v100/rest/getupdate";;
       yes) AC_MSG_ERROR([Custom get updates API URL was not specified]);;
       "")  AC_MSG_ERROR([Custom get updates API URL was not specified]);;
       *)   get_updates_url="${enableval}";;
       esac],
-   [get_updates_url="https://www.whoisonmywifi.net/api/rest/getupdate"])
+   [get_updates_url="https://www.whoisonmywifi.net/api/v100/rest/getupdate"])
 AC_DEFINE_UNQUOTED(GET_UPDATES_API_URL, "${get_updates_url}",
     [URL of get updates API])
 
 # Get SEND_UPDATES_URL
 AC_ARG_ENABLE([custom_send_updates_url],
    AC_HELP_STRING([--enable-custom-send-updates-url=URL],
-      [set send updates API URL, default: https://www.whoisonmywifi.net/api/rest/senddevice]),
+      [set send updates API URL, default: https://www.whoisonmywifi.net/api/v100/rest/senddevice]),
    [case "${enableval}" in
-      no)  send_updates_url="https://www.whoisonmywifi.net/api/rest/senddevice";;
+      no)  send_updates_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice";;
       yes) AC_MSG_ERROR([Custom send updates API URL was not specified]);;
       "")  AC_MSG_ERROR([Custom send updates API URL was not specified]);;
       *)   send_updates_url="${enableval}";;
       esac],
-   [send_updates_url="https://www.whoisonmywifi.net/api/rest/senddevice"])
+   [send_updates_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice"])
 AC_DEFINE_UNQUOTED(SEND_UPDATES_API_URL, "${send_updates_url}",
     [URL of send updates API])
 

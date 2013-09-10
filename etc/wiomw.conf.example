@@ -1,0 +1,3 @@
+USERNAME=username@io3o.com
+PASSHASH=password
+IFACE_BLACKLIST_REGEX=^vlan1$

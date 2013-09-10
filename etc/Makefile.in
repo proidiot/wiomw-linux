@@ -185,7 +185,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 configdir = @sysconfdir@
-dist_config_DATA = wiomw.conf wiomw-ca.crt
+dist_config_DATA = wiomw.conf.example wiomw-ca.crt
 all: all-am
 
 .SUFFIXES:
