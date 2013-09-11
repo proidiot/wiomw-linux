@@ -767,6 +767,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 			if (nd_msg->ndm_flags & NTF_ROUTER) {
 				fprintf(neigh_list_cb_data->fd, "\"router\":1,");
 			}
+			fprintf(neigh_list_cb_data->fd, "\"netbios\":\"\",");
 			mnl_attr_parse(nl_head, sizeof(struct ndmsg), &print_neigh_cb, &neigh_cb_data);
 			destroy_print_neigh_cb_data(&neigh_cb_data);
 			fprintf(neigh_list_cb_data->fd, "\"iface\":\"%s\"}", if_item->name);
@@ -1131,6 +1132,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 				}
 			}
 
+			fprintf(neigh_list_cb_data->fd, "\"netbios\":\"\",");
 			fprintf(neigh_list_cb_data->fd, "\"iface\":\"%s\"}", if_item->name);
 		}
 
@@ -1422,6 +1424,7 @@ static void print_if_list(FILE* fd, if_list_t if_list)
 				} else {
 					print_error("Interface address was neither IPv4 nor IPv6");
 				}
+				fprintf(fd, "\"netbios\":\"\",");
 				fprintf(fd, "\"isagent\":1}");
 				if_addr_list_iter = if_addr_list_iter->next;
 			}
