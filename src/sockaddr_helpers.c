@@ -4,6 +4,43 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <sysexits.h>
+
+
+void add_network(network_list_t* list, struct sockaddr* addr_base, uint8_t prefix)
+{
+	network_list_t temp = (network_list_t)malloc(sizeof(struct _network_list_struct));
+	if (temp == NULL) {
+		print_syserror("Unable to allocate more memory for network list");
+		exit(EX_OSERR);
+	}
+
+	temp->addr_base = addr_base;
+	temp->prefix = prefix;
+	temp->next = NULL;
+
+	if (*list == NULL) {
+		*list = temp;
+	} else {
+		network_list_t list_iterator = *list;
+
+		while (list_iterator->next != NULL) {
+			list_iterator = list_iterator->next;
+		}
+
+		list_iterator->next = temp;
+	}
+}
+
+void destroy_network_list(network_list_t* list)
+{
+	while (*list != NULL) {
+		network_list_t temp = *list;
+		*list = temp->next;
+		free(temp);
+	}
+}
+
 
 int increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr* addr_to_increment)
 {
@@ -22,10 +59,10 @@ int increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr* 
 	} else if (prefix == 128 && addr_base->sa_family == AF_INET6) {
 		return -9;
 	} else if (prefix == 0 && addr_base->sa_family == AF_INET) {
-		print_error("Full rage IP enumeration is currently not allowed");
+		print_error("Full range IP enumeration is not allowed");
 		return -999;
 	} else if (prefix == 0 && addr_base->sa_family == AF_INET6) {
-		print_error("Full rage IP enumeration is currently not allowed");
+		print_error("Full range IP enumeration is not allowed");
 		return -999;
 	} else if (addr_base->sa_family == AF_INET) {
 		struct sockaddr_in* base = (struct sockaddr_in*)addr_base;
@@ -47,9 +84,12 @@ int increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr* 
 		addr->sin_addr.s_addr = htonl(ip);
 
 		return bcast_ip - ip;
-	} else {
+	} else if (addr_base->sa_family == AF_INET6) {
 		/* TODO: fixme */
 		print_error("The code for IPv6 enumeration has not yet been completed");
+		return -999;
+	} else {
+		print_error("Unknown address family for base address");
 		return -999;
 	}
 }
@@ -91,14 +131,17 @@ int check_addr_range(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr
 		} else {
 			return (1==0);
 		}
-	} else {
+	} else if (addr_base->sa_family == AF_INET6) {
 		/* TODO: fixme */
 		print_error("The code for IPv6 comparison has not yet been completed");
+		return -999;
+	} else {
+		print_error("Unknown address family for base address");
 		return -999;
 	}
 }
 
-int check_scannable_range(struct sockaddr* addr, uint8_t prefix)
+int check_autoscannable_range(struct sockaddr* addr, uint8_t prefix)
 {
 	if (addr == NULL) {
 		return -1;
@@ -132,5 +175,43 @@ int check_scannable_range(struct sockaddr* addr, uint8_t prefix)
 		print_error("Unable to check if address is within an acceptable range: Unknown address family");
 		return -1;
 	}
+}
+
+network_list_t get_overlapping_networks(struct sockaddr* addr_base, uint8_t prefix, network_list_t list)
+{
+	network_list_t result = NULL;
+	network_list_t network_iterator = list;
+	uint8_t min_public_prefix;
+
+	if (addr_base->sa_family == AF_INET) {
+		min_public_prefix = MINIMUM_IPV4_PUBLIC_PREFIX;
+	} else if (addr_base->sa_family == AF_INET6) {
+		min_public_prefix = MINIMUM_IPV6_PUBLIC_PREFIX;
+	} else {
+		print_error("Unexpected address family when checking for overlapping networks");
+		return NULL;
+	}
+
+	while (network_iterator != NULL) {
+		if (addr_base->sa_family == network_iterator->addr_base->sa_family) {
+			if (prefix >= network_iterator->prefix) {
+				if (check_addr_range(addr_base, prefix, network_iterator->addr_base) > 0
+						&& (check_autoscannable_range(network_iterator->addr_base, network_iterator->prefix) > 0
+							|| network_iterator->prefix < min_public_prefix)) {
+					add_network(&result, network_iterator->addr_base, network_iterator->prefix);
+				}
+			} else {
+				if (check_addr_range(network_iterator->addr_base, network_iterator->prefix, addr_base) > 0
+						&& (check_autoscannable_range(addr_base, prefix) > 0
+							|| prefix < min_public_prefix)) {
+					add_network(&result, addr_base, prefix);
+				}
+			}
+		}
+
+		network_iterator = network_iterator->next;
+	}
+
+	return result;
 }
 

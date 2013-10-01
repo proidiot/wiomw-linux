@@ -4,14 +4,19 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <cap-ng.h>
+#include <stdlib.h>
 #include "print_error.h"
 #include "configuration.h"
 #include "signal_handler.h"
 #include "api.h"
 #include "neighbours.h"
 
+#define MINIMUM(a,b) (((a)>(b))?(b):(a))
+
 int main(int argc, char** argv)
 {
+	time_t last_session_request = 0;
 	config_t config;
 	/* TODO: Any additional declarations go here. */
 
@@ -19,17 +24,25 @@ int main(int argc, char** argv)
 
 	config = get_configuration(argc, argv);
 
+	do {
+		wiomw_login(&config);
+		last_session_request = time(NULL);
+		print_debug("Got: %s at %d", config.session_id, last_session_request);
 
-	wiomw_login(&config);
-	print_debug("Got: %s", config.str_session_id);
-
-	while (!stop_signal_received()) {
-		print_debug("no stop signal yet");
-		wiomw_get_updates(&config);
-		wiomw_send_updates(&config);
-		alarm(GET_UPDATES_FREQUENCY);
-		sleep_until_signalled();
-	}
+		while (!stop_signal_received() && time(NULL) < (last_session_request + SESSION_LENGTH)) {
+			time_t next_session_request_wait = 0;
+			print_debug("no stop signal yet");
+			sync_block(&config);
+			if (time(NULL) < (last_session_request + SESSION_LENGTH)) {
+				send_devices(&config);
+			}
+			next_session_request_wait = (last_session_request + SESSION_LENGTH) - time(NULL);
+			if (next_session_request_wait > 0) {
+				alarm(MINIMUM(SYNC_BLOCK_FREQUENCY, next_session_request_wait));
+				sleep_until_signalled();
+			}
+		}
+	} while (!stop_signal_received());
 
 
 

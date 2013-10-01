@@ -6,12 +6,6 @@
 /* Location of config file */
 #undef CONFIG_FILE_LOCATION
 
-/* URL of get updates API */
-#undef GET_UPDATES_API_URL
-
-/* Wait period between get_updates calls */
-#undef GET_UPDATES_FREQUENCY
-
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
 
@@ -33,6 +27,12 @@
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
+
+/* Define to 1 if you have the `yajl' library (-lyajl). */
+#undef HAVE_LIBYAJL
+
+/* Define to 1 if you have the <limits.h> header file. */
+#undef HAVE_LIMITS_H
 
 /* Define to 1 if you have the `malloc' function. */
 #undef HAVE_MALLOC
@@ -76,6 +76,9 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the `strnlen' function. */
+#undef HAVE_STRNLEN
+
 /* Define to 1 if you have the <sys/socket.h> header file. */
 #undef HAVE_SYS_SOCKET_H
 
@@ -112,6 +115,12 @@
 /* Maximum username length */
 #undef MAX_USERNAME_LENGTH
 
+/* Minimum IPv4 public prefix */
+#undef MINIMUM_IPV4_PUBLIC_PREFIX
+
+/* Minimum IPv6 public prefix */
+#undef MINIMUM_IPV6_PUBLIC_PREFIX
+
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
 
@@ -140,8 +149,11 @@
    your system. */
 #undef PTHREAD_CREATE_JOINABLE
 
-/* URL of send updates API */
-#undef SEND_UPDATES_API_URL
+/* URL of send devices API */
+#undef SEND_DEVICES_API_URL
+
+/* Wait period between wiomw_login calls */
+#undef SESSION_LENGTH
 
 /* Handle SIGQUIT */
 #undef SHOULD_HANDLE_SIGQUIT
@@ -151,6 +163,12 @@
 
 /* Define to 1 if strerror_r returns char *. */
 #undef STRERROR_R_CHAR_P
+
+/* URL of sync_block API */
+#undef SYNC_BLOCK_API_URL
+
+/* Wait period between sync_block calls */
+#undef SYNC_BLOCK_FREQUENCY
 
 /* Version number of package */
 #undef VERSION

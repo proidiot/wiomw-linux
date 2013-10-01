@@ -5,32 +5,90 @@
 #include <sysexits.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pwd.h>
+#include <grp.h>
+#include <limits.h>
 #include "print_error.h"
+#include "string_helpers.h"
 
-#define USERNAME_CONFIG_PREFIX "USERNAME="
-#define PASSHASH_CONFIG_PREFIX "PASSHASH="
-#define NETWORKS_CONFIG_PREFIX "NETWORKS="
-#define IFACE_BLACKLIST_REGEX_CONFIG_PREFIX "IFACE_BLACKLIST_REGEX="
-#define LOGIN_URL_CONFIG_PREFIX "LOGIN_URL="
-#define GET_URL_CONFIG_PREFIX "GET_DEVICES_URL="
-#define SEND_URL_CONFIG_PREFIX "SEND_DEVICES_URL="
+#define USERNAME_CONFIG_PREFIX "USERNAME"
+#define PASSHASH_CONFIG_PREFIX "PASSHASH"
+#define NETWORKS_CONFIG_PREFIX "NETWORKS"
+#define IFACE_BLACKLIST_REGEX_CONFIG_PREFIX "IFACE_BLACKLIST_REGEX"
+#define LOGIN_URL_CONFIG_PREFIX "LOGIN_URL"
+#define SYNC_BLOCK_URL_CONFIG_PREFIX "SYNC_BLOCK_URL"
+#define SEND_URL_CONFIG_PREFIX "SEND_DEVICES_URL"
+#define RUN_AS_UID_CONFIG_PREFIX "RUN_AS_USER_ID"
+#define RUN_AS_UNAME_CONFIG_PREFIX "RUN_AS_USER_NAME"
+#define RUN_AS_GID_CONFIG_PREFIX "RUN_AS_GROUP_ID"
+#define RUN_AS_GNAME_CONFIG_PREFIX "RUN_AS_GROUP_NAME"
+#define IGNORE_BLACKLIST_IFACE_CONFIG_PREFIX "COMPLETELY_IGNORE_BLACKLIST_IFACES"
+#define SHOW_UNREACHABLE_NEIGHS_CONFIG_PREFIX "SEND_UNREACHABLE_NEIGHS"
+#define SHOW_KNOWN_BLACKLIST_IFACE_NEIGHS_CONFIG_PREFIX "SEND_KNOWN_NEIGHS_BEHIND_BLACKLIST_IFACES"
+#define SHOW_DOWN_IFACE_CONFIG_PREFIX "SEND_DOWN_IFACES"
+#define SHOW_SECONDARY_IFACE_ADDR_CONFIG_PREFIX "SEND_SECONDARY_IFACE_ADDRS"
+#define BLACKLIST_OVERRIDES_NETWORKS_CONFIG_PREFIX "BLACKLIST_OVERRIDES_NETWORKS"
+#define AUTOSCAN_CONFIG_PREFIX "AUTOSCAN"
 
 #define CONFIG_ERROR_STRING_PREFIX "Configuration error: "
 
+char* find_config_value(char* source, const char* prefix)
+{
+	size_t i = 0;
+
+	while (source[i] == ' ' || source[i] == '\t') {
+		i++;
+	}
+
+	if (strncmp(source, prefix, strlen(prefix)) != 0) {
+		return NULL;
+	}
+
+	i += strlen(prefix);
+
+	while (source[i] == ' ' || source[i] == '\t') {
+		i++;
+	}
+
+	if (source[i] != '=') {
+		return NULL;
+	} else {
+		return source + i + 1;
+	}
+}
+
 config_t get_configuration(int argc, char** argv)
 {
-	/* Extra characters needed to hold the newline and null. */
-	char str_current_line[MAX_CONFIG_LINE_LENGTH + 2];
-	char str_username[MAX_USERNAME_LENGTH + 2];
-	char str_passhash[MAX_PASSHASH_LENGTH + 2];
-	char str_iface_blacklist_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH + 2];
-	char str_login_url[MAX_API_URL_LENGTH + 2];
-	char str_get_url[MAX_API_URL_LENGTH + 2];
-	char str_send_url[MAX_API_URL_LENGTH + 2];
 	FILE* config_file;
+	char raw_line[MAX_CONFIG_LINE_LENGTH + 2];
 	config_t config;
-	int bool_valid_config = true;
 	char* config_file_location = CONFIG_FILE_LOCATION; /* Maybe also allow this to be set on command line? */
+
+	/* Default config values
+	 * (If a value must be specified, set bad values here and check if they match after the file is closed.) */
+	config.username = NULL;
+	config.passhash = NULL;
+	config.iface_blacklist_regex = NULL;
+	config.login_url = string_chomp_copy(LOGIN_API_URL);
+	config.sync_block_url = string_chomp_copy(SYNC_BLOCK_API_URL);
+	config.send_devices_url = string_chomp_copy(SEND_DEVICES_API_URL);
+	config.networks = NULL;
+	config.uid = getuid();
+	if (getgid() == 0) {
+		config.gid = INT_MIN;
+	} else {
+		config.gid = -1 * getgid();
+	}
+	config.ignore_blacklist_iface = true;
+	config.show_unreachable_neighs = false;
+	config.show_known_blacklist_iface_neighs = false;
+	config.show_down_iface = false;
+	config.show_secondary_iface_addr = false;
+	config.blacklist_overrides_networks = true;
+	config.autoscan = true;
 
 	if (argc > 1) {
 		print_error("Command line arguments not yet supported");
@@ -39,22 +97,6 @@ config_t get_configuration(int argc, char** argv)
 		print_error("Something strange is going on with argv");
 		exit(EX_OSERR);
 	}
-
-	/* The null at the beginning initializes the strings safely. */
-	str_username[0] = '\0';
-	str_passhash[0] = '\0';
-	str_iface_blacklist_regex[0] = '\0';
-	str_login_url[0] = '\0';
-	str_get_url[0] = '\0';
-	str_send_url[0] = '\0';
-
-	/* The null beyond the acceptable size will be used to safely check if the strings from the file were too long. */
-	str_username[MAX_USERNAME_LENGTH + 1] = '\0';
-	str_passhash[MAX_PASSHASH_LENGTH + 1] = '\0';
-	str_iface_blacklist_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH + 1] = '\0';
-	str_login_url[MAX_API_URL_LENGTH + 1] = '\0';
-	str_get_url[MAX_API_URL_LENGTH + 1] = '\0';
-	str_send_url[MAX_API_URL_LENGTH + 1] = '\0';
 
 	/* Time to get the file and read the data we want from it. */
 	config_file = fopen(config_file_location, "r");
@@ -65,10 +107,17 @@ config_t get_configuration(int argc, char** argv)
 		exit(EX_CONFIG);
 	}
 
-	while (fgets(str_current_line, MAX_CONFIG_LINE_LENGTH + 2, config_file) != NULL) {
-		if (str_current_line[0] == '\0'	|| str_current_line[0] == '\n' || str_current_line[0] == '#') {
+	while (fgets(raw_line, MAX_CONFIG_LINE_LENGTH + 2, config_file) != NULL) {
+		char* value = NULL;
+
+		char* current_line = raw_line;
+		while (current_line[0] == ' ' || current_line[0] == '\t') {
+			current_line++;
+		}
+
+		if (current_line[0] == '\0'	|| current_line[0] == '\n' || current_line[0] == '#') {
 			/* This was either an empty or comment line, so it should be safe to ignore. */
-		} else if (strlen(str_current_line) > MAX_CONFIG_LINE_LENGTH && str_current_line[MAX_CONFIG_LINE_LENGTH] != '\n') {
+		} else if (strlen(current_line) > MAX_CONFIG_LINE_LENGTH && current_line[MAX_CONFIG_LINE_LENGTH] != '\n') {
 			print_error(
 					CONFIG_ERROR_STRING_PREFIX "A non-comment line in the configuration file has more than %d "
 					"characters",
@@ -76,24 +125,174 @@ config_t get_configuration(int argc, char** argv)
 			fclose(config_file);
 			/* TODO: Any remaining cleanup goes here. */
 			exit(EX_CONFIG);
-		} else if (strncmp(str_current_line, USERNAME_CONFIG_PREFIX, strlen(USERNAME_CONFIG_PREFIX)) == 0) {
-			strncpy(str_username, str_current_line + strlen(USERNAME_CONFIG_PREFIX), MAX_USERNAME_LENGTH + 1);
-		} else if (strncmp(str_current_line, PASSHASH_CONFIG_PREFIX, strlen(PASSHASH_CONFIG_PREFIX)) == 0) {
-			strncpy(str_passhash, str_current_line + strlen(PASSHASH_CONFIG_PREFIX), MAX_PASSHASH_LENGTH + 1);
-		} else if (strncmp(
-				str_current_line,
-				IFACE_BLACKLIST_REGEX_CONFIG_PREFIX,
-				strlen(IFACE_BLACKLIST_REGEX_CONFIG_PREFIX)) == 0) {
-			strncpy(
-					str_iface_blacklist_regex,
-					str_current_line + strlen(IFACE_BLACKLIST_REGEX_CONFIG_PREFIX),
-					MAX_IFACE_BLACKLIST_REGEX_LENGTH + 1);
-		} else if (strncmp(str_current_line, LOGIN_URL_CONFIG_PREFIX, strlen(LOGIN_URL_CONFIG_PREFIX)) == 0) {
-			strncpy(str_login_url, str_current_line + strlen(LOGIN_URL_CONFIG_PREFIX), MAX_API_URL_LENGTH + 1);
-		} else if (strncmp(str_current_line, GET_URL_CONFIG_PREFIX, strlen(GET_URL_CONFIG_PREFIX)) == 0) {
-			strncpy(str_get_url, str_current_line + strlen(GET_URL_CONFIG_PREFIX), MAX_API_URL_LENGTH + 1);
-		} else if (strncmp(str_current_line, SEND_URL_CONFIG_PREFIX, strlen(SEND_URL_CONFIG_PREFIX)) == 0) {
-			strncpy(str_send_url, str_current_line + strlen(SEND_URL_CONFIG_PREFIX), MAX_API_URL_LENGTH + 1);
+		} else if ((value = find_config_value(current_line, USERNAME_CONFIG_PREFIX)) != NULL) {
+			if ((config.username = string_chomp_copy(value)) == NULL) {
+				print_error(CONFIG_ERROR_STRING_PREFIX USERNAME_CONFIG_PREFIX " must not be empty");
+				exit(EX_CONFIG);
+			}
+		} else if ((value = find_config_value(current_line, PASSHASH_CONFIG_PREFIX)) != NULL) {
+			if ((config.passhash = string_chomp_copy(value)) == NULL) {
+				print_error(CONFIG_ERROR_STRING_PREFIX PASSHASH_CONFIG_PREFIX " must not be empty");
+				exit(EX_CONFIG);
+			}
+		} else if ((value = find_config_value(current_line, IFACE_BLACKLIST_REGEX_CONFIG_PREFIX)) != NULL) {
+			config.iface_blacklist_regex = string_chomp_copy(value);
+		} else if ((value = find_config_value(current_line, LOGIN_URL_CONFIG_PREFIX)) != NULL) {
+			char* new_url = string_chomp_copy(value);
+			if (new_url != NULL) {
+				free(config.login_url);
+				config.login_url = new_url;
+			}
+		} else if ((value = find_config_value(current_line, SYNC_BLOCK_URL_CONFIG_PREFIX)) != NULL) {
+			char* new_url = string_chomp_copy(value);
+			if (new_url != NULL) {
+				free(config.sync_block_url);
+				config.sync_block_url = new_url;
+			}
+		} else if ((value = find_config_value(current_line, SEND_URL_CONFIG_PREFIX)) != NULL) {
+			char* new_url = string_chomp_copy(value);
+			if (new_url != NULL) {
+				free(config.send_devices_url);
+				config.send_devices_url = new_url;
+			}
+		} else if ((value = find_config_value(current_line, RUN_AS_UNAME_CONFIG_PREFIX)) != NULL) {
+			char* user_name = string_chomp_copy(value);
+			struct passwd* user_entry;
+			errno = 0;
+			user_entry = getpwnam(user_name);
+			if (user_entry == NULL) {
+				if (errno == 0) {
+					print_error(CONFIG_ERROR_STRING_PREFIX "No user was found that matches the given " RUN_AS_UNAME_CONFIG_PREFIX);
+					exit(EX_CONFIG);
+				} else {
+					print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to retrieve information about user given in " RUN_AS_UNAME_CONFIG_PREFIX);
+					exit(EX_OSERR);
+				}
+			}
+			config.uid = user_entry->pw_uid;
+			if (config.gid < 0) {
+				if (user_entry->pw_gid == 0) {
+					config.gid = INT_MIN;
+				} else {
+					config.gid = -1 * user_entry->pw_gid;
+				}
+			}
+		} else if ((value = find_config_value(current_line, RUN_AS_UID_CONFIG_PREFIX)) != NULL) {
+			struct passwd* user_entry;
+			int uid = parse_uint(value);
+			if (uid < 0) {
+				print_error(CONFIG_ERROR_STRING_PREFIX "Unable to read a positive integer value for " RUN_AS_UID_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			}
+			config.uid = uid;
+			errno = 0;
+			user_entry = getpwuid(config.uid);
+			if (user_entry == NULL) {
+				if (errno == 0) {
+					print_error(CONFIG_ERROR_STRING_PREFIX "No user was found that matches the given " RUN_AS_UID_CONFIG_PREFIX);
+					exit(EX_CONFIG);
+				} else {
+					print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to retrieve information about user given in " RUN_AS_UID_CONFIG_PREFIX);
+					exit(EX_OSERR);
+				}
+			}
+			if (config.gid < 0) {
+				if (user_entry->pw_gid == 0) {
+					config.gid = INT_MIN;
+				} else {
+					config.gid = -1 * user_entry->pw_gid;
+				}
+			}
+		} else if ((value = find_config_value(current_line, RUN_AS_GNAME_CONFIG_PREFIX)) != NULL) {
+			char* group_name = string_chomp_copy(value);
+			struct group* group_entry;
+			errno = 0;
+			group_entry = getgrnam(group_name);
+			if (group_entry == NULL) {
+				if (errno == 0) {
+					print_error(CONFIG_ERROR_STRING_PREFIX "No group was found that matches the given " RUN_AS_GNAME_CONFIG_PREFIX);
+					exit(EX_CONFIG);
+				} else {
+					print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to retrieve information about group given in " RUN_AS_GNAME_CONFIG_PREFIX);
+					exit(EX_OSERR);
+				}
+			}
+			config.gid = group_entry->gr_gid;
+		} else if ((value = find_config_value(current_line, RUN_AS_GID_CONFIG_PREFIX)) != NULL) {
+			struct group* group_entry;
+			int gid = parse_uint(value);
+			if (gid < 0) {
+				print_error(CONFIG_ERROR_STRING_PREFIX "Unable to read a positive integer value for " RUN_AS_GID_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			}
+			config.gid = gid;
+			errno = 0;
+			group_entry = getgrgid(config.gid);
+			if (group_entry == NULL) {
+				if (errno == 0) {
+					print_error(CONFIG_ERROR_STRING_PREFIX "No group was found that matches the given " RUN_AS_GID_CONFIG_PREFIX);
+					exit(EX_CONFIG);
+				} else {
+					print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to retrieve information about group given in " RUN_AS_GID_CONFIG_PREFIX);
+					exit(EX_OSERR);
+				}
+			}
+		} else if ((value = find_config_value(current_line, IGNORE_BLACKLIST_IFACE_CONFIG_PREFIX)) != NULL) {
+			int result = parse_bool(value);
+			if (result < 0) {
+				print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to read a boolean value for " IGNORE_BLACKLIST_IFACE_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			} else {
+				config.ignore_blacklist_iface = (result == 0)? false : true;
+			}
+		} else if ((value = find_config_value(current_line, SHOW_UNREACHABLE_NEIGHS_CONFIG_PREFIX)) != NULL) {
+			int result = parse_bool(value);
+			if (result < 0) {
+				print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to read a boolean value for " SHOW_UNREACHABLE_NEIGHS_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			} else {
+				config.show_unreachable_neighs = (result == 0)? false : true;
+			}
+		} else if ((value = find_config_value(current_line, SHOW_KNOWN_BLACKLIST_IFACE_NEIGHS_CONFIG_PREFIX)) != NULL) {
+			int result = parse_bool(value);
+			if (result < 0) {
+				print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to read a boolean value for " SHOW_KNOWN_BLACKLIST_IFACE_NEIGHS_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			} else {
+				config.show_known_blacklist_iface_neighs = (result == 0)? false : true;
+			}
+		} else if ((value = find_config_value(current_line, SHOW_DOWN_IFACE_CONFIG_PREFIX)) != NULL) {
+			int result = parse_bool(value);
+			if (result < 0) {
+				print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to read a boolean value for " SHOW_DOWN_IFACE_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			} else {
+				config.show_down_iface = (result == 0)? false : true;
+			}
+		} else if ((value = find_config_value(current_line, SHOW_SECONDARY_IFACE_ADDR_CONFIG_PREFIX)) != NULL) {
+			int result = parse_bool(value);
+			if (result < 0) {
+				print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to read a boolean value for " SHOW_SECONDARY_IFACE_ADDR_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			} else {
+				config.show_secondary_iface_addr = (result == 0)? false : true;
+			}
+		} else if ((value = find_config_value(current_line, BLACKLIST_OVERRIDES_NETWORKS_CONFIG_PREFIX)) != NULL) {
+			int result = parse_bool(value);
+			if (result < 0) {
+				print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to read a boolean value for " BLACKLIST_OVERRIDES_NETWORKS_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			} else {
+				config.blacklist_overrides_networks = (result == 0)? false : true;
+			}
+		} else if ((value = find_config_value(current_line, AUTOSCAN_CONFIG_PREFIX)) != NULL) {
+			int result = parse_bool(value);
+			if (result < 0) {
+				print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to read a boolean value for " AUTOSCAN_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			} else {
+				config.autoscan = (result == 0)? false : true;
+			}
 		} /* TODO: Any future configuration checks go here. */
 	}
 	if (!feof(config_file)) {
@@ -110,77 +309,20 @@ config_t get_configuration(int argc, char** argv)
 	/* We should have everything we need now, so let's give the kernel it's file handle back. */
 	fclose(config_file);
 
-
-	/* A successful call to fgets() preserves the newline at the end of the string (if present), and we don't want it. */
-	if (str_username[0] == '\0') {
-		print_error(CONFIG_ERROR_STRING_PREFIX "USERNAME was not properly specified");
-		bool_valid_config = false;
-	} else if (str_username[strlen(str_username) - 1] == '\n') {
-		str_username[strlen(str_username) - 1] = '\0';
-	} else if (strlen(str_username) > MAX_USERNAME_LENGTH) {
-		print_error(CONFIG_ERROR_STRING_PREFIX "USERNAME is too long");
-		bool_valid_config = false;
-	}
-	if (str_passhash[0] == '\0') {
-		print_error(CONFIG_ERROR_STRING_PREFIX "PASSHASH was not properly specified");
-		bool_valid_config = false;
-	} else if (str_passhash[strlen(str_passhash) - 1] == '\n') {
-		str_passhash[strlen(str_passhash) - 1] = '\0';
-	} else if (strlen(str_passhash) > MAX_PASSHASH_LENGTH) {
-		print_error(CONFIG_ERROR_STRING_PREFIX "PASSHASH is too long");
-		bool_valid_config = false;
-	}
-	if (str_iface_blacklist_regex[0] != '\0' && str_iface_blacklist_regex[strlen(str_iface_blacklist_regex) - 1] == '\n') {
-		str_iface_blacklist_regex[strlen(str_iface_blacklist_regex) - 1] = '\0';
-	} else if (strlen(str_iface_blacklist_regex) > MAX_IFACE_BLACKLIST_REGEX_LENGTH) {
-		print_error(CONFIG_ERROR_STRING_PREFIX "IFACE_BLACKLIST_REGEX is too long");
-		bool_valid_config = false;
-	}
-	if (str_login_url[0] != '\0' && str_login_url[strlen(str_login_url) - 1] == '\n') {
-		str_login_url[strlen(str_login_url) - 1] = '\0';
-	} else if (strlen(str_login_url) > MAX_API_URL_LENGTH) {
-		print_error(CONFIG_ERROR_STRING_PREFIX "LOGIN_URL is too long");
-		bool_valid_config = false;
-	}
-	if (str_get_url[0] != '\0' && str_get_url[strlen(str_get_url) - 1] == '\n') {
-		str_get_url[strlen(str_get_url) - 1] = '\0';
-	} else if (strlen(str_get_url) > MAX_API_URL_LENGTH) {
-		print_error(CONFIG_ERROR_STRING_PREFIX "GET_DEVICES_URL is too long");
-		bool_valid_config = false;
-	}
-	if (str_send_url[0] != '\0' && str_send_url[strlen(str_send_url) - 1] == '\n') {
-		str_send_url[strlen(str_send_url) - 1] = '\0';
-	} else if (strlen(str_send_url) > MAX_API_URL_LENGTH) {
-		print_error(CONFIG_ERROR_STRING_PREFIX "SEND_DEVICES_URL is too long");
-		bool_valid_config = false;
-	}
-
-
-	/* Exit now if the configuration is invalid. */
-	if (!bool_valid_config) {
-		/* TODO: Any remaining cleanup goes here. */
+	if (config.username == NULL) {
+		print_error(CONFIG_ERROR_STRING_PREFIX USERNAME_CONFIG_PREFIX " was not specified");
 		exit(EX_CONFIG);
 	}
+	if (config.passhash == NULL) {
+		print_error(CONFIG_ERROR_STRING_PREFIX PASSHASH_CONFIG_PREFIX " was not specified");
+		exit(EX_CONFIG);
+	}
+	if (config.gid == INT_MIN) {
+		config.gid = 0;
+	} else if (config.gid < 0) {
+		config.gid *= -1;
+	}
 
-	/* Copy the config strings into the config struct now that we know they're fine. */
-	strcpy(config.str_username, str_username);
-	strcpy(config.str_passhash, str_passhash);
-	strcpy(config.str_iface_blacklist_regex, str_iface_blacklist_regex);
-	if (str_login_url[0] == '\0') {
-		strcpy(config.str_login_url, LOGIN_API_URL);
-	} else {
-		strcpy(config.str_login_url, str_login_url);
-	}
-	if (str_get_url[0] == '\0') {
-		strcpy(config.str_get_url, GET_UPDATES_API_URL);
-	} else {
-		strcpy(config.str_get_url, str_get_url);
-	}
-	if (str_send_url[0] == '\0') {
-		strcpy(config.str_send_url, SEND_UPDATES_API_URL);
-	} else {
-		strcpy(config.str_send_url, str_send_url);
-	}
 
 	return config;
 }

@@ -717,12 +717,15 @@ enable_custom_session_id_length
 enable_custom_iface_blacklist_regex_length
 enable_custom_api_url_length
 enable_custom_config_line_length
+enable_custom_minimum_ipv4_public_prefix
+enable_custom_minimum_ipv6_public_prefix
 enable_custom_config_file
-enable_custom_get_updates_frequency
+enable_custom_session_length
+enable_custom_sync_block_frequency
 enable_sigquit_handling
 enable_custom_login_url
-enable_custom_get_updates_url
-enable_custom_send_updates_url
+enable_custom_sync_block_url
+enable_custom_send_devices_url
 enable_custom_api_agent_key
 '
       ac_precious_vars='build_alias
@@ -1377,12 +1380,17 @@ Optional Features:
   --enable-custom-config-line-length=BYTES
                           set maximum length of any line in the configuration
                           file, default: 4096
+  --enable-custom-minimum-ipv4-public-prefix=BITS
+                          set minimum IPv4 public prefix, default: 32
+  --enable-custom-minimum-ipv6-public-prefix=BITS
+                          set minimum IPv6 public prefix, default: 128
   --enable-custom-config-file=/PATH/TO/FILE.CONF
                           set config file location, default:
                           SYSCONFDIR/wiomw.conf
-  --enable-custom-get-updates-frequency=SECS
-                          set get_updates frequency, default: 300 (i.e. 5
-                          mins)
+  --enable-custom-session-length=SECS
+                          set session length, default: 288000 (i.e. 8 hours)
+  --enable-custom-sync-block-frequency=SECS
+                          set sync_block frequency, default: 300 (i.e. 5 mins)
   --enable-sigquit-handling
                           handle SIGQUIT in the same way as SIGTERM and
                           SIGINT, default: no
@@ -1390,10 +1398,10 @@ Optional Features:
                           set login API URL, default:
                           https://www.whoisonmywifi.net/api/v100/rest/login
   --enable-custom-get-updates-url=URL
-                          set get updates API URL, default:
-                          https://www.whoisonmywifi.net/api/v100/rest/getupdate
-  --enable-custom-send-updates-url=URL
-                          set send updates API URL, default:
+                          set sync_block API URL, default:
+                          https://www.whoisonmywifi.net/api/v100/rest/sync_block
+  --enable-custom-send-devices-url=URL
+                          set send devices API URL, default:
                           https://www.whoisonmywifi.net/api/v100/rest/senddevice
   --enable-custom-api-agent-key=STRING
                           API agent key, default: ddwrt
@@ -2362,7 +2370,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 (m4)
 
-ac_config_headers="$ac_config_headers config.h src/configuration.h"
+ac_config_headers="$ac_config_headers config.h"
 
 am__api_version='1.11'
 
@@ -4897,6 +4905,51 @@ _ACEOF
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for yajl_tree_parse in -lyajl" >&5
+$as_echo_n "checking for yajl_tree_parse in -lyajl... " >&6; }
+if ${ac_cv_lib_yajl_yajl_tree_parse+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lyajl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char yajl_tree_parse ();
+int
+main ()
+{
+return yajl_tree_parse ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_yajl_yajl_tree_parse=yes
+else
+  ac_cv_lib_yajl_yajl_tree_parse=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_yajl_yajl_tree_parse" >&5
+$as_echo "$ac_cv_lib_yajl_yajl_tree_parse" >&6; }
+if test "x$ac_cv_lib_yajl_yajl_tree_parse" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBYAJL 1
+_ACEOF
+
+  LIBS="-lyajl $LIBS"
+
+fi
+
 
 # Checks for header files.
 ac_ext=c
@@ -5296,7 +5349,7 @@ fi
 done
 
 
-for ac_header in arpa/inet.h fcntl.h stdint.h stdlib.h string.h sys/socket.h unistd.h
+for ac_header in arpa/inet.h fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/socket.h unistd.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -5608,7 +5661,7 @@ $as_echo "#define STRERROR_R_CHAR_P 1" >>confdefs.h
 
 fi
 
-for ac_func in alarm getpagesize malloc memset realloc regcomp socket
+for ac_func in alarm getpagesize malloc memset realloc regcomp socket strnlen
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -5753,6 +5806,50 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+# Get MINIMUM_IPV4_PUBLIC_PREFIX
+# Check whether --enable-custom_minimum_ipv4_public_prefix was given.
+if test "${enable_custom_minimum_ipv4_public_prefix+set}" = set; then :
+  enableval=$enable_custom_minimum_ipv4_public_prefix; case "${enableval}" in
+      no)  minimum_ipv4_public_prefix=32;;
+      yes) as_fn_error $? "Custom minimum IPv4 public prefix was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom minimum IPv4 public prefix was not specified" "$LINENO" 5;;
+      *)   if test "0${enableval}" -gt 0;
+              then minimum_ipv4_public_prefix=${enableval};
+              else as_fn_error $? "Minimum IPv4 public prefix must be a number greater than 0" "$LINENO" 5;
+              fi;;
+      esac
+else
+  minimum_ipv4_public_prefix=32
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define MINIMUM_IPV4_PUBLIC_PREFIX ${minimum_ipv4_public_prefix}
+_ACEOF
+
+
+# Get MINIMUM_IPV6_PUBLIC_PREFIX
+# Check whether --enable-custom_minimum_ipv6_public_prefix was given.
+if test "${enable_custom_minimum_ipv6_public_prefix+set}" = set; then :
+  enableval=$enable_custom_minimum_ipv6_public_prefix; case "${enableval}" in
+      no)  minimum_ipv6_public_prefix=128;;
+      yes) as_fn_error $? "Custom minimum IPv6 public prefix was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom minimum IPv6 public prefix was not specified" "$LINENO" 5;;
+      *)   if test "0${enableval}" -gt 0;
+              then minimum_ipv6_public_prefix=${enableval};
+              else as_fn_error $? "Minimum IPv6 public prefix must be a number greater than 0" "$LINENO" 5;
+              fi;;
+      esac
+else
+  minimum_ipv6_public_prefix=128
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define MINIMUM_IPV6_PUBLIC_PREFIX ${minimum_ipv6_public_prefix}
+_ACEOF
+
+
 # Get CONFIG_FILE_LOCATION
 # Check whether --enable-custom_config_file was given.
 if test "${enable_custom_config_file+set}" = set; then :
@@ -5772,25 +5869,48 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-# Get GET_UPDATES_FREQUENCY
-# Check whether --enable-custom_get_updates_frequency was given.
-if test "${enable_custom_get_updates_frequency+set}" = set; then :
-  enableval=$enable_custom_get_updates_frequency; case "${enableval}" in
-      no)  get_updates_frequency=300;;
-      yes) as_fn_error $? "Custom get_updates frequency was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom get_updates frequency was not specified" "$LINENO" 5;;
-      *)   if test "0${enableval}" -gt 0;
-              then get_updates_frequency=${enableval};
-              else as_fn_error $? "Frequency of get_updates must be at least 1 second" "$LINENO" 5;
+# Get SESSION_LENGTH
+# Check whether --enable-custom_session_length was given.
+if test "${enable_custom_session_length+set}" = set; then :
+  enableval=$enable_custom_session_length; case "${enableval}" in
+      no)  session_length=288000;;
+      yes) as_fn_error $? "Custom session length was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom session length was not specified" "$LINENO" 5;;
+      *)   if test "0${enableval}" -gt 300;
+              then session_length=${enableval};
+              else as_fn_error $? "Session length must be at least 5 minutes" "$LINENO" 5;
               fi;;
       esac
 else
-  get_updates_frequency=300
+  session_length=288000
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define GET_UPDATES_FREQUENCY ${get_updates_frequency}
+#define SESSION_LENGTH ${session_length}
+_ACEOF
+
+
+
+# Get SYNC_BLOCK_FREQUENCY
+# Check whether --enable-custom_sync_block_frequency was given.
+if test "${enable_custom_sync_block_frequency+set}" = set; then :
+  enableval=$enable_custom_sync_block_frequency; case "${enableval}" in
+      no)  sync_block_frequency=300;;
+      yes) as_fn_error $? "Custom sync_block frequency was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom sync_block frequency was not specified" "$LINENO" 5;;
+      *)   if test "0${enableval}" -gt 0;
+              then sync_block_frequency=${enableval};
+              else as_fn_error $? "Frequency of sync_block must be at least 1 second" "$LINENO" 5;
+              fi;;
+      esac
+else
+  sync_block_frequency=300
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define SYNC_BLOCK_FREQUENCY ${sync_block_frequency}
 _ACEOF
 
 
@@ -5832,41 +5952,41 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-# Get GET_UPDATES_URL
-# Check whether --enable-custom_get_updates_url was given.
-if test "${enable_custom_get_updates_url+set}" = set; then :
-  enableval=$enable_custom_get_updates_url; case "${enableval}" in
-      no)  get_updates_url="https://www.whoisonmywifi.net/api/v100/rest/getupdate";;
-      yes) as_fn_error $? "Custom get updates API URL was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom get updates API URL was not specified" "$LINENO" 5;;
-      *)   get_updates_url="${enableval}";;
+# Get SYNC_BLOCK_URL
+# Check whether --enable-custom_sync_block_url was given.
+if test "${enable_custom_sync_block_url+set}" = set; then :
+  enableval=$enable_custom_sync_block_url; case "${enableval}" in
+      no)  sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block";;
+      yes) as_fn_error $? "Custom sync_block API URL was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom sync_block API URL was not specified" "$LINENO" 5;;
+      *)   sync_block_url="${enableval}";;
       esac
 else
-  get_updates_url="https://www.whoisonmywifi.net/api/v100/rest/getupdate"
+  sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block"
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define GET_UPDATES_API_URL "${get_updates_url}"
+#define SYNC_BLOCK_API_URL "${sync_block_url}"
 _ACEOF
 
 
-# Get SEND_UPDATES_URL
-# Check whether --enable-custom_send_updates_url was given.
-if test "${enable_custom_send_updates_url+set}" = set; then :
-  enableval=$enable_custom_send_updates_url; case "${enableval}" in
-      no)  send_updates_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice";;
-      yes) as_fn_error $? "Custom send updates API URL was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom send updates API URL was not specified" "$LINENO" 5;;
-      *)   send_updates_url="${enableval}";;
+# Get SEND_DEVICES_URL
+# Check whether --enable-custom_send_devices_url was given.
+if test "${enable_custom_send_devices_url+set}" = set; then :
+  enableval=$enable_custom_send_devices_url; case "${enableval}" in
+      no)  send_devices_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice";;
+      yes) as_fn_error $? "Custom send devices API URL was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom send devices API URL was not specified" "$LINENO" 5;;
+      *)   send_devices_url="${enableval}";;
       esac
 else
-  send_updates_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice"
+  send_devices_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice"
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define SEND_UPDATES_API_URL "${send_updates_url}"
+#define SEND_DEVICES_API_URL "${send_devices_url}"
 _ACEOF
 
 
@@ -6622,7 +6742,6 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
-    "src/configuration.h") CONFIG_HEADERS="$CONFIG_HEADERS src/configuration.h" ;;
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "etc/Makefile") CONFIG_FILES="$CONFIG_FILES etc/Makefile" ;;

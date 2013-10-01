@@ -34,8 +34,10 @@ void set_signal_handlers()
 	sigaction(SIGHUP, &struct_sigaction_ignore_handler, NULL);
 
 	/* Handle termination and alarm signals. */
+	/*
 	sigaction(SIGTERM, &struct_sigaction_callback_handler, NULL);
 	sigaction(SIGINT, &struct_sigaction_callback_handler, NULL);
+	*/
 	sigaction(SIGALRM, &struct_sigaction_callback_handler, NULL);
 
 	/* Compile-time decision as to whether SIGQUIT should be handled (maybe to obfuscate the core dump?). */

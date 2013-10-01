@@ -1,8 +1,8 @@
-bin_PROGRAMS = wiomw-plugin
+sbin_PROGRAMS = wiomw-plugin
 
 wiomw_plugin_SOURCES = main.c \
 		       configuration.c \
-		       configuration.h.in \
+		       configuration.h \
 		       signal_handler.c \
 		       signal_handler.h \
 		       print_error.c \
@@ -14,8 +14,15 @@ wiomw_plugin_SOURCES = main.c \
 		       sockaddr_helpers.c \
 		       sockaddr_helpers.h \
 		       mac_ntop.c \
-		       mac_ntop.h
+		       mac_ntop.h \
+		       block.c \
+		       block.h \
+		       string_helpers.c \
+		       string_helpers.h
 AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
-#AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} -isystem /usr/include/libnl3 -DSYSCONFDIR=\"${sysconfdir}\"
 wiomw_plugin_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
+
+install-exec-hook:
+	chown root $(sbindir)/wiomw-plugin
+	chmod u+s $(sbindir)/wiomw-plugin
 

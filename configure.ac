@@ -4,7 +4,7 @@
 AC_INIT([wiomw-plugin], [0.1], [support@io3o.com])
 AC_CONFIG_MACRO_DIR[(m4])
 AC_CONFIG_SRCDIR([src/main.c])
-AC_CONFIG_HEADERS([config.h src/configuration.h])
+AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror])
 
 # Checks for programs.
@@ -36,9 +36,10 @@ AS_IF([test "x$found_ssl" = xno],
 AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
 AC_CHECK_LIB([m], [rint])
+AC_CHECK_LIB([yajl], [yajl_tree_parse])
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -51,7 +52,7 @@ AX_CFLAGS_WARN_ALL_EXTRA
 #AC_FUNC_MALLOC
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket])
+AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strnlen])
 
 # Get MAX_USERNAME_LENGTH
 AC_ARG_ENABLE([custom_username_length],
@@ -155,6 +156,40 @@ AC_ARG_ENABLE([custom_config_line_length],
 AC_DEFINE_UNQUOTED(MAX_CONFIG_LINE_LENGTH, ${max_config_line_length},
    [Maximum config line length])
 
+# Get MINIMUM_IPV4_PUBLIC_PREFIX
+AC_ARG_ENABLE([custom_minimum_ipv4_public_prefix],
+   AC_HELP_STRING([--enable-custom-minimum-ipv4-public-prefix=BITS],
+      [set minimum IPv4 public prefix, default: 32]),
+   [case "${enableval}" in
+      no)  minimum_ipv4_public_prefix=32;;
+      yes) AC_MSG_ERROR([Custom minimum IPv4 public prefix was not specified]);;
+      "")  AC_MSG_ERROR([Custom minimum IPv4 public prefix was not specified]);;
+      *)   if test "0${enableval}" -gt 0;
+              then minimum_ipv4_public_prefix=${enableval};
+              else AC_MSG_ERROR([Minimum IPv4 public prefix must be a number greater than 0]);
+              fi;;
+      esac],
+   [minimum_ipv4_public_prefix=32])
+AC_DEFINE_UNQUOTED(MINIMUM_IPV4_PUBLIC_PREFIX, ${minimum_ipv4_public_prefix},
+   [Minimum IPv4 public prefix])
+
+# Get MINIMUM_IPV6_PUBLIC_PREFIX
+AC_ARG_ENABLE([custom_minimum_ipv6_public_prefix],
+   AC_HELP_STRING([--enable-custom-minimum-ipv6-public-prefix=BITS],
+      [set minimum IPv6 public prefix, default: 128]),
+   [case "${enableval}" in
+      no)  minimum_ipv6_public_prefix=128;;
+      yes) AC_MSG_ERROR([Custom minimum IPv6 public prefix was not specified]);;
+      "")  AC_MSG_ERROR([Custom minimum IPv6 public prefix was not specified]);;
+      *)   if test "0${enableval}" -gt 0;
+              then minimum_ipv6_public_prefix=${enableval};
+              else AC_MSG_ERROR([Minimum IPv6 public prefix must be a number greater than 0]);
+              fi;;
+      esac],
+   [minimum_ipv6_public_prefix=128])
+AC_DEFINE_UNQUOTED(MINIMUM_IPV6_PUBLIC_PREFIX, ${minimum_ipv6_public_prefix},
+   [Minimum IPv6 public prefix])
+
 # Get CONFIG_FILE_LOCATION
 AC_ARG_ENABLE([custom_config_file],
    AC_HELP_STRING([--enable-custom-config-file=/PATH/TO/FILE.CONF],
@@ -169,22 +204,40 @@ AC_ARG_ENABLE([custom_config_file],
 AC_DEFINE_UNQUOTED(CONFIG_FILE_LOCATION, "${config_file_location}",
     [Location of config file])
 
-# Get GET_UPDATES_FREQUENCY
-AC_ARG_ENABLE([custom_get_updates_frequency],
-   AC_HELP_STRING([--enable-custom-get-updates-frequency=SECS],
-      [set get_updates frequency, default: 300 (i.e. 5 mins)]),
+# Get SESSION_LENGTH
+AC_ARG_ENABLE([custom_session_length],
+   AC_HELP_STRING([--enable-custom-session-length=SECS],
+      [set session length, default: 288000 (i.e. 8 hours)]),
    [case "${enableval}" in
-      no)  get_updates_frequency=300;;
-      yes) AC_MSG_ERROR([Custom get_updates frequency was not specified]);;
-      "")  AC_MSG_ERROR([Custom get_updates frequency was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then get_updates_frequency=${enableval};
-              else AC_MSG_ERROR([Frequency of get_updates must be at least 1 second]);
+      no)  session_length=288000;;
+      yes) AC_MSG_ERROR([Custom session length was not specified]);;
+      "")  AC_MSG_ERROR([Custom session length was not specified]);;
+      *)   if test "0${enableval}" -gt 300;
+              then session_length=${enableval};
+              else AC_MSG_ERROR([Session length must be at least 5 minutes]);
               fi;;
       esac],
-   [get_updates_frequency=300])
-AC_DEFINE_UNQUOTED(GET_UPDATES_FREQUENCY, ${get_updates_frequency},
-   [Wait period between get_updates calls])
+   [session_length=288000])
+AC_DEFINE_UNQUOTED(SESSION_LENGTH, ${session_length},
+   [Wait period between wiomw_login calls])
+
+
+# Get SYNC_BLOCK_FREQUENCY
+AC_ARG_ENABLE([custom_sync_block_frequency],
+   AC_HELP_STRING([--enable-custom-sync-block-frequency=SECS],
+      [set sync_block frequency, default: 300 (i.e. 5 mins)]),
+   [case "${enableval}" in
+      no)  sync_block_frequency=300;;
+      yes) AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
+      "")  AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
+      *)   if test "0${enableval}" -gt 0;
+              then sync_block_frequency=${enableval};
+              else AC_MSG_ERROR([Frequency of sync_block must be at least 1 second]);
+              fi;;
+      esac],
+   [sync_block_frequency=300])
+AC_DEFINE_UNQUOTED(SYNC_BLOCK_FREQUENCY, ${sync_block_frequency},
+   [Wait period between sync_block calls])
 
 # Get HANDLE_SIGQUIT
 AC_ARG_ENABLE([sigquit-handling],
@@ -213,33 +266,33 @@ AC_ARG_ENABLE([custom_login_url],
 AC_DEFINE_UNQUOTED(LOGIN_API_URL, "${login_url}",
     [URL of login API])
 
-# Get GET_UPDATES_URL
-AC_ARG_ENABLE([custom_get_updates_url],
+# Get SYNC_BLOCK_URL
+AC_ARG_ENABLE([custom_sync_block_url],
    AC_HELP_STRING([--enable-custom-get-updates-url=URL],
-      [set get updates API URL, default: https://www.whoisonmywifi.net/api/v100/rest/getupdate]),
+      [set sync_block API URL, default: https://www.whoisonmywifi.net/api/v100/rest/sync_block]),
    [case "${enableval}" in
-      no)  get_updates_url="https://www.whoisonmywifi.net/api/v100/rest/getupdate";;
-      yes) AC_MSG_ERROR([Custom get updates API URL was not specified]);;
-      "")  AC_MSG_ERROR([Custom get updates API URL was not specified]);;
-      *)   get_updates_url="${enableval}";;
+      no)  sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block";;
+      yes) AC_MSG_ERROR([Custom sync_block API URL was not specified]);;
+      "")  AC_MSG_ERROR([Custom sync_block API URL was not specified]);;
+      *)   sync_block_url="${enableval}";;
       esac],
-   [get_updates_url="https://www.whoisonmywifi.net/api/v100/rest/getupdate"])
-AC_DEFINE_UNQUOTED(GET_UPDATES_API_URL, "${get_updates_url}",
-    [URL of get updates API])
+   [sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block"])
+AC_DEFINE_UNQUOTED(SYNC_BLOCK_API_URL, "${sync_block_url}",
+    [URL of sync_block API])
 
-# Get SEND_UPDATES_URL
-AC_ARG_ENABLE([custom_send_updates_url],
-   AC_HELP_STRING([--enable-custom-send-updates-url=URL],
-      [set send updates API URL, default: https://www.whoisonmywifi.net/api/v100/rest/senddevice]),
+# Get SEND_DEVICES_URL
+AC_ARG_ENABLE([custom_send_devices_url],
+   AC_HELP_STRING([--enable-custom-send-devices-url=URL],
+      [set send devices API URL, default: https://www.whoisonmywifi.net/api/v100/rest/senddevice]),
    [case "${enableval}" in
-      no)  send_updates_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice";;
-      yes) AC_MSG_ERROR([Custom send updates API URL was not specified]);;
-      "")  AC_MSG_ERROR([Custom send updates API URL was not specified]);;
-      *)   send_updates_url="${enableval}";;
+      no)  send_devices_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice";;
+      yes) AC_MSG_ERROR([Custom send devices API URL was not specified]);;
+      "")  AC_MSG_ERROR([Custom send devices API URL was not specified]);;
+      *)   send_devices_url="${enableval}";;
       esac],
-   [send_updates_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice"])
-AC_DEFINE_UNQUOTED(SEND_UPDATES_API_URL, "${send_updates_url}",
-    [URL of send updates API])
+   [send_devices_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice"])
+AC_DEFINE_UNQUOTED(SEND_DEVICES_API_URL, "${send_devices_url}",
+    [URL of send devices API])
 
 # Get API_AGENT_KEY
 AC_ARG_ENABLE([custom_api_agent_key],
@@ -257,6 +310,6 @@ AC_DEFINE_UNQUOTED(API_AGENT_KEY, "${api_agent_key}",
 
 
 AC_CONFIG_FILES([Makefile
-		 etc/Makefile
+                 etc/Makefile
                  src/Makefile])
 AC_OUTPUT

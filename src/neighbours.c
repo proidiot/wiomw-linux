@@ -54,13 +54,6 @@
 #endif
  
 
-/* to go in config */
-#define SHOW_BLACKLISTED 0
-#define SHOW_NOT_RUNNING 0
-#define SHOW_SECONDARY 0
-#define SHOW_BLACKLISTED_INTERFACE_NEIGHBOURS 0
-#define SHOW_UNREACHABLE_NEIGHBOURS 0
-
 
 typedef struct {
 	unsigned char family;
@@ -101,13 +94,20 @@ typedef struct if_list_struct {
 
 typedef struct {
 	regex_t* compiled_regex;
+	config_t* config;
 	if_list_t* if_list;
 } get_if_list_cb_data_t;
 
 typedef struct {
 	FILE* fd;
+	config_t* config;
 	if_list_t* if_list;
 } print_neigh_list_cb_data_t;
+
+typedef struct {
+	if_list_t* if_list;
+	config_t* config;
+} get_if_addr_list_cb_data_t;
 
 
 
@@ -229,10 +229,11 @@ static void destroy_if_list(if_list_t* if_list)
 
 
 
-static get_if_list_cb_data_t new_get_if_list_cb_data(regex_t* compiled_regex, if_list_t* if_list)
+static get_if_list_cb_data_t new_get_if_list_cb_data(regex_t* compiled_regex, config_t* config, if_list_t* if_list)
 {
 	get_if_list_cb_data_t result;
 	result.compiled_regex = compiled_regex;
+	result.config = config;
 	result.if_list = if_list;
 	return result;
 }
@@ -243,16 +244,18 @@ static void destroy_get_if_list_cb_data(get_if_list_cb_data_t* get_if_list_cb_da
 		print_error("Unable to destroy an empty interface list callback argument");
 	} else {
 		get_if_list_cb_data->compiled_regex = NULL;
+		get_if_list_cb_data->config = NULL;
 		get_if_list_cb_data->if_list = NULL;
 	}
 }
 
 
-static print_neigh_list_cb_data_t new_print_neigh_list_cb_data(FILE* fd, if_list_t* if_list)
+static print_neigh_list_cb_data_t new_print_neigh_list_cb_data(FILE* fd, if_list_t* if_list, config_t* config)
 {
 	print_neigh_list_cb_data_t result;
 	result.fd = fd;
 	result.if_list = if_list;
+	result.config = config;
 	return result;
 }
 
@@ -263,6 +266,13 @@ static void destroy_print_neigh_list_cb_data(print_neigh_list_cb_data_t* print_n
 	}
 }
 
+static get_if_addr_list_cb_data_t new_get_if_addr_list_cb_data(if_list_t* if_list, config_t* config)
+{
+	get_if_addr_list_cb_data_t result;
+	result.if_list = if_list;
+	result.config = config;
+	return result;
+}
 
 
 
@@ -336,7 +346,6 @@ static if_item_t* get_if_item_by_index(if_list_t if_list, const int if_index)
 
 
 
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
 
 typedef struct {
@@ -346,9 +355,9 @@ typedef struct {
 
 typedef struct {
 	regex_t* compiled_regex;
+	config_t* config;
 	if_item_t* if_item;
 } get_if_item_cb_data_t;
-
 
 static print_neigh_cb_data_t new_print_neigh_cb_data(FILE* fd, unsigned char family)
 {
@@ -365,10 +374,11 @@ static void destroy_print_neigh_cb_data(print_neigh_cb_data_t* print_neigh_cb_da
 	}
 }
 
-static get_if_item_cb_data_t new_get_if_item_cb_data(regex_t* compiled_regex, if_item_t* if_item)
+static get_if_item_cb_data_t new_get_if_item_cb_data(regex_t* compiled_regex, config_t* config, if_item_t* if_item)
 {
 	get_if_item_cb_data_t result;
 	result.compiled_regex = compiled_regex;
+	result.config = config;
 	result.if_item = if_item;
 	return result;
 }
@@ -383,6 +393,7 @@ static void destroy_get_if_item_cb_data(get_if_item_cb_data_t* get_if_item_cb_da
 
 
 
+
 static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 {
 	get_if_item_cb_data_t* item_cb_data = (get_if_item_cb_data_t*)cb_data;
@@ -392,7 +403,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 	} else if (mnl_attr_type_valid(nl_attr, IFLA_MAX) < 0) {
 		print_syserror("Received invalid netlink attribute type");
 		return MNL_CB_ERROR;
-	} else if (!SHOW_BLACKLISTED && item_cb_data->if_item->blacklisted) {
+	} else if (item_cb_data->config->ignore_blacklist_iface && item_cb_data->if_item->blacklisted) {
 		return MNL_CB_OK;
 	} else {
 		switch (mnl_attr_get_type(nl_attr)) {
@@ -677,16 +688,16 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	} else {
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 	
-		if (!(if_msg->ifi_flags & IFF_LOOPBACK) && (SHOW_NOT_RUNNING || if_msg->ifi_flags & IFF_RUNNING)) {
+		if (!(if_msg->ifi_flags & IFF_LOOPBACK) && (list_cb_data->config->show_down_iface || if_msg->ifi_flags & IFF_RUNNING)) {
 			if_item_t* if_item = new_if_item();
-			get_if_item_cb_data_t item_cb_data = new_get_if_item_cb_data(list_cb_data->compiled_regex, if_item);
+			get_if_item_cb_data_t item_cb_data = new_get_if_item_cb_data(list_cb_data->compiled_regex, list_cb_data->config, if_item);
 			if_item->index = if_msg->ifi_index;
 			if_item->type = if_msg->ifi_type;
 			if_item->flags = if_msg->ifi_flags;
 			if_item->family = if_msg->ifi_family;
 			mnl_attr_parse(nl_head, sizeof(struct ifinfomsg), &get_if_item_cb, &item_cb_data);
 			destroy_get_if_item_cb_data(&item_cb_data);
-			if (SHOW_BLACKLISTED || !if_item->blacklisted) {
+			if (list_cb_data->config->ignore_blacklist_iface || !if_item->blacklisted) {
 				*(list_cb_data->if_list) = push_if_item(list_cb_data->if_list, if_item);
 			} else {
 				destroy_if_item(&if_item);
@@ -699,15 +710,15 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 
 static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
-	if_list_t* addr_list_cb_data = (if_list_t*)cb_data;
+	get_if_addr_list_cb_data_t* addr_list_cb_data = (get_if_addr_list_cb_data_t*)cb_data;
 	if (cb_data == NULL) {
 		print_error("Invalid argument received in interface address list callback");
 		return MNL_CB_ERROR;
 	} else {
 		struct ifaddrmsg* if_addr_msg = mnl_nlmsg_get_payload(nl_head);
-		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data, if_addr_msg->ifa_index);
+		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data->if_list, if_addr_msg->ifa_index);
 
-		if (if_item != NULL && (SHOW_SECONDARY || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
+		if (if_item != NULL && (addr_list_cb_data->config->show_secondary_iface_addr || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
 			if_addr_t* if_addr = new_if_addr();
 			if_addr->family = if_addr_msg->ifa_family;
 			if_addr->mask = if_addr_msg->ifa_prefixlen;
@@ -731,7 +742,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		struct ndmsg* nd_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*(neigh_list_cb_data->if_list), nd_msg->ndm_ifindex);
 
-		if (if_item != NULL && (SHOW_UNREACHABLE_NEIGHBOURS || nd_msg->ndm_state & NUD_REACHABLE) && (SHOW_BLACKLISTED_INTERFACE_NEIGHBOURS || !if_item->blacklisted)) {
+		if (if_item != NULL && (neigh_list_cb_data->config->show_unreachable_neighs || nd_msg->ndm_state & NUD_REACHABLE) && (neigh_list_cb_data->config->show_known_blacklist_iface_neighs || !if_item->blacklisted)) {
 			print_neigh_cb_data_t neigh_cb_data = new_print_neigh_cb_data(neigh_list_cb_data->fd, nd_msg->ndm_family);
 			fprintf(neigh_list_cb_data->fd, ",{");
 
@@ -793,7 +804,7 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	} else {
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 	
-		if (!(if_msg->ifi_flags & IFF_LOOPBACK) && (SHOW_NOT_RUNNING || if_msg->ifi_flags & IFF_RUNNING)) {
+		if (!(if_msg->ifi_flags & IFF_LOOPBACK) && (list_cb_data->config->show_down_iface || if_msg->ifi_flags & IFF_RUNNING)) {
 			struct rtattr* attr;
 			size_t attrlen = IFLA_PAYLOAD(nl_head);
 			if_item_t* if_item = new_if_item();
@@ -869,7 +880,7 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 			}
 
 
-			if (SHOW_BLACKLISTED || !if_item->blacklisted) {
+			if (list_cb_data->config->ignore_blacklist_iface || !if_item->blacklisted) {
 				*(list_cb_data->if_list) = push_if_item(list_cb_data->if_list, if_item);
 			} else {
 				destroy_if_item(&if_item);
@@ -882,15 +893,15 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 
 static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
-	if_list_t* addr_list_cb_data = (if_list_t*)cb_data;
+	get_if_addr_list_cb_data_t* addr_list_cb_data = (get_if_addr_list_cb_data_t*)cb_data;
 	if (cb_data == NULL) {
 		print_error("Invalid argument received in interface address list callback");
 		return MNL_CB_ERROR;
 	} else {
 		struct ifaddrmsg* if_addr_msg = mnl_nlmsg_get_payload(nl_head);
-		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data, if_addr_msg->ifa_index);
+		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data->if_list, if_addr_msg->ifa_index);
 
-		if (if_item != NULL && (SHOW_SECONDARY || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
+		if (if_item != NULL && (addr_list_cb_data->config->show_secondary_iface_addr || !(if_addr_msg->ifa_flags & IFA_F_SECONDARY))) {
 			struct rtattr* attr;
 			size_t attrlen = IFA_PAYLOAD(nl_head);
 			if_addr_t* if_addr = new_if_addr();
@@ -1050,7 +1061,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		struct ndmsg* nd_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*(neigh_list_cb_data->if_list), nd_msg->ndm_ifindex);
 
-		if (if_item != NULL && (SHOW_UNREACHABLE_NEIGHBOURS || nd_msg->ndm_state & NUD_REACHABLE) && (SHOW_BLACKLISTED_INTERFACE_NEIGHBOURS || !if_item->blacklisted)) {
+		if (if_item != NULL && (neigh_list_cb_data->config->show_unreachable_neighs || nd_msg->ndm_state & NUD_REACHABLE) && (neigh_list_cb_data->config->show_known_blacklist_iface_neighs || !if_item->blacklisted)) {
 			struct rtattr* attr;
 			size_t attrlen = NDA_PAYLOAD(nl_head);
 
@@ -1149,7 +1160,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 
 
 
-static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_list_t* if_list)
+static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_list_t* if_list, config_t* config)
 {
 	char* buf;
 	struct nlmsghdr* nl_head;
@@ -1157,7 +1168,7 @@ static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_
 	int errcode = 0;
 	unsigned int seq;
 	unsigned int portid;
-	get_if_list_cb_data_t get_if_list_cb_data = new_get_if_list_cb_data(compiled_regex, if_list);
+	get_if_list_cb_data_t get_if_list_cb_data = new_get_if_list_cb_data(compiled_regex, config, if_list);
 	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
 	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
@@ -1192,7 +1203,7 @@ static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_
 	free(buf);
 }
 
-static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
+static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list, config_t* config)
 {
 	char* buf;
 	struct nlmsghdr* nl_head;
@@ -1201,6 +1212,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
 	unsigned int seq;
 	unsigned int portid;
 	int i = 0;
+	get_if_addr_list_cb_data_t addr_list_cb_data = new_get_if_addr_list_cb_data(if_list, config);
 	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
 	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
@@ -1225,7 +1237,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
 	do {
 		errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
 		i++;
-	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_addr_list_cb, if_list)) > MNL_CB_STOP);
+	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_addr_list_cb, &addr_list_cb_data)) > MNL_CB_STOP);
 
 	if (errcode == -1) {
 		print_syserror("Unable to retrieve interface address list from netlink %d", i);
@@ -1236,7 +1248,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list)
 }
 
 
-static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_list)
+static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_list, config_t* config)
 {
 	char* buf;
 	struct nlmsghdr* nl_head;
@@ -1244,7 +1256,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	int errcode = 0;
 	unsigned int seq;
 	unsigned int portid;
-	print_neigh_list_cb_data_t neigh_list_cb_data = new_print_neigh_list_cb_data(fd, &if_list);
+	print_neigh_list_cb_data_t neigh_list_cb_data = new_print_neigh_list_cb_data(fd, &if_list, config);
 	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
 	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
@@ -1433,82 +1445,95 @@ static void print_if_list(FILE* fd, if_list_t if_list)
 	}
 }
 
-
-
-
-
-/*
-static void scan_networks(struct mnl_socket* nl_sock, if_list_t* if_list, net_list_t* net_list)
+static void scan_network(struct sockaddr* addr, uint8_t mask)
 {
+	size_t remote_addr_size;
+	struct sockaddr* remote_addr;
+	if (addr->sa_family == AF_INET) {
+		remote_addr_size = sizeof(struct sockaddr_in);
+	} else if (addr->sa_family == AF_INET6) {
+		remote_addr_size = sizeof(struct sockaddr_in6);
+	} else {
+		print_error("Unexpected address family for network scanning");
+		return;
+	}
+	remote_addr = (struct sockaddr*)malloc(remote_addr_size);
+	if (remote_addr == NULL) {
+		print_syserror("Unable to allocate memory for network scanning");
+		exit(EX_OSERR);
+	}
+	memset(remote_addr, 0, remote_addr_size);
+	while (increment_addr(addr, mask, remote_addr) > 0) {
+		int fdfl = 0;
+		int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+		if (sockfd == -1) {
+			print_syserror("Unable to create socket");
+		} else if ((fdfl = fcntl(sockfd, F_GETFL)) == -1) {
+			print_syserror("Unable to get socket metadata");
+		} else if (fcntl(sockfd, F_SETFL, fdfl | O_NONBLOCK) == -1) {
+			print_syserror("Unable to put socket into non-blocking mode");
+		} else {
+			char str_temp[BUFSIZ];
+			int errcode = 0;
+			if (remote_addr->sa_family == AF_INET) {
+				struct sockaddr_in* remote_ip4 = (struct sockaddr_in*)remote_addr;
+				if (NULL == inet_ntop(
+						AF_INET,
+						&remote_ip4->sin_addr.s_addr,
+						str_temp,
+						BUFSIZ)) {
+					print_syserror("Unable to parse IP address");
+				}
+				remote_ip4->sin_port = htons(9);
+			} else if (remote_addr->sa_family == AF_INET6) {
+				struct sockaddr_in6* remote_ip6 = (struct sockaddr_in6*)remote_addr;
+				if (NULL == inet_ntop(
+						AF_INET,
+						&remote_ip6->sin6_addr.s6_addr,
+						str_temp,
+						BUFSIZ)) {
+					print_syserror("Unable to parse IP address");
+				}
+				remote_ip6->sin6_port = htons(9);
+			} else {
+				print_error("Internal address iterator has an unexpected address family.");
+			}
+			errcode = connect(sockfd, remote_addr, remote_addr_size);
+			if (errcode == -1) {
+				if (errno != EINPROGRESS) {
+					print_syserror("Unable to connect to %s", str_temp);
+				}
+			}
+		}
+		close(sockfd);
+	}
+	free(remote_addr);
 }
-*/
 
-static void autoscan_networks(struct mnl_socket* nl_sock, if_list_t if_list)
+static void scan_networks(struct mnl_socket* nl_sock, if_list_t if_list, config_t* config)
 {
 	if_list_t if_item_iter = if_list;
 
 	while (nl_sock != NULL && if_item_iter != NULL) {
 		if_item_t* if_item = if_item_iter->data;
+		if_addr_list_t if_addr_iter = if_item->addr_list;
 
-		if (!if_item->blacklisted) {
-			if_addr_list_t if_addr_iter = if_item->addr_list;
+		while (if_addr_iter != NULL) {
+			if_addr_t* if_addr = if_addr_iter->data;
 
-			while (if_addr_iter != NULL) {
-				if_addr_t* if_addr = if_addr_iter->data;
-
-				if (check_scannable_range(if_addr->addr, if_addr->mask) > 0) {
-					size_t remote_addr_size = ((if_addr->family == AF_INET))?sizeof(struct sockaddr_in):sizeof(struct sockaddr_in6);
-					struct sockaddr* remote_addr = (struct sockaddr*)malloc(remote_addr_size);
-					memset(remote_addr, 0, remote_addr_size);
-					while (increment_addr(if_addr->addr, if_addr->mask, remote_addr) > 0) {
-						int fdfl = 0;
-						int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-						if (sockfd == -1) {
-							print_syserror("Unable to create socket");
-						} else if ((fdfl = fcntl(sockfd, F_GETFL)) == -1) {
-							print_syserror("Unable to get socket metadata");
-						} else if (fcntl(sockfd, F_SETFL, fdfl | O_NONBLOCK) == -1) {
-							print_syserror("Unable to put socket into non-blocking mode");
-						} else {
-							char str_temp[BUFSIZ];
-							int errcode = 0;
-							if (remote_addr->sa_family == AF_INET) {
-								struct sockaddr_in* remote_ip4 = (struct sockaddr_in*)remote_addr;
-								if (NULL == inet_ntop(
-										AF_INET,
-										&remote_ip4->sin_addr.s_addr,
-										str_temp,
-										BUFSIZ)) {
-									print_syserror("Unable to parse IP address");
-								}
-								remote_ip4->sin_port = htons(9);
-							} else if (remote_addr->sa_family == AF_INET6) {
-								struct sockaddr_in6* remote_ip6 = (struct sockaddr_in6*)remote_addr;
-								if (NULL == inet_ntop(
-										AF_INET,
-										&remote_ip6->sin6_addr.s6_addr,
-										str_temp,
-										BUFSIZ)) {
-									print_syserror("Unable to parse IP address");
-								}
-								remote_ip6->sin6_port = htons(9);
-							} else {
-								print_error("Internal address iterator has an unexpected address family.");
-							}
-							errcode = connect(sockfd, remote_addr, remote_addr_size);
-							if (errcode == -1) {
-								if (errno != EINPROGRESS) {
-									print_syserror("Unable to connect to %s", str_temp);
-								}
-							}
-						}
-						close(sockfd);
-					}
-					free(remote_addr);
+			if (config->autoscan && !if_item->blacklisted && check_autoscannable_range(if_addr->addr, if_addr->mask) > 0) {
+				scan_network(if_addr->addr, if_addr->mask);
+			} else if ((!config->blacklist_overrides_networks || !if_item->blacklisted) && config->networks != NULL) {
+				network_list_t overlapping_networks = get_overlapping_networks(if_addr->addr, if_addr->mask, config->networks);
+				network_list_t network_iterator = overlapping_networks;
+				while (network_iterator != NULL) {
+					scan_network(network_iterator->addr_base, network_iterator->prefix);
+					network_iterator = network_iterator->next;
 				}
-
-				if_addr_iter = if_addr_iter->next;
+				destroy_network_list(&overlapping_networks);
 			}
+
+			if_addr_iter = if_addr_iter->next;
 		}
 
 		if_item_iter = if_item_iter->next;
@@ -1539,12 +1564,12 @@ void print_neighbours(config_t* config, FILE* fd)
 		print_error("Bad file descriptor received");
 	}
 
-	if (strlen(config->str_iface_blacklist_regex) > 0) {
+	if (strlen(config->iface_blacklist_regex) > 0) {
 		snprintf(
 				uncompiled_regex,
 				MAX_IFACE_BLACKLIST_REGEX_LENGTH + UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH + 1,
 				UNIVERSAL_IFACE_BLACKLIST_REGEX "|%s",
-				config->str_iface_blacklist_regex);
+				config->iface_blacklist_regex);
 	} else {
 		strcpy(uncompiled_regex, UNIVERSAL_IFACE_BLACKLIST_REGEX);
 	}
@@ -1567,47 +1592,26 @@ void print_neighbours(config_t* config, FILE* fd)
 	}
 
 
-	get_if_list(nl_sock, &compiled_regex, &if_list);
+	get_if_list(nl_sock, &compiled_regex, &if_list, config);
 
-	get_if_addrs(nl_sock, &if_list);
+	get_if_addrs(nl_sock, &if_list, config);
 
-	/*
-	if (config->network_list != NULL) {
-		scan_networks(nl_sock, if_list, config->network_list);
-	} else {
-		autoscan_networks(nl_sock, if_list);
-	}
-	*/
-	autoscan_networks(nl_sock, if_list);
-
-	/*mnl_socket_close(nl_sock);*/
+	scan_networks(nl_sock, if_list, config);
 
 	sleep(30);
 
-	fprintf(fd, "[\"%s\"", config->str_session_id);
+	fprintf(fd, "[\"%s\"", config->session_id);
 
 	print_if_list(fd, if_list);
 
-	/*
-	nl_sock = mnl_socket_open(NETLINK_ROUTE);
-	if (nl_sock == NULL) {
-		print_syserror("Unable to open netlink socket");
-		exit(EX_OSERR);
-	}
-
-	if (mnl_socket_bind(nl_sock, 0, MNL_SOCKET_AUTOPID) < 0) {
-		print_syserror("Unable to bind netlink socket to port");
-		exit(EX_OSERR);
-	}
-	*/
-
-	print_neigh_list(nl_sock, fd, if_list);
+	print_neigh_list(nl_sock, fd, if_list, config);
 
 	mnl_socket_close(nl_sock);
 
 	fprintf(fd, "]");
 
 	destroy_if_list(&if_list);
+	regfree(&compiled_regex);
 }
 
 
