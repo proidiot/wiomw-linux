@@ -1,0 +1,48 @@
+#!/bin/sh
+
+set -e
+
+URL="https://www.whoisonmywifi.net/downloads"
+CODE="abc123"
+UNAME="`uname -srvmpi`"
+
+if [ ! -d /jffs/etc ]
+then
+	mkdir /jffs/etc
+fi
+
+if [ ! -e /jffs/etc/wiomw.conf ]
+then
+	cd /jffs/etc
+	wget --post-data="$CODE" "$URL/wiomw.conf"
+	cd -
+fi
+
+if [ ! -e /jffs/etc/wiomw-ca.crt ]
+then
+	cd /jffs/etc
+	wget "$URL/wiomw-ca.crt"
+	cd -
+fi
+
+if [ ! -d /tmp/var/wwwext ]
+then
+	mkdir /tmp/var/wwwext
+fi
+
+if [ ! -d /jffs/sbin ]
+then
+	mkdir /jffs/sbin
+fi
+
+if [ ! -x /jffs/sbin/wiomw-plugin ]
+then
+	cd /jffs/sbin
+	wget --post-data="$UNAME" "$URL/wiomw-plugin"
+	chown ugo+x /jffs/sbin/wiomw-plugin
+	chmod u+s /jffs/sbin/wiomw-plugin
+	cd -
+fi
+
+/jffs/sbin/wiomw-plugin > /tmp/var/wwwext/wiomw.log &
+
