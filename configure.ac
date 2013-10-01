@@ -12,6 +12,7 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 # Checks for libraries.
+AC_CHECK_LIB([m], [rint])
 PKG_CHECK_MODULES([CURL], [libcurl])
 AC_ARG_WITH([openssl],
    AC_HELP_STRING([--with-openssl],
@@ -35,7 +36,6 @@ AS_IF([test "x$found_ssl" = xno],
    [])
 AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
-AC_CHECK_LIB([m], [rint])
 AC_CHECK_LIB([yajl], [yajl_tree_parse])
 
 # Checks for header files.

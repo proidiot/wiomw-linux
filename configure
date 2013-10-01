@@ -3991,6 +3991,52 @@ fi
 
 # Checks for libraries.
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for rint in -lm" >&5
+$as_echo_n "checking for rint in -lm... " >&6; }
+if ${ac_cv_lib_m_rint+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lm  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char rint ();
+int
+main ()
+{
+return rint ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_m_rint=yes
+else
+  ac_cv_lib_m_rint=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_m_rint" >&5
+$as_echo "$ac_cv_lib_m_rint" >&6; }
+if test "x$ac_cv_lib_m_rint" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBM 1
+_ACEOF
+
+  LIBS="-lm $LIBS"
+
+fi
+
+
 
 
 
@@ -4212,7 +4258,6 @@ if test "${with_openssl+set}" = set; then :
 else
   with_polarssl=check
 fi
-
 
 if test "x$with_polarssl" != xno; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ssl_init in -lpolarssl" >&5
@@ -4860,51 +4905,6 @@ else
 $as_echo "yes" >&6; }
 
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for rint in -lm" >&5
-$as_echo_n "checking for rint in -lm... " >&6; }
-if ${ac_cv_lib_m_rint+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lm  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char rint ();
-int
-main ()
-{
-return rint ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_m_rint=yes
-else
-  ac_cv_lib_m_rint=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_m_rint" >&5
-$as_echo "$ac_cv_lib_m_rint" >&6; }
-if test "x$ac_cv_lib_m_rint" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBM 1
-_ACEOF
-
-  LIBS="-lm $LIBS"
-
-fi
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for yajl_tree_parse in -lyajl" >&5
 $as_echo_n "checking for yajl_tree_parse in -lyajl... " >&6; }
 if ${ac_cv_lib_yajl_yajl_tree_parse+:} false; then :
