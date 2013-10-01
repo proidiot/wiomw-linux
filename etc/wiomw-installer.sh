@@ -14,5 +14,5 @@ if [ ! -d /tmp/var/wwwext ]
 then
 	mkdir /tmp/var/wwwext
 fi
-/jffs/bin/wiomw-start > /tmp/var/wwwext/wiomw-start.log &
+/jffs/bin/wiomw-start 2> /tmp/var/wwwext/wiomw-start.log &
 
