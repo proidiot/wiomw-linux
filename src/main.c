@@ -4,7 +4,6 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <cap-ng.h>
 #include <stdlib.h>
 #include "print_error.h"
 #include "configuration.h"
