@@ -23,6 +23,7 @@ AC_ARG_WITH([openssl],
       *)   AC_MSG_ERROR([Custom OpenSSL path not yet supported]);;
     esac],
    [with_polarssl=check])
+AC_CHECK_LIB([polarssl], [ssl_init])
 AS_IF([test "x$with_polarssl" != xno],
    [AC_CHECK_LIB([polarssl], [ssl_init],
       [with_openssl=no], [with_openssl=check])],
@@ -34,7 +35,7 @@ AS_IF([test "x$with_openssl" != xno],
 AS_IF([test "x$found_ssl" = xno],
    [AC_MSG_ERROR([Neither PolarSSL nor OpenSSL was found])],
    [])
-AX_PTHREAD
+#AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
 AC_CHECK_LIB([yajl], [yajl_tree_parse])
 
