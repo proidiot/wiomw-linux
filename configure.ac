@@ -37,7 +37,7 @@ AS_IF([test "x$found_ssl" = xno],
    [])
 #AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
-AC_CHECK_LIB([yajl], [yajl_tree_parse])
+AC_CHECK_LIB([yajl_s], [yajl_tree_parse])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
