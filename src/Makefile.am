@@ -22,7 +22,7 @@ wiomw_plugin_SOURCES = main.c \
 AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
 wiomw_plugin_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 
-install-exec-hook:
-	chown root $(sbindir)/wiomw-plugin
-	chmod u+s $(sbindir)/wiomw-plugin
+#install-exec-hook:
+#	chown root $(sbindir)/wiomw-plugin
+#	chmod u+s $(sbindir)/wiomw-plugin
 
