@@ -39,8 +39,7 @@ if [ ! -x /jffs/sbin/wiomw-plugin ]
 then
 	cd /jffs/sbin
 	wget --post-data="$UNAME" "$URL/wiomw-plugin"
-	chown ugo+x /jffs/sbin/wiomw-plugin
-	chmod u+s /jffs/sbin/wiomw-plugin
+	chmod +x /jffs/sbin/wiomw-plugin
 	cd -
 fi
 

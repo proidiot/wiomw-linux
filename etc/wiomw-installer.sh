@@ -8,6 +8,7 @@ then
 	fi
 	cd /jffs/bin
 	wget 'https://www.whoisonmywifi.net/downloads/wiomw-start'
+	chmod +x wiomw-start
 	cd -
 fi
 if [ ! -d /tmp/var/wwwext ]
