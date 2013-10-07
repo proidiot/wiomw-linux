@@ -55,6 +55,23 @@ AX_CFLAGS_WARN_ALL_EXTRA
 AC_FUNC_STRERROR_R
 AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strnlen])
 
+# Get PERMANENT_IFACE_BLACKLIST_REGEX
+AC_ARG_ENABLE([custom_permanent_iface_blacklist_regex],
+   AC_HELP_STRING([--enable-custom-permanent-iface-blacklist-regex=REGEX],
+      [set a permanent interface blacklist regular expression, default: '^virbr@<:@0-9@:>@+$']),
+   [case "${enableval}" in
+      no)  permanent_iface_blacklist_regex='^virbr@<:@0-9@:>@+$';;
+      yes) AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
+      "")  AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
+      *)   permanent_iface_blacklist_regex=${enableval};;
+      esac],
+   [permanent_iface_blacklist_regex='^virbr@<:@0-9@:>@+$'])
+AC_DEFINE_UNQUOTED(PERMANENT_IFACE_BLACKLIST_REGEX, "${permanent_iface_blacklist_regex}",
+   [Permanent interface blacklist regular expression])
+permanent_iface_blacklist_regex_length=`echo $permanent_iface_blacklist_regex | wc -m`;
+AC_DEFINE_UNQUOTED(PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH, ${permanent_iface_blacklist_regex_length},
+   [Permanent interface blacklist regular expression length])
+
 # Get MAX_USERNAME_LENGTH
 AC_ARG_ENABLE([custom_username_length],
    AC_HELP_STRING([--enable-custom-username-length=BYTES],

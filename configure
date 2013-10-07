@@ -699,6 +699,7 @@ ac_user_opts='
 enable_option_checking
 enable_dependency_tracking
 with_openssl
+enable_custom_permanent_iface_blacklist_regex
 enable_custom_username_length
 enable_custom_passhash_length
 enable_custom_session_id_length
@@ -1350,6 +1351,9 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
+  --enable-custom-permanent-iface-blacklist-regex=REGEX
+                          set a permanent interface blacklist regular
+                          expression, default: '^virbr[0-9]+$'
   --enable-custom-username-length=BYTES
                           set maximum username length, default: 1024
   --enable-custom-passhash-length=BYTES
@@ -5242,6 +5246,31 @@ _ACEOF
 
 fi
 done
+
+
+# Get PERMANENT_IFACE_BLACKLIST_REGEX
+# Check whether --enable-custom_permanent_iface_blacklist_regex was given.
+if test "${enable_custom_permanent_iface_blacklist_regex+set}" = set; then :
+  enableval=$enable_custom_permanent_iface_blacklist_regex; case "${enableval}" in
+      no)  permanent_iface_blacklist_regex='^virbr[0-9]+$';;
+      yes) as_fn_error $? "Custom permanent interface blacklist regular expression was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom permanent interface blacklist regular expression was not specified" "$LINENO" 5;;
+      *)   permanent_iface_blacklist_regex=${enableval};;
+      esac
+else
+  permanent_iface_blacklist_regex='^virbr[0-9]+$'
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define PERMANENT_IFACE_BLACKLIST_REGEX "${permanent_iface_blacklist_regex}"
+_ACEOF
+
+permanent_iface_blacklist_regex_length=`echo $permanent_iface_blacklist_regex | wc -m`;
+
+cat >>confdefs.h <<_ACEOF
+#define PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH ${permanent_iface_blacklist_regex_length}
+_ACEOF
 
 
 # Get MAX_USERNAME_LENGTH

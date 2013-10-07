@@ -142,6 +142,12 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Permanent interface blacklist regular expression */
+#undef PERMANENT_IFACE_BLACKLIST_REGEX
+
+/* Permanent interface blacklist regular expression length */
+#undef PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH
+
 /* URL of send devices API */
 #undef SEND_DEVICES_API_URL
 

@@ -26,8 +26,7 @@
 #include <time.h>
 #include <inttypes.h>
 
-#define UNIVERSAL_IFACE_BLACKLIST_REGEX "^lo$"
-#define UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH 4
+#define LOOPBACK_NAME "lo"
 
 #ifndef IFA_RTA
 #define IFA_RTA(r) \
@@ -84,6 +83,7 @@ typedef struct {
 	int link;
 	char* qdsp;
 	bool blacklisted;
+	bool loopback;
 	if_addr_list_t addr_list;
 } if_item_t;
 
@@ -193,6 +193,7 @@ static if_item_t* new_if_item()
 	if_item->link = -1;
 	if_item->qdsp = NULL;
 	if_item->blacklisted = false;
+	if_item->loopback = false;
 	if_item->addr_list = new_if_addr_list();
 	return if_item;
 }
@@ -403,6 +404,8 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 	} else if (mnl_attr_type_valid(nl_attr, IFLA_MAX) < 0) {
 		print_syserror("Received invalid netlink attribute type");
 		return MNL_CB_ERROR;
+	} else if (item_cb_data->if_item->loopback) {
+		return MNL_CB_OK;
 	} else if (item_cb_data->config->ignore_blacklist_iface && item_cb_data->if_item->blacklisted) {
 		return MNL_CB_OK;
 	} else {
@@ -420,14 +423,19 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 					exit(EX_OSERR);
 				}
 				strcpy(item_cb_data->if_item->name, if_name);
-				errcode = regexec(item_cb_data->compiled_regex, item_cb_data->if_item->name, 0, NULL, REG_EXTENDED);
-				if (errcode == 0) {
+				if (strcmp(item_cb_data->if_item->name, LOOPBACK_NAME) == 0) {
 					item_cb_data->if_item->blacklisted = true;
-				} else if (errcode == REG_NOMATCH) {
-					item_cb_data->if_item->blacklisted = false;
+					item_cb_data->if_item->loopback = true;
 				} else {
-					print_syserror("Unable to evaluate the interface blacklist regex");
-					return MNL_CB_ERROR;
+					errcode = regexec(item_cb_data->compiled_regex, item_cb_data->if_item->name, 0, NULL, 0);
+					if (errcode == 0) {
+						item_cb_data->if_item->blacklisted = true;
+					} else if (errcode == REG_NOMATCH) {
+						item_cb_data->if_item->blacklisted = false;
+					} else {
+						print_syserror("Unable to evaluate the interface blacklist regex");
+						return MNL_CB_ERROR;
+					}
 				}
 			}
 			break;
@@ -697,7 +705,9 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 			if_item->family = if_msg->ifi_family;
 			mnl_attr_parse(nl_head, sizeof(struct ifinfomsg), &get_if_item_cb, &item_cb_data);
 			destroy_get_if_item_cb_data(&item_cb_data);
-			if (list_cb_data->config->ignore_blacklist_iface || !if_item->blacklisted) {
+			if (if_item->loopback) {
+				destroy_if_item(&if_item);
+			} else if (list_cb_data->config->ignore_blacklist_iface || !if_item->blacklisted) {
 				*(list_cb_data->if_list) = push_if_item(list_cb_data->if_list, if_item);
 			} else {
 				destroy_if_item(&if_item);
@@ -825,14 +835,19 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 							exit(EX_OSERR);
 						}
 						strcpy(if_item->name, if_name);
-						errcode = regexec(list_cb_data->compiled_regex, if_item->name, 0, NULL, REG_EXTENDED);
-						if (errcode == 0) {
+						if (strcmp(if_item->name, LOOPBACK_NAME) == 0) {
 							if_item->blacklisted = true;
-						} else if (errcode == REG_NOMATCH) {
-							if_item->blacklisted = false;
+							if_item->loopback = true;
 						} else {
-							print_syserror("Unable to evaluate the interface blacklist regex");
-							return MNL_CB_ERROR;
+							errcode = regexec(list_cb_data->compiled_regex, if_item->name, 0, NULL, 0);
+							if (errcode == 0) {
+								if_item->blacklisted = true;
+							} else if (errcode == REG_NOMATCH) {
+								if_item->blacklisted = false;
+							} else {
+								print_syserror("Unable to evaluate the interface blacklist regex");
+								return MNL_CB_ERROR;
+							}
 						}
 					}
 					break;
@@ -880,7 +895,9 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 			}
 
 
-			if (list_cb_data->config->ignore_blacklist_iface || !if_item->blacklisted) {
+			if (if_item->loopback) {
+				destroy_if_item(&if_item);
+			} else if (list_cb_data->config->ignore_blacklist_iface || !if_item->blacklisted) {
 				*(list_cb_data->if_list) = push_if_item(list_cb_data->if_list, if_item);
 			} else {
 				destroy_if_item(&if_item);
@@ -1293,13 +1310,13 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	free(buf);
 }
 
-static void print_if_list(FILE* fd, if_list_t if_list)
+static void print_if_list(FILE* fd, if_list_t if_list, config_t* config)
 {
 	if_list_t if_list_iter = if_list;
 
 	while (if_list_iter != NULL) {
 		if_item_t* if_item = if_list_iter->data;
-		if (!if_item->blacklisted) {
+		if (!config->ignore_blacklist_iface || !if_item->blacklisted) {
 			if_addr_list_t if_addr_list_iter = if_item->addr_list;
 			if_item_t* real_if_item = NULL;
 
@@ -1551,7 +1568,7 @@ static void scan_networks(struct mnl_socket* nl_sock, if_list_t if_list, config_
 
 void print_neighbours(config_t* config, FILE* fd)
 {
-	char uncompiled_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH + UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH + 1];
+	char uncompiled_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH + PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH + 1];
 	regex_t compiled_regex;
 	if_list_t if_list = new_if_list();
 	struct mnl_socket* nl_sock;
@@ -1567,11 +1584,11 @@ void print_neighbours(config_t* config, FILE* fd)
 	if (strlen(config->iface_blacklist_regex) > 0) {
 		snprintf(
 				uncompiled_regex,
-				MAX_IFACE_BLACKLIST_REGEX_LENGTH + UNIVERSAL_IFACE_BLACKLIST_REGEX_LENGTH + 1,
-				UNIVERSAL_IFACE_BLACKLIST_REGEX "|%s",
+				MAX_IFACE_BLACKLIST_REGEX_LENGTH + PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH + 1,
+				PERMANENT_IFACE_BLACKLIST_REGEX "|%s",
 				config->iface_blacklist_regex);
 	} else {
-		strcpy(uncompiled_regex, UNIVERSAL_IFACE_BLACKLIST_REGEX);
+		strcpy(uncompiled_regex, PERMANENT_IFACE_BLACKLIST_REGEX);
 	}
 	errcode = regcomp(&compiled_regex, uncompiled_regex, REG_EXTENDED | REG_ICASE);
 	if (errcode != 0) {
@@ -1602,7 +1619,7 @@ void print_neighbours(config_t* config, FILE* fd)
 
 	fprintf(fd, "[\"%s\"", config->session_id);
 
-	print_if_list(fd, if_list);
+	print_if_list(fd, if_list, config);
 
 	print_neigh_list(nl_sock, fd, if_list, config);
 
