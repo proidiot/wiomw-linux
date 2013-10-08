@@ -2,6 +2,8 @@
 
 set -e
 
+VERSION="0.1"
+
 if [ $? -ne 2 ]
 then
 	echo "Usage: wiomw-start <USERNAME> <PASSHASH>" >&2
