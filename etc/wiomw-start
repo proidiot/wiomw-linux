@@ -2,8 +2,19 @@
 
 set -e
 
-URL="https://www.whoisonmywifi.net/downloads"
-CODE="abc123"
+if [ $? -ne 2 ]
+then
+	echo "Usage: wiomw-start <USERNAME> <PASSHASH>" >&2
+	false
+fi
+
+USERNAME="$1"
+PASSHASH="$2"
+
+SCP_HOME="/jffs/etc"
+SCP_SERVER="scp.whoisonmywifi.net"
+SCP_USER="anon"
+SCP_PASS="wiomw"
 UNAME="`uname -srvmpi`"
 
 if [ ! -d /jffs/etc ]
@@ -14,14 +25,19 @@ fi
 if [ ! -e /jffs/etc/wiomw.conf ]
 then
 	cd /jffs/etc
-	wget --post-data="$CODE" "$URL/wiomw.conf"
+	HOME=$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:wiomw.conf.example .
+	mv wiomw.conf.example wiomw.conf
+	sed -i -e "s/^\(\s*USERNAME\s*=\s*\)$/\1$USERNAME/" wiomw.conf
+	sed -i -e "s/^\(\s*PASSHASH\s*=\s*\)$/\1$PASSHASH/" wiomw.conf
+	chmod 400 wiomw.conf
 	cd -
 fi
 
 if [ ! -e /jffs/etc/wiomw-ca.crt ]
 then
 	cd /jffs/etc
-	wget "$URL/wiomw-ca.crt"
+	HOME=$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:/wiomw-ca.crt .
+	chmod 400 wiomw-ca.crt
 	cd -
 fi
 
@@ -38,8 +54,8 @@ fi
 if [ ! -x /jffs/sbin/wiomw-plugin ]
 then
 	cd /jffs/sbin
-	wget --post-data="$UNAME" "$URL/wiomw-plugin"
-	chmod +x /jffs/sbin/wiomw-plugin
+	HOME+$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:/wiomw-plugin .
+	chmod 500 wiomw-plugin
 	cd -
 fi
 
