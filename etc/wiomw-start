@@ -54,7 +54,7 @@ fi
 if [ ! -x /jffs/sbin/wiomw-plugin ]
 then
 	cd /jffs/sbin
-	HOME+$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:/wiomw-plugin .
+	HOME+$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:/plugin/$UNAME/wiomw-plugin-$VERSION .
 	chmod 500 wiomw-plugin
 	cd -
 fi
