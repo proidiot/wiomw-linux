@@ -27,9 +27,5 @@ then
 	chmod +x wiomw-start
 	cd -
 fi
-if [ ! -d /tmp/var/wwwext ]
-then
-	mkdir /tmp/var/wwwext
-fi
-/jffs/bin/wiomw-start-$VERSION $USERNAME $PASSHASH 2> /tmp/var/wwwext/wiomw-start.log &
+/jffs/bin/wiomw-start-$VERSION $USERNAME $PASSHASH 2>&1 | logger -t "wiomw-start" &
 

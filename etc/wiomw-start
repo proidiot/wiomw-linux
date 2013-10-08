@@ -61,5 +61,5 @@ then
 	cd -
 fi
 
-/jffs/sbin/wiomw-plugin 2> /tmp/var/wwwext/wiomw.log &
+/jffs/sbin/wiomw-plugin 2>&1 | logger &
 
