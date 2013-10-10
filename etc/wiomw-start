@@ -6,7 +6,7 @@ VERSION="0.1"
 
 if [ $? -ne 2 ]
 then
-	echo "Usage: wiomw-start <USERNAME> <PASSHASH>" >&2
+	echo "Usage: wiomw-start-$VERSION <USERNAME> <PASSHASH>" >&2
 	false
 fi
 
@@ -14,10 +14,10 @@ USERNAME="$1"
 PASSHASH="$2"
 
 SCP_HOME="/jffs/etc"
-SCP_SERVER="scp.whoisonmywifi.net"
+SCP_SERVER="54.235.89.158"
 SCP_USER="anon"
 SCP_PASS="wiomw"
-UNAME="`uname -srvmpi`"
+UNAME="`uname -srvmpi | tr \#\:[:upper:][:space:] n.[:lower:]_ `"
 
 if [ ! -d /jffs/etc ]
 then
@@ -38,7 +38,7 @@ fi
 if [ ! -e /jffs/etc/wiomw-ca.crt ]
 then
 	cd /jffs/etc
-	HOME=$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:/wiomw-ca.crt .
+	HOME=$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:wiomw-ca.crt .
 	chmod 400 wiomw-ca.crt
 	cd -
 fi
@@ -56,10 +56,10 @@ fi
 if [ ! -x /jffs/sbin/wiomw-plugin ]
 then
 	cd /jffs/sbin
-	HOME+$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:/plugin/$UNAME/wiomw-plugin-$VERSION .
-	chmod 500 wiomw-plugin
+	HOME+$SCP_HOME DROPBEAR_PASSWORD=$SCP_PASS scp $SCP_USER@$SCP_SERVER:uname/$UNAME/wiomw-plugin-$VERSION .
+	chmod 500 wiomw-plugin-$VERSION
 	cd -
 fi
 
-/jffs/sbin/wiomw-plugin 2>&1 | logger &
+/jffs/sbin/wiomw-plugin-$VERSION 2>&1 | logger &
 
