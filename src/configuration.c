@@ -14,17 +14,16 @@
 #include "print_error.h"
 #include "string_helpers.h"
 
+#define ALLOW_URL_OVERRIDES 0
+
 #define USERNAME_CONFIG_PREFIX "USERNAME"
 #define PASSHASH_CONFIG_PREFIX "PASSHASH"
+#define AGENTKEY_CONFIG_PREFIX "AGENTKEY"
 #define NETWORKS_CONFIG_PREFIX "NETWORKS"
 #define IFACE_BLACKLIST_REGEX_CONFIG_PREFIX "IFACE_BLACKLIST_REGEX"
 #define LOGIN_URL_CONFIG_PREFIX "LOGIN_URL"
 #define SYNC_BLOCK_URL_CONFIG_PREFIX "SYNC_BLOCK_URL"
 #define SEND_URL_CONFIG_PREFIX "SEND_DEVICES_URL"
-#define RUN_AS_UID_CONFIG_PREFIX "RUN_AS_USER_ID"
-#define RUN_AS_UNAME_CONFIG_PREFIX "RUN_AS_USER_NAME"
-#define RUN_AS_GID_CONFIG_PREFIX "RUN_AS_GROUP_ID"
-#define RUN_AS_GNAME_CONFIG_PREFIX "RUN_AS_GROUP_NAME"
 #define IGNORE_BLACKLIST_IFACE_CONFIG_PREFIX "COMPLETELY_IGNORE_BLACKLIST_IFACES"
 #define SHOW_UNREACHABLE_NEIGHS_CONFIG_PREFIX "SEND_UNREACHABLE_NEIGHS"
 #define SHOW_KNOWN_BLACKLIST_IFACE_NEIGHS_CONFIG_PREFIX "SEND_KNOWN_NEIGHS_BEHIND_BLACKLIST_IFACES"
@@ -71,17 +70,12 @@ config_t get_configuration(int argc, char** argv)
 	 * (If a value must be specified, set bad values here and check if they match after the file is closed.) */
 	config.username = NULL;
 	config.passhash = NULL;
+	config.agentkey = NULL;
 	config.iface_blacklist_regex = NULL;
 	config.login_url = string_chomp_copy(LOGIN_API_URL);
 	config.sync_block_url = string_chomp_copy(SYNC_BLOCK_API_URL);
 	config.send_devices_url = string_chomp_copy(SEND_DEVICES_API_URL);
 	config.networks = NULL;
-	config.uid = getuid();
-	if (getgid() == 0) {
-		config.gid = INT_MIN;
-	} else {
-		config.gid = -1 * getgid();
-	}
 	config.ignore_blacklist_iface = true;
 	config.show_unreachable_neighs = false;
 	config.show_known_blacklist_iface_neighs = false;
@@ -135,107 +129,45 @@ config_t get_configuration(int argc, char** argv)
 				print_error(CONFIG_ERROR_STRING_PREFIX PASSHASH_CONFIG_PREFIX " must not be empty");
 				exit(EX_CONFIG);
 			}
+		} else if ((value = find_config_value(current_line, AGENTKEY_CONFIG_PREFIX)) != NULL) {
+			if ((config.agentkey = string_chomp_copy(value)) == NULL) {
+				print_error(CONFIG_ERROR_STRING_PREFIX AGENTKEY_CONFIG_PREFIX " must not be empty");
+				exit(EX_CONFIG);
+			}
 		} else if ((value = find_config_value(current_line, IFACE_BLACKLIST_REGEX_CONFIG_PREFIX)) != NULL) {
 			config.iface_blacklist_regex = string_chomp_copy(value);
 		} else if ((value = find_config_value(current_line, LOGIN_URL_CONFIG_PREFIX)) != NULL) {
-			char* new_url = string_chomp_copy(value);
-			if (new_url != NULL) {
-				free(config.login_url);
-				config.login_url = new_url;
+			if (ALLOW_URL_OVERRIDES) {
+				char* new_url = string_chomp_copy(value);
+				if (new_url != NULL) {
+					free(config.login_url);
+					config.login_url = new_url;
+				}
+			} else {
+				print_error(CONFIG_ERROR_STRING_PREFIX LOGIN_URL_CONFIG_PREFIX " cannot be overriden at this time");
+				exit(EX_CONFIG);
 			}
 		} else if ((value = find_config_value(current_line, SYNC_BLOCK_URL_CONFIG_PREFIX)) != NULL) {
-			char* new_url = string_chomp_copy(value);
-			if (new_url != NULL) {
-				free(config.sync_block_url);
-				config.sync_block_url = new_url;
+			if (ALLOW_URL_OVERRIDES) {
+				char* new_url = string_chomp_copy(value);
+				if (new_url != NULL) {
+					free(config.sync_block_url);
+					config.sync_block_url = new_url;
+				}
+			} else {
+				print_error(CONFIG_ERROR_STRING_PREFIX SYNC_BLOCK_URL_CONFIG_PREFIX " cannot be overriden at this time");
+				exit(EX_CONFIG);
 			}
 		} else if ((value = find_config_value(current_line, SEND_URL_CONFIG_PREFIX)) != NULL) {
-			char* new_url = string_chomp_copy(value);
-			if (new_url != NULL) {
-				free(config.send_devices_url);
-				config.send_devices_url = new_url;
-			}
-		} else if ((value = find_config_value(current_line, RUN_AS_UNAME_CONFIG_PREFIX)) != NULL) {
-			char* user_name = string_chomp_copy(value);
-			struct passwd* user_entry;
-			errno = 0;
-			user_entry = getpwnam(user_name);
-			if (user_entry == NULL) {
-				if (errno == 0) {
-					print_error(CONFIG_ERROR_STRING_PREFIX "No user was found that matches the given " RUN_AS_UNAME_CONFIG_PREFIX);
-					exit(EX_CONFIG);
-				} else {
-					print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to retrieve information about user given in " RUN_AS_UNAME_CONFIG_PREFIX);
-					exit(EX_OSERR);
+			if (ALLOW_URL_OVERRIDES) {
+				char* new_url = string_chomp_copy(value);
+				if (new_url != NULL) {
+					free(config.send_devices_url);
+					config.send_devices_url = new_url;
 				}
-			}
-			config.uid = user_entry->pw_uid;
-			if (config.gid < 0) {
-				if (user_entry->pw_gid == 0) {
-					config.gid = INT_MIN;
-				} else {
-					config.gid = -1 * user_entry->pw_gid;
-				}
-			}
-		} else if ((value = find_config_value(current_line, RUN_AS_UID_CONFIG_PREFIX)) != NULL) {
-			struct passwd* user_entry;
-			int uid = parse_uint(value);
-			if (uid < 0) {
-				print_error(CONFIG_ERROR_STRING_PREFIX "Unable to read a positive integer value for " RUN_AS_UID_CONFIG_PREFIX);
+			} else {
+				print_error(CONFIG_ERROR_STRING_PREFIX SEND_URL_CONFIG_PREFIX " cannot be overriden at this time");
 				exit(EX_CONFIG);
-			}
-			config.uid = uid;
-			errno = 0;
-			user_entry = getpwuid(config.uid);
-			if (user_entry == NULL) {
-				if (errno == 0) {
-					print_error(CONFIG_ERROR_STRING_PREFIX "No user was found that matches the given " RUN_AS_UID_CONFIG_PREFIX);
-					exit(EX_CONFIG);
-				} else {
-					print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to retrieve information about user given in " RUN_AS_UID_CONFIG_PREFIX);
-					exit(EX_OSERR);
-				}
-			}
-			if (config.gid < 0) {
-				if (user_entry->pw_gid == 0) {
-					config.gid = INT_MIN;
-				} else {
-					config.gid = -1 * user_entry->pw_gid;
-				}
-			}
-		} else if ((value = find_config_value(current_line, RUN_AS_GNAME_CONFIG_PREFIX)) != NULL) {
-			char* group_name = string_chomp_copy(value);
-			struct group* group_entry;
-			errno = 0;
-			group_entry = getgrnam(group_name);
-			if (group_entry == NULL) {
-				if (errno == 0) {
-					print_error(CONFIG_ERROR_STRING_PREFIX "No group was found that matches the given " RUN_AS_GNAME_CONFIG_PREFIX);
-					exit(EX_CONFIG);
-				} else {
-					print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to retrieve information about group given in " RUN_AS_GNAME_CONFIG_PREFIX);
-					exit(EX_OSERR);
-				}
-			}
-			config.gid = group_entry->gr_gid;
-		} else if ((value = find_config_value(current_line, RUN_AS_GID_CONFIG_PREFIX)) != NULL) {
-			struct group* group_entry;
-			int gid = parse_uint(value);
-			if (gid < 0) {
-				print_error(CONFIG_ERROR_STRING_PREFIX "Unable to read a positive integer value for " RUN_AS_GID_CONFIG_PREFIX);
-				exit(EX_CONFIG);
-			}
-			config.gid = gid;
-			errno = 0;
-			group_entry = getgrgid(config.gid);
-			if (group_entry == NULL) {
-				if (errno == 0) {
-					print_error(CONFIG_ERROR_STRING_PREFIX "No group was found that matches the given " RUN_AS_GID_CONFIG_PREFIX);
-					exit(EX_CONFIG);
-				} else {
-					print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to retrieve information about group given in " RUN_AS_GID_CONFIG_PREFIX);
-					exit(EX_OSERR);
-				}
 			}
 		} else if ((value = find_config_value(current_line, IGNORE_BLACKLIST_IFACE_CONFIG_PREFIX)) != NULL) {
 			int result = parse_bool(value);
@@ -317,12 +249,10 @@ config_t get_configuration(int argc, char** argv)
 		print_error(CONFIG_ERROR_STRING_PREFIX PASSHASH_CONFIG_PREFIX " was not specified");
 		exit(EX_CONFIG);
 	}
-	if (config.gid == INT_MIN) {
-		config.gid = 0;
-	} else if (config.gid < 0) {
-		config.gid *= -1;
+	if (config.agentkey == NULL) {
+		print_error(CONFIG_ERROR_STRING_PREFIX AGENTKEY_CONFIG_PREFIX " was not specified");
+		exit(EX_CONFIG);
 	}
-
 
 	return config;
 }

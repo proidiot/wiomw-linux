@@ -8,14 +8,13 @@
 typedef struct {
 	char* username;
 	char* passhash;
+	char* agentkey;
 	char* session_id;
 	char* iface_blacklist_regex;
 	char* login_url;
 	char* sync_block_url;
 	char* send_devices_url;
 	network_list_t networks;
-	int uid;
-	int gid;
 	bool ignore_blacklist_iface;
 	bool show_unreachable_neighs;
 	bool show_known_blacklist_iface_neighs;

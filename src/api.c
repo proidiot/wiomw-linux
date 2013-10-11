@@ -82,24 +82,7 @@ void wiomw_login(config_t* config)
 		print_syserror("Unable to open the temproary file to store data to send to the server");
 	}
 
-	/*
-	fprintf(
-			fd,
-			"{\"username\":\"%s\",\"password\":\"%s\",\"agentkey\":\"%s-%s\",\"agentversion\":\"%s\"}",
-			config->str_username,
-			config->str_passhash,
-			API_AGENT_KEY,
-			get_unique_agent_key(),
-			AGENT_VERSION);
-			*/
-	fprintf(
-			fd,
-			"{\"username\":\"%s\",\"password\":\"%s\",\"agentkey\":\"%s-%s\"}",
-			config->username,
-			config->passhash,
-			API_AGENT_KEY,
-			get_unique_agent_key());
-
+	fprintf(fd, "{\"username\":\"%s\",\"password\":\"%s\",\"agentkey\":\"%s\"}", config->username, config->passhash, config->agentkey);
 
 	fseek(fd, 0, SEEK_END);
 	fd_size = ftell(fd);
@@ -136,6 +119,12 @@ void wiomw_login(config_t* config)
 	curl_easy_cleanup(curl_handle);
 	free(holder_t_data);
 }
+
+/*
+void send_config(config_t* config)
+{
+}
+*/
 
 void sync_block(config_t* config)
 {
