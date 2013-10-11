@@ -1385,7 +1385,7 @@ Optional Features:
   --enable-custom-login-url=URL
                           set login API URL, default:
                           https://www.whoisonmywifi.net/api/v100/rest/login
-  --enable-custom-get-updates-url=URL
+  --enable-custom-sync-block-url=URL
                           set sync_block API URL, default:
                           https://www.whoisonmywifi.net/api/v100/rest/sync_block
   --enable-custom-send-devices-url=URL

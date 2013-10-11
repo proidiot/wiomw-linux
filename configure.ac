@@ -286,7 +286,7 @@ AC_DEFINE_UNQUOTED(LOGIN_API_URL, "${login_url}",
 
 # Get SYNC_BLOCK_URL
 AC_ARG_ENABLE([custom_sync_block_url],
-   AC_HELP_STRING([--enable-custom-get-updates-url=URL],
+   AC_HELP_STRING([--enable-custom-sync-block-url=URL],
       [set sync_block API URL, default: https://www.whoisonmywifi.net/api/v100/rest/sync_block]),
    [case "${enableval}" in
       no)  sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block";;
