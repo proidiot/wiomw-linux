@@ -1581,7 +1581,7 @@ void print_neighbours(config_t* config, FILE* fd)
 		print_error("Bad file descriptor received");
 	}
 
-	if (strlen(config->iface_blacklist_regex) > 0) {
+	if (config->iface_blacklist_regex != NULL && strlen(config->iface_blacklist_regex) > 0) {
 		snprintf(
 				uncompiled_regex,
 				MAX_IFACE_BLACKLIST_REGEX_LENGTH + PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH + 1,
