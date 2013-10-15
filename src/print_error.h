@@ -5,6 +5,6 @@ void print_syserror(const char* const str_format, ...);
 void print_error(const char* const str_format, ...);
 void print_debug(const char* const str_format, ...);
 
-#define WHERE_AM_I() print_debug("HERE_I_AM: "__FILE__":"__LINE__)
+#define WHERE_AM_I() print_debug("HERE_I_AM: %s:%d", __FILE__, __LINE__)
 
 #endif
