@@ -149,7 +149,7 @@ config_t get_configuration(int argc, char** argv)
 				print_error(CONFIG_ERROR_STRING_PREFIX LOGIN_URL_CONFIG_PREFIX " cannot be overriden at this time");
 				exit(EX_CONFIG);
 			}
-		} else if ((value find_config_value(current_line, NETWORKS_CONFIG_PREFIX)) != NULL) {
+		} else if ((value = find_config_value(current_line, NETWORKS_CONFIG_PREFIX)) != NULL) {
 			print_error("Support for " NETWORKS_CONFIG_PREFIX " is coming soon.");
 			exit(EX_CONFIG);
 		} else if ((value = find_config_value(current_line, SYNC_BLOCK_URL_CONFIG_PREFIX)) != NULL) {
