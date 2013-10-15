@@ -137,7 +137,7 @@ void sync_block(config_t* config)
 	if (config == NULL) {
 		print_error("Unexpected empty configuration");
 		exit(EX_SOFTWARE);
-	} else if (!config.allow_blocking) {
+	} else if (!config->allow_blocking) {
 		return;
 	}
 
