@@ -137,6 +137,8 @@ void sync_block(config_t* config)
 	if (config == NULL) {
 		print_error("Unexpected empty configuration");
 		exit(EX_SOFTWARE);
+	} else if (!config.allow_blocking) {
+		return;
 	}
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));

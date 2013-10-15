@@ -22,6 +22,7 @@ typedef struct {
 	bool show_secondary_iface_addr;
 	bool blacklist_overrides_networks;
 	bool autoscan;
+	bool allow_blocking;
 } config_t;
 
 config_t get_configuration(int argc, char** argv);

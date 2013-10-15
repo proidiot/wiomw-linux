@@ -31,7 +31,9 @@ int main(int argc, char** argv)
 		while (!stop_signal_received() && time(NULL) < (last_session_request + SESSION_LENGTH)) {
 			time_t next_session_request_wait = 0;
 			print_debug("no stop signal yet");
-			sync_block(&config);
+			if (config.allow_blocking) {
+				sync_block(&config);
+			}
 			if (time(NULL) < (last_session_request + SESSION_LENGTH)) {
 				send_devices(&config);
 			}

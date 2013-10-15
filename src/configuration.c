@@ -31,6 +31,7 @@
 #define SHOW_SECONDARY_IFACE_ADDR_CONFIG_PREFIX "SEND_SECONDARY_IFACE_ADDRS"
 #define BLACKLIST_OVERRIDES_NETWORKS_CONFIG_PREFIX "BLACKLIST_OVERRIDES_NETWORKS"
 #define AUTOSCAN_CONFIG_PREFIX "AUTOSCAN"
+#define ALLOW_BLOCKING_CONFIG_PREFIX "ALLOW_BLOCKING"
 
 #define CONFIG_ERROR_STRING_PREFIX "Configuration error: "
 
@@ -83,6 +84,7 @@ config_t get_configuration(int argc, char** argv)
 	config.show_secondary_iface_addr = false;
 	config.blacklist_overrides_networks = true;
 	config.autoscan = true;
+	config.allow_blocking = true;
 
 	if (argc > 1) {
 		print_error("Command line arguments not yet supported");
@@ -147,6 +149,9 @@ config_t get_configuration(int argc, char** argv)
 				print_error(CONFIG_ERROR_STRING_PREFIX LOGIN_URL_CONFIG_PREFIX " cannot be overriden at this time");
 				exit(EX_CONFIG);
 			}
+		} else if ((value find_config_value(current_line, NETWORKS_CONFIG_PREFIX)) != NULL) {
+			print_error("Support for " NETWORKS_CONFIG_PREFIX " is coming soon.");
+			exit(EX_CONFIG);
 		} else if ((value = find_config_value(current_line, SYNC_BLOCK_URL_CONFIG_PREFIX)) != NULL) {
 			if (ALLOW_URL_OVERRIDES) {
 				char* new_url = string_chomp_copy(value);
@@ -224,6 +229,14 @@ config_t get_configuration(int argc, char** argv)
 				exit(EX_CONFIG);
 			} else {
 				config.autoscan = (result == 0)? false : true;
+			}
+		} else if ((value = find_config_value(current_line, ALLOW_BLOCKING_CONFIG_PREFIX)) != NULL) {
+			int result = parse_bool(value);
+			if (result < 0) {
+				print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to read a boolean value for " ALLOW_BLOCKING_CONFIG_PREFIX);
+				exit(EX_CONFIG);
+			} else {
+				config.allow_blocking = (result == 0)? false : true;
 			}
 		} /* TODO: Any future configuration checks go here. */
 	}
