@@ -709,6 +709,7 @@ enable_custom_config_line_length
 enable_custom_minimum_ipv4_public_prefix
 enable_custom_minimum_ipv6_public_prefix
 enable_custom_config_file
+enable_custom_iptables_command
 enable_custom_session_length
 enable_custom_sync_block_frequency
 enable_sigquit_handling
@@ -1375,6 +1376,9 @@ Optional Features:
   --enable-custom-config-file=/PATH/TO/FILE.CONF
                           set config file location, default:
                           SYSCONFDIR/wiomw.conf
+  --enable-custom-iptables-command=COMMAND
+                          set iptables command, default: iptables (NOTE: set
+                          the full path for improved security)
   --enable-custom-session-length=SECS
                           set session length, default: 288000 (i.e. 8 hours)
   --enable-custom-sync-block-frequency=SECS
@@ -5465,6 +5469,25 @@ fi
 
 cat >>confdefs.h <<_ACEOF
 #define CONFIG_FILE_LOCATION "${config_file_location}"
+_ACEOF
+
+
+# Get IPTABLES_COMMAND
+# Check whether --enable-custom_iptables_command was given.
+if test "${enable_custom_iptables_command+set}" = set; then :
+  enableval=$enable_custom_iptables_command; case "${enableval}" in
+      no)  iptables_command="iptables";;
+      yes) as_fn_error $? "Custom iptables command was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom iptables command was not specified" "$LINENO" 5;;
+      *)   iptables_command="${enableval}";;
+      esac
+else
+  iptables_command="iptables"
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define IPTABLES_COMMAND "${iptables_command}"
 _ACEOF
 
 

@@ -222,6 +222,20 @@ AC_ARG_ENABLE([custom_config_file],
 AC_DEFINE_UNQUOTED(CONFIG_FILE_LOCATION, "${config_file_location}",
     [Location of config file])
 
+# Get IPTABLES_COMMAND
+AC_ARG_ENABLE([custom_iptables_command],
+   AC_HELP_STRING([--enable-custom-iptables-command=COMMAND],
+      [set iptables command, default: iptables (NOTE: set the full path for improved security)]),
+   [case "${enableval}" in
+      no)  iptables_command="iptables";;
+      yes) AC_MSG_ERROR([Custom iptables command was not specified]);;
+      "")  AC_MSG_ERROR([Custom iptables command was not specified]);;
+      *)   iptables_command="${enableval}";;
+      esac],
+   [iptables_command="iptables"])
+AC_DEFINE_UNQUOTED(IPTABLES_COMMAND, "${iptables_command}",
+    [Command to run for iptables, hopefully with a full path specified])
+
 # Get SESSION_LENGTH
 AC_ARG_ENABLE([custom_session_length],
    AC_HELP_STRING([--enable-custom-session-length=SECS],

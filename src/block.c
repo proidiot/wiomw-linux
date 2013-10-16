@@ -1,16 +1,17 @@
 #include "block.h"
-
+#include <config.h>
 #include <yajl/yajl_tree.h>
 #include <string.h>
 #include <sys/types.h>
 #include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sysexits.h>
 #include "print_error.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
-#define IPTABLES_COMMAND_STUB "export TEMPERR=`/bin/mktemp --tmpdir=/tmp`;"\
-	"/sbin/iptables -%c FORWARD -m mac --mac-source %s -j DROP 2>$TEMPERR;" \
+#define IPTABLES_COMMAND_STUB "export TEMPERR=`/tmp/%s`; "\
+	"%s -%c FORWARD -m mac --mac-source %s -j DROP 2>$TEMPERR;" \
 	"/bin/echo $? `/bin/cat $TEMPERR`; rm $TEMPERR; unset TEMPERR "
 #define IPTABLES_ADD_MODIFIER 'I'
 #define IPTABLES_CHECK_MODIFIER 'C'
@@ -75,7 +76,12 @@ void apply_blocks(const char* block_json)
 			if (strncmp(block_node->u.string, "0", 2) == 0) {
 				int errcode = 0;
 				char command[BUFSIZ];
-				snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, IPTABLES_DELETE_MODIFIER, YAJL_GET_STRING(mac_node));
+				char tempfile[] = "/tmp/wiomw-iptables-error-XXXXXX";
+				if (mktemp(tempfile) == NULL || tempfile[0] != '/') {
+					print_error("Unable to create temporary files needed for blocking");
+					exit(EX_OSERR);
+				}
+				snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, tempfile, IPTABLES_COMMAND, IPTABLES_DELETE_MODIFIER, YAJL_GET_STRING(mac_node));
 				do {
 					FILE* output = popen(command, "r");
 					if (output == NULL) {
@@ -102,7 +108,12 @@ void apply_blocks(const char* block_json)
 				int errcode = 0;
 				char command[BUFSIZ];
 				FILE* output;
-				snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, IPTABLES_CHECK_MODIFIER, YAJL_GET_STRING(mac_node));
+				char tempfile[] = "/tmp/wiomw-iptables-error-XXXXXX";
+				if (mktemp(tempfile) == NULL || tempfile[0] != '/') {
+					print_error("Unable to create temporary files needed for blocking");
+					exit(EX_OSERR);
+				}
+				snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, tempfile, IPTABLES_COMMAND, IPTABLES_CHECK_MODIFIER, YAJL_GET_STRING(mac_node));
 				output = popen(command, "r");
 				if (output == NULL) {
 					print_syserror("An error occurred while preparing to check a MAC address");
@@ -122,7 +133,7 @@ void apply_blocks(const char* block_json)
 					}
 				}
 				if (errcode == 1) {
-					snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, IPTABLES_ADD_MODIFIER, YAJL_GET_STRING(mac_node));
+					snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, tempfile, IPTABLES_COMMAND, IPTABLES_ADD_MODIFIER, YAJL_GET_STRING(mac_node));
 					output = popen(command, "r");
 					if (output == NULL) {
 						print_syserror("An error occurred while preparing to block a MAC address");

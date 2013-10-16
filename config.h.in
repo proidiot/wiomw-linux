@@ -91,6 +91,9 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
+/* Command to run for iptables, hopefully with a full path specified */
+#undef IPTABLES_COMMAND
+
 /* URL of login API */
 #undef LOGIN_API_URL
 
