@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <ctype.h>
 
 #define AGENT_VERSION "linux-0.100.0-testing-0"
 
@@ -109,7 +110,18 @@ void wiomw_login(config_t* config)
 			print_error("Session ID received was larger than %d bytes", MAX_SESSION_ID_LENGTH);
 			exit(EX_PROTOCOL);
 		} else {
+			int i = 0;
 			config->session_id = string_chomp_copy(holder_t_data->str_data);
+			for (i = 0; config->session_id[i] != '\0'; i++) {
+				if (!isalnum(config->session_id[i])) {
+					print_error("Invalid session ID");
+					exit(EX_DATAERR);
+				}
+			}
+			if (i != 40) {
+				print_error("Invalid session ID");
+				exit(EX_DATAERR);
+			}
 		}
 	} else {
 		print_error("Login failed: %s", str_error_buffer);
