@@ -10,7 +10,7 @@
 #include "print_error.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
-#define IPTABLES_COMMAND_STUB "export TEMPERR=`/tmp/%s`; "\
+#define IPTABLES_COMMAND_STUB "export TEMPERR='%s'; "\
 	"%s -%c FORWARD -m mac --mac-source %s -j DROP 2>$TEMPERR;" \
 	"/bin/echo $? `/bin/cat $TEMPERR`; rm $TEMPERR; unset TEMPERR "
 #define IPTABLES_ADD_MODIFIER 'I'
