@@ -10,20 +10,22 @@
 #include <stdbool.h>
 #include "print_error.h"
 
-/* TODO: Add iptables check test to autoconf */
-#define HAVE_IPTABLES_CHECK false
-
 #define JSON_ERROR_BUFFER_LEN 1024
 #define IPTABLES_COMMAND_STUB "export TEMPERR='%s'; "\
 	"%s -%c FORWARD -m mac --mac-source %s -j DROP 2>$TEMPERR;" \
 	"/bin/echo $? `/bin/cat $TEMPERR`; rm $TEMPERR; unset TEMPERR "
 #define IPTABLES_ADD_MODIFIER 'I'
 #define IPTABLES_DELETE_MODIFIER 'D'
+
+
+/* TODO: Add iptables check test to autoconf */
 #ifdef HAVE_IPTABLES_CHECK
 #define IPTABLES_CHECK_MODIFIER 'C'
 #else
+#define HAVE_IPTABLES_CHECK false
 #define IPTABLES_CHECK_MODIFIER 'D'
 #endif
+
 #define UNCOMPILED_MAC_REGEX "^([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2}$"
 
 void print_json_parse_error(const char* json_error_buffer, const size_t json_error_buffer_len)
