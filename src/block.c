@@ -7,15 +7,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
+#include <stdbool.h>
 #include "print_error.h"
+
+/* TODO: Add iptables check test to autoconf */
+#define HAVE_IPTABLES_CHECK false
 
 #define JSON_ERROR_BUFFER_LEN 1024
 #define IPTABLES_COMMAND_STUB "export TEMPERR='%s'; "\
 	"%s -%c FORWARD -m mac --mac-source %s -j DROP 2>$TEMPERR;" \
 	"/bin/echo $? `/bin/cat $TEMPERR`; rm $TEMPERR; unset TEMPERR "
 #define IPTABLES_ADD_MODIFIER 'I'
-#define IPTABLES_CHECK_MODIFIER 'C'
 #define IPTABLES_DELETE_MODIFIER 'D'
+#ifdef HAVE_IPTABLES_CHECK
+#define IPTABLES_CHECK_MODIFIER 'C'
+#else
+#define IPTABLES_CHECK_MODIFIER 'D'
+#endif
 #define UNCOMPILED_MAC_REGEX "^([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2}$"
 
 void print_json_parse_error(const char* json_error_buffer, const size_t json_error_buffer_len)
@@ -132,7 +140,7 @@ void apply_blocks(const char* block_json)
 						print_syserror("An error occurred while cleaning up after checking a MAC address");
 					}
 				}
-				if (errcode == 1) {
+				if (!HAVE_IPTABLES_CHECK || errcode == 1) {
 					snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, tempfile, IPTABLES_COMMAND, IPTABLES_ADD_MODIFIER, YAJL_GET_STRING(mac_node));
 					output = popen(command, "r");
 					if (output == NULL) {
