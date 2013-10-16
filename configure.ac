@@ -326,19 +326,19 @@ AC_ARG_ENABLE([custom_send_devices_url],
 AC_DEFINE_UNQUOTED(SEND_DEVICES_API_URL, "${send_devices_url}",
     [URL of send devices API])
 
-# Get API_AGENT_KEY
-AC_ARG_ENABLE([custom_api_agent_key],
-   AC_HELP_STRING([--enable-custom-api-agent-key=STRING],
-      [API agent key, default: ddwrt]),
+# Get WIOMW_AGENT_TYPE
+AC_ARG_ENABLE([custom_agent_type],
+   AC_HELP_STRING([--enable-custom-agent-type=STRING],
+      [wiomw agent type, default: linux]),
    [case "${enableval}" in
-      no)  api_agent_key="ddwrt";;
-      yes) AC_MSG_ERROR([Custom API agent key was not specified]);;
-      "")  AC_MSG_ERROR([Custom API agent key was not specified]);;
-      *)   api_agent_key="${enableval}";;
+      no)  wiomw_agent_type="linux";;
+      yes) AC_MSG_ERROR([Custom agent type was not specified]);;
+      "")  AC_MSG_ERROR([Custom agent type was not specified]);;
+      *)   wiomw_agent_type="${enableval}";;
       esac],
-   [api_agent_key="ddwrt"])
-AC_DEFINE_UNQUOTED(API_AGENT_KEY, "${api_agent_key}",
-    [API agent key])
+   [wiomw_agent_type="linux"])
+AC_DEFINE_UNQUOTED(WIOMW_AGENT_TYPE, "${wiomwi_agent_type}",
+    [wiomw agent type])
 
 
 AC_CONFIG_FILES([Makefile

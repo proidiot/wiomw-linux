@@ -1,8 +1,5 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* API agent key */
-#undef API_AGENT_KEY
-
 /* Location of config file */
 #undef CONFIG_FILE_LOCATION
 
@@ -174,6 +171,9 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* wiomw agent type */
+#undef WIOMW_AGENT_TYPE
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
