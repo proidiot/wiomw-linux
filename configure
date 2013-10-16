@@ -714,6 +714,7 @@ enable_custom_session_length
 enable_custom_sync_block_frequency
 enable_sigquit_handling
 enable_custom_login_url
+enable_custom_config_agent_url
 enable_custom_sync_block_url
 enable_custom_send_devices_url
 enable_custom_agent_type
@@ -1389,6 +1390,9 @@ Optional Features:
   --enable-custom-login-url=URL
                           set login API URL, default:
                           https://www.whoisonmywifi.net/api/v100/rest/login
+  --enable-custom-config-agent-url=URL
+                          set config agent API URL, default:
+                          https://www.whoisonmywifi.net/api/v100/rest/config_agent
   --enable-custom-sync-block-url=URL
                           set sync_block API URL, default:
                           https://www.whoisonmywifi.net/api/v100/rest/sync_block
@@ -5574,6 +5578,25 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+# Get CONFIG_AGENT_URL
+# Check whether --enable-custom_config_agent_url was given.
+if test "${enable_custom_config_agent_url+set}" = set; then :
+  enableval=$enable_custom_config_agent_url; case "${enableval}" in
+      no)  config_agent_url="https://www.whoisonmywifi.net/api/v100/rest/config_agent";;
+      yes) as_fn_error $? "Custom config agent API URL was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom config agent API URL was not specified" "$LINENO" 5;;
+      *)   config_agent_url="${enableval}";;
+      esac
+else
+  config_agent_url="https://www.whoisonmywifi.net/api/v100/rest/config_agent"
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define CONFIG_AGENT_API_URL "${config_agent_url}"
+_ACEOF
+
+
 # Get SYNC_BLOCK_URL
 # Check whether --enable-custom_sync_block_url was given.
 if test "${enable_custom_sync_block_url+set}" = set; then :
@@ -5627,7 +5650,7 @@ fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define WIOMW_AGENT_TYPE "${wiomwi_agent_type}"
+#define WIOMW_AGENT_TYPE "${wiomw_agent_type}"
 _ACEOF
 
 

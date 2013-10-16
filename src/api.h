@@ -5,10 +5,10 @@
 
 void wiomw_login(config_t* config);
 
-/* TODO: make a better prototype for this function. */
+void send_config(config_t* config);
+
 void sync_block(config_t* config);
 
-/* TODO: make a better prototype for this function. */
 void send_devices(config_t* config);
 
 #endif

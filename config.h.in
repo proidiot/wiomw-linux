@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* URL of config_agent API */
+#undef CONFIG_AGENT_API_URL
+
 /* Location of config file */
 #undef CONFIG_FILE_LOCATION
 

@@ -26,11 +26,10 @@ int main(int argc, char** argv)
 	do {
 		wiomw_login(&config);
 		last_session_request = time(NULL);
-		print_debug("Got: %s at %d", config.session_id, last_session_request);
+		send_config(&config);
 
 		while (!stop_signal_received() && time(NULL) < (last_session_request + SESSION_LENGTH)) {
 			time_t next_session_request_wait = 0;
-			print_debug("no stop signal yet");
 			if (config.allow_blocking) {
 				sync_block(&config);
 			}

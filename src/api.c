@@ -132,11 +132,59 @@ void wiomw_login(config_t* config)
 	free(holder_t_data);
 }
 
-/*
 void send_config(config_t* config)
 {
+	char str_error_buffer[CURL_ERROR_SIZE];
+	holder_t holder_t_data;
+	CURL* curl_handle;
+	FILE* fd;
+	long fd_size;
+
+	if (config == NULL) {
+		print_error("Unexpected empty configuration");
+		exit(EX_SOFTWARE);
+	}
+
+	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));
+	if (holder_t_data == NULL) {
+		print_syserror("Unable to allocate memory to store the data from the server");
+		exit(EX_OSERR);
+	}
+	holder_t_data->size_offset = 0;
+	holder_t_data->str_data = NULL;
+
+	if ((fd = tmpfile()) == NULL) {
+		print_syserror("Unable to open the temproary file to store data to send to the server");
+	}
+
+	fprintf(fd, "[%s, {\"frequency\":\"%d\",\"agent_version\":\"%s_%s_%s\",\"apiversion\":\"v100\",\"agentdetail\":\"%s, agent type %s, calling REST interface\", \"agenttime\":\"%ld\"}]", config->session_id, SYNC_BLOCK_FREQUENCY, WIOMW_AGENT_TYPE, PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING, WIOMW_AGENT_TYPE, time(NULL));
+
+	fseek(fd, 0, SEEK_END);
+	fd_size = ftell(fd);
+	rewind(fd);
+
+	curl_handle = curl_easy_init();
+	curl_easy_setopt(curl_handle, CURLOPT_URL, config->config_agent_url);
+	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
+	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
+	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
+	curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
+	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
+
+	if (curl_easy_perform(curl_handle) == 0) {
+		if (holder_t_data->size_offset == 0) {
+			print_error("Did not receive data from the server");
+			exit(EX_PROTOCOL);
+		}
+	} else {
+		print_error("Send configuration failed: %s", str_error_buffer);
+		exit(EX_UNAVAILABLE);
+	}
+
+	curl_easy_cleanup(curl_handle);
+	free(holder_t_data);
 }
-*/
 
 void sync_block(config_t* config)
 {
@@ -181,22 +229,12 @@ void sync_block(config_t* config)
 	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
 
 	if (curl_easy_perform(curl_handle) == 0) {
-		/*size_t size_data_length;*/
 		if (holder_t_data->size_offset == 0) {
 			print_error("Did not receive data from the server");
 			exit(EX_PROTOCOL);
 		}
 		
-		/*
-		size_data_length = strlen(holder_t_data->str_data);
-		if (size_data_length > MAX_SESSION_ID_LENGTH) {
-			print_error("Data received was larger than %d bytes", MAX_SESSION_ID_LENGTH);
-			exit(EX_PROTOCOL);
-		} else {
-		*/
-			print_debug("got: %s", holder_t_data->str_data);
-			apply_blocks(holder_t_data->str_data);
-		/*}*/
+		apply_blocks(holder_t_data->str_data);
 	} else {
 		print_error("Get updates failed: %s", str_error_buffer);
 		exit(EX_UNAVAILABLE);
@@ -245,18 +283,9 @@ void send_devices(config_t* config)
 	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
 
 	if (curl_easy_perform(curl_handle) == 0) {
-		size_t size_data_length;
 		if (holder_t_data->size_offset == 0) {
 			print_error("Did not receive data from the server");
 			exit(EX_PROTOCOL);
-		}
-		
-		size_data_length = strlen(holder_t_data->str_data);
-		if (size_data_length > MAX_SESSION_ID_LENGTH) {
-			print_error("Session ID received was larger than %d bytes", MAX_SESSION_ID_LENGTH);
-			exit(EX_PROTOCOL);
-		} else {
-			print_debug("got: %s\n", holder_t_data->str_data);
 		}
 	} else {
 		print_error("Send devices failed: %s", str_error_buffer);

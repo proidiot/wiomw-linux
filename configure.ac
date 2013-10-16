@@ -298,6 +298,20 @@ AC_ARG_ENABLE([custom_login_url],
 AC_DEFINE_UNQUOTED(LOGIN_API_URL, "${login_url}",
     [URL of login API])
 
+# Get CONFIG_AGENT_URL
+AC_ARG_ENABLE([custom_config_agent_url],
+   AC_HELP_STRING([--enable-custom-config-agent-url=URL],
+      [set config agent API URL, default: https://www.whoisonmywifi.net/api/v100/rest/config_agent]),
+   [case "${enableval}" in
+      no)  config_agent_url="https://www.whoisonmywifi.net/api/v100/rest/config_agent";;
+      yes) AC_MSG_ERROR([Custom config agent API URL was not specified]);;
+      "")  AC_MSG_ERROR([Custom config agent API URL was not specified]);;
+      *)   config_agent_url="${enableval}";;
+      esac],
+   [config_agent_url="https://www.whoisonmywifi.net/api/v100/rest/config_agent"])
+AC_DEFINE_UNQUOTED(CONFIG_AGENT_API_URL, "${config_agent_url}",
+    [URL of config_agent API])
+
 # Get SYNC_BLOCK_URL
 AC_ARG_ENABLE([custom_sync_block_url],
    AC_HELP_STRING([--enable-custom-sync-block-url=URL],
@@ -337,7 +351,7 @@ AC_ARG_ENABLE([custom_agent_type],
       *)   wiomw_agent_type="${enableval}";;
       esac],
    [wiomw_agent_type="linux"])
-AC_DEFINE_UNQUOTED(WIOMW_AGENT_TYPE, "${wiomwi_agent_type}",
+AC_DEFINE_UNQUOTED(WIOMW_AGENT_TYPE, "${wiomw_agent_type}",
     [wiomw agent type])
 
 

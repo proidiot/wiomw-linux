@@ -22,6 +22,7 @@
 #define NETWORKS_CONFIG_PREFIX "NETWORKS"
 #define IFACE_BLACKLIST_REGEX_CONFIG_PREFIX "IFACE_BLACKLIST_REGEX"
 #define LOGIN_URL_CONFIG_PREFIX "LOGIN_URL"
+#define CONFIG_AGENT_URL_CONFIG_PREFIX "CONFIG_AGENT_URL"
 #define SYNC_BLOCK_URL_CONFIG_PREFIX "SYNC_BLOCK_URL"
 #define SEND_URL_CONFIG_PREFIX "SEND_DEVICES_URL"
 #define IGNORE_BLACKLIST_IFACE_CONFIG_PREFIX "COMPLETELY_IGNORE_BLACKLIST_IFACES"
@@ -74,6 +75,7 @@ config_t get_configuration(int argc, char** argv)
 	config.agentkey = NULL;
 	config.iface_blacklist_regex = NULL;
 	config.login_url = string_chomp_copy(LOGIN_API_URL);
+	config.config_agent_url = string_chomp_copy(CONFIG_AGENT_API_URL);
 	config.sync_block_url = string_chomp_copy(SYNC_BLOCK_API_URL);
 	config.send_devices_url = string_chomp_copy(SEND_DEVICES_API_URL);
 	config.networks = NULL;
@@ -138,6 +140,9 @@ config_t get_configuration(int argc, char** argv)
 			}
 		} else if ((value = find_config_value(current_line, IFACE_BLACKLIST_REGEX_CONFIG_PREFIX)) != NULL) {
 			config.iface_blacklist_regex = string_chomp_copy(value);
+		} else if ((value = find_config_value(current_line, NETWORKS_CONFIG_PREFIX)) != NULL) {
+			print_error("Support for " NETWORKS_CONFIG_PREFIX " is coming soon.");
+			exit(EX_CONFIG);
 		} else if ((value = find_config_value(current_line, LOGIN_URL_CONFIG_PREFIX)) != NULL) {
 			if (ALLOW_URL_OVERRIDES) {
 				char* new_url = string_chomp_copy(value);
@@ -149,9 +154,17 @@ config_t get_configuration(int argc, char** argv)
 				print_error(CONFIG_ERROR_STRING_PREFIX LOGIN_URL_CONFIG_PREFIX " cannot be overriden at this time");
 				exit(EX_CONFIG);
 			}
-		} else if ((value = find_config_value(current_line, NETWORKS_CONFIG_PREFIX)) != NULL) {
-			print_error("Support for " NETWORKS_CONFIG_PREFIX " is coming soon.");
-			exit(EX_CONFIG);
+		} else if ((value = find_config_value(current_line, CONFIG_AGENT_URL_CONFIG_PREFIX)) != NULL) {
+			if (ALLOW_URL_OVERRIDES) {
+				char* new_url = string_chomp_copy(value);
+				if (new_url != NULL) {
+					free(config.config_agent_url);
+					config.config_agent_url = new_url;
+				}
+			} else {
+				print_error(CONFIG_ERROR_STRING_PREFIX CONFIG_AGENT_URL_CONFIG_PREFIX " cannot be overriden at this time");
+				exit(EX_CONFIG);
+			}
 		} else if ((value = find_config_value(current_line, SYNC_BLOCK_URL_CONFIG_PREFIX)) != NULL) {
 			if (ALLOW_URL_OVERRIDES) {
 				char* new_url = string_chomp_copy(value);
