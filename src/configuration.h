@@ -15,6 +15,7 @@ typedef struct {
 	char* config_agent_url;
 	char* sync_block_url;
 	char* send_devices_url;
+	char* dnsmasq_lease_file;
 	network_list_t networks;
 	bool ignore_blacklist_iface;
 	bool show_unreachable_neighs;

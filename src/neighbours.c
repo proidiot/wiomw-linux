@@ -4,6 +4,7 @@
 #include "sockaddr_helpers.h"
 #include "configuration.h"
 #include "mac_ntop.h"
+#include "host_lookup.h"
 #include <stdio.h>
 #include <linux/version.h>
 #include <asm/types.h>
@@ -102,6 +103,7 @@ typedef struct {
 	FILE* fd;
 	config_t* config;
 	if_list_t* if_list;
+	host_lookup_table_t host_lookup_table;
 } print_neigh_list_cb_data_t;
 
 typedef struct {
@@ -251,12 +253,13 @@ static void destroy_get_if_list_cb_data(get_if_list_cb_data_t* get_if_list_cb_da
 }
 
 
-static print_neigh_list_cb_data_t new_print_neigh_list_cb_data(FILE* fd, if_list_t* if_list, config_t* config)
+static print_neigh_list_cb_data_t new_print_neigh_list_cb_data(FILE* fd, if_list_t* if_list, config_t* config, host_lookup_table_t lookup_table)
 {
 	print_neigh_list_cb_data_t result;
 	result.fd = fd;
 	result.if_list = if_list;
 	result.config = config;
+	result.host_lookup_table = lookup_table;
 	return result;
 }
 
@@ -352,6 +355,7 @@ static if_item_t* get_if_item_by_index(if_list_t if_list, const int if_index)
 typedef struct {
 	FILE* fd;
 	unsigned char family;
+	host_lookup_table_t host_lookup_table;
 } print_neigh_cb_data_t;
 
 typedef struct {
@@ -360,11 +364,12 @@ typedef struct {
 	if_item_t* if_item;
 } get_if_item_cb_data_t;
 
-static print_neigh_cb_data_t new_print_neigh_cb_data(FILE* fd, unsigned char family)
+static print_neigh_cb_data_t new_print_neigh_cb_data(FILE* fd, unsigned char family, host_lookup_table_t lookup_table)
 {
 	print_neigh_cb_data_t result;
 	result.fd = fd;
 	result.family = family;
+	result.host_lookup_table = lookup_table;
 	return result;
 }
 
@@ -675,11 +680,17 @@ static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 			} else {
 				const unsigned char* mac = mnl_attr_get_payload(nl_attr);
 				char str_temp[BUFSIZ];
+				char* hostname = NULL;
 				if (NULL == mac_ntop(mac, str_temp, 6)) {
 					print_error("Unable to print MAC address");
 					return MNL_CB_ERROR;
 				}
 				fprintf(neigh_cb_data->fd, "\"macaddress\":\"%s\",", str_temp);
+				if ((hostname = host_lookup(neigh_cb_data->host_lookup_table, str_temp)) != NULL) {
+					fprintf(neigh_cb_data->fd, "\"netbios\":\"%s\",", hostname);
+				} else {
+					fprintf(neigh_cb_data->fd, "\"netbios\":\"\",");
+				}
 			}
 			break;
 		}
@@ -753,7 +764,7 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		if_item_t* if_item = get_if_item_by_index(*(neigh_list_cb_data->if_list), nd_msg->ndm_ifindex);
 
 		if (if_item != NULL && (neigh_list_cb_data->config->show_unreachable_neighs || nd_msg->ndm_state & NUD_REACHABLE) && (neigh_list_cb_data->config->show_known_blacklist_iface_neighs || !if_item->blacklisted)) {
-			print_neigh_cb_data_t neigh_cb_data = new_print_neigh_cb_data(neigh_list_cb_data->fd, nd_msg->ndm_family);
+			print_neigh_cb_data_t neigh_cb_data = new_print_neigh_cb_data(neigh_list_cb_data->fd, nd_msg->ndm_family, neigh_list_cb_data->host_lookup_table);
 			fprintf(neigh_list_cb_data->fd, ",{");
 
 			if (nd_msg->ndm_state & NUD_INCOMPLETE) {
@@ -788,7 +799,6 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 			if (nd_msg->ndm_flags & NTF_ROUTER) {
 				fprintf(neigh_list_cb_data->fd, "\"router\":1,");
 			}
-			fprintf(neigh_list_cb_data->fd, "\"netbios\":\"\",");
 			mnl_attr_parse(nl_head, sizeof(struct ndmsg), &print_neigh_cb, &neigh_cb_data);
 			destroy_print_neigh_cb_data(&neigh_cb_data);
 			fprintf(neigh_list_cb_data->fd, "\"iface\":\"%s\"}", if_item->name);
@@ -1145,11 +1155,17 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 					{
 						const unsigned char* mac = RTA_DATA(attr);
 						char str_temp[BUFSIZ];
+						char* hostname = NULL;
 						if (NULL == mac_ntop(mac, str_temp, 6)) {
 							print_error("Unable to print MAC address");
 							return MNL_CB_ERROR;
 						}
 						fprintf(neigh_list_cb_data->fd, "\"macaddress\":\"%s\",", str_temp);
+						if ((hostname = host_lookup(neigh_list_cb_data->host_lookup_table, str_temp)) != NULL) {
+							fprintf(neigh_list_cb_data->fd, "\"netbios\":\"%s\",", hostname);
+						} else {
+							fprintf(neigh_list_cb_data->fd, "\"netbios\":\"\",");
+						}
 					}
 					break;
 				default:
@@ -1160,7 +1176,6 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 				}
 			}
 
-			fprintf(neigh_list_cb_data->fd, "\"netbios\":\"\",");
 			fprintf(neigh_list_cb_data->fd, "\"iface\":\"%s\"}", if_item->name);
 		}
 
@@ -1265,7 +1280,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list, config_
 }
 
 
-static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_list, config_t* config)
+static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_list, config_t* config, host_lookup_table_t lookup_table)
 {
 	char* buf;
 	struct nlmsghdr* nl_head;
@@ -1273,7 +1288,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	int errcode = 0;
 	unsigned int seq;
 	unsigned int portid;
-	print_neigh_list_cb_data_t neigh_list_cb_data = new_print_neigh_list_cb_data(fd, &if_list, config);
+	print_neigh_list_cb_data_t neigh_list_cb_data = new_print_neigh_list_cb_data(fd, &if_list, config, lookup_table);
 	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
 	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
@@ -1310,7 +1325,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	free(buf);
 }
 
-static void print_if_list(FILE* fd, if_list_t if_list, config_t* config)
+static void print_if_list(FILE* fd, if_list_t if_list, config_t* config, host_lookup_table_t lookup_table)
 {
 	if_list_t if_list_iter = if_list;
 
@@ -1371,8 +1386,15 @@ static void print_if_list(FILE* fd, if_list_t if_list, config_t* config)
 				fprintf(fd, "\"iface\":\"%s\",", if_item->name);
 				if (NULL == mac_ntop(if_item->mac, str_temp, 6)) {
 					print_error("Unable to print MAC address for %s", if_item->name);
+					fprintf(fd, "\"netbios\":\"\",");
 				} else {
+					char* hostname = NULL;
 					fprintf(fd, "\"macaddress\":\"%s\",", str_temp);
+					if ((hostname = host_lookup(lookup_table, str_temp)) != NULL) {
+						fprintf(fd, "\"netbios\":\"%s\",", hostname);
+					} else {
+						fprintf(fd, "\"netbios\":\"\",");
+					}
 				}
 				if (NULL == mac_ntop(if_item->bmac, str_temp, 6)) {
 					print_error("Unable to print broadcast MAC address for %s", if_item->name);
@@ -1453,7 +1475,6 @@ static void print_if_list(FILE* fd, if_list_t if_list, config_t* config)
 				} else {
 					print_error("Interface address was neither IPv4 nor IPv6");
 				}
-				fprintf(fd, "\"netbios\":\"\",");
 				fprintf(fd, "\"isagent\":1}");
 				if_addr_list_iter = if_addr_list_iter->next;
 			}
@@ -1573,6 +1594,7 @@ void print_neighbours(config_t* config, FILE* fd)
 	if_list_t if_list = new_if_list();
 	struct mnl_socket* nl_sock;
 	int errcode = 0;
+	host_lookup_table_t lookup_table;
 
 	if (config == NULL) {
 		print_error("Empty config received");
@@ -1619,14 +1641,17 @@ void print_neighbours(config_t* config, FILE* fd)
 
 	fprintf(fd, "[\"%s\"", config->session_id);
 
-	print_if_list(fd, if_list, config);
+	lookup_table = get_host_lookup_table(config);
 
-	print_neigh_list(nl_sock, fd, if_list, config);
+	print_if_list(fd, if_list, config, lookup_table);
+
+	print_neigh_list(nl_sock, fd, if_list, config, lookup_table);
 
 	mnl_socket_close(nl_sock);
 
 	fprintf(fd, "]");
 
+	destroy_host_lookup_table(&lookup_table);
 	destroy_if_list(&if_list);
 	regfree(&compiled_regex);
 }

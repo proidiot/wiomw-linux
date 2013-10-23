@@ -18,7 +18,9 @@ wiomw_plugin_SOURCES = main.c \
 		       block.c \
 		       block.h \
 		       string_helpers.c \
-		       string_helpers.h
+		       string_helpers.h \
+		       host_lookup.c \
+		       host_lookup.h
 AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
 wiomw_plugin_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 

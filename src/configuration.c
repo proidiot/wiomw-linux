@@ -16,6 +16,10 @@
 
 #define ALLOW_URL_OVERRIDES 0
 
+#ifndef DNSMASQ_LEASE_FILE
+#define DNSMASQ_LEASE_FILE "/var/lib/misc/dnsmas.lease"
+#endif
+
 #define USERNAME_CONFIG_PREFIX "USERNAME"
 #define PASSHASH_CONFIG_PREFIX "PASSHASH"
 #define AGENTKEY_CONFIG_PREFIX "AGENTKEY"
@@ -87,6 +91,7 @@ config_t get_configuration(int argc, char** argv)
 	config.blacklist_overrides_networks = true;
 	config.autoscan = true;
 	config.allow_blocking = true;
+	config.dnsmasq_lease_file = DNSMASQ_LEASE_FILE;
 
 	if (argc > 1) {
 		print_error("Command line arguments not yet supported");
