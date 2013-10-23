@@ -20,7 +20,7 @@ SCP_HOME="/jffs/etc"
 SCP_SERVER="betabinaries.whoisonmywifi.net"
 SCP_USER="anon"
 SCP_PASS="wiomw"
-UNAME="`uname -srvmpi | tr \#\:[:upper:][:space:] n.[:lower:]_ `"
+UNAME="`uname -srvmpi | tr '#:ABCDEFGHIJKLMNOPQRSTUVWXYZ\ \t\n' 'n.abcdefghijklmnopqrstuvwxyz_' `"
 
 if [ ! -d /jffs/etc ]
 then
