@@ -563,7 +563,7 @@ PACKAGE_TARNAME='wiomw-plugin'
 PACKAGE_VERSION='1.0'
 PACKAGE_STRING='wiomw-plugin 1.0'
 PACKAGE_BUGREPORT='support@io3o.com'
-PACKAGE_URL=''
+PACKAGE_URL='http://www.whoisonmywifi.net'
 
 ac_unique_file="src/main.c"
 # Factoring default headers for most tests.
@@ -718,6 +718,7 @@ enable_custom_config_agent_url
 enable_custom_sync_block_url
 enable_custom_send_devices_url
 enable_custom_agent_type
+enable_custom_dnsmasq_lease_file
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1401,6 +1402,9 @@ Optional Features:
                           https://www.whoisonmywifi.net/api/v100/rest/senddevice
   --enable-custom-agent-type=STRING
                           wiomw agent type, default: linux
+  --enable-custom-dnsmasq-lease-file=/PATH/TO/dnsmasq.lease
+                          set dnsmasq.lease file location, default:
+                          /var/lib/misc/dnsmasq.lease
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1432,6 +1436,7 @@ Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
 
 Report bugs to <support@io3o.com>.
+wiomw-plugin home page: <http://www.whoisonmywifi.net>.
 _ACEOF
 ac_status=$?
 fi
@@ -5655,6 +5660,32 @@ _ACEOF
 
 
 
+  # Check whether --enable-custom_dnsmasq_lease_file was given.
+if test "${enable_custom_dnsmasq_lease_file+set}" = set; then :
+  enableval=$enable_custom_dnsmasq_lease_file; case ${enableval} in #(
+  no) :
+    dnsmasq_lease_file=/var/lib/misc/dnsmasq.lease ;; #(
+  yes) :
+    as_fn_error $? "Custom dnsmasq.lease file not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom dnsmasq.lease file not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval dnsmasq_lease_file=\${enableval}
+     ;;
+esac
+else
+  dnsmasq_lease_file=/var/lib/misc/dnsmasq.lease
+
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define DNSMASQ_LEASE_FILE "${dnsmasq_lease_file}"
+_ACEOF
+
+
+
+
 ac_config_files="$ac_config_files Makefile etc/Makefile src/Makefile"
 
 cat >confcache <<\_ACEOF
@@ -6251,7 +6282,8 @@ $config_headers
 Configuration commands:
 $config_commands
 
-Report bugs to <support@io3o.com>."
+Report bugs to <support@io3o.com>.
+wiomw-plugin home page: <http://www.whoisonmywifi.net>."
 
 _ACEOF
 cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1

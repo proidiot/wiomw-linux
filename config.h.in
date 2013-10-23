@@ -6,6 +6,9 @@
 /* Location of config file */
 #undef CONFIG_FILE_LOCATION
 
+/* dnsmasq.lease file */
+#undef DNSMASQ_LEASE_FILE
+
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
 

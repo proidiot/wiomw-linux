@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([wiomw-plugin], [1.0], [support@io3o.com])
+AC_INIT([wiomw-plugin], [1.0], [support@io3o.com], [wiomw-plugin], [http://www.whoisonmywifi.net])
 AC_CONFIG_MACRO_DIR[(m4])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
@@ -353,6 +353,8 @@ AC_ARG_ENABLE([custom_agent_type],
    [wiomw_agent_type="linux"])
 AC_DEFINE_UNQUOTED(WIOMW_AGENT_TYPE, "${wiomw_agent_type}",
     [wiomw agent type])
+
+AX_ENABLE_CUSTOM_STRING([dnsmasq_lease_file], [/var/lib/misc/dnsmasq.lease], [set dnsmasq.lease file location], [/PATH/TO/dnsmasq.lease], [dnsmasq.lease file])
 
 
 AC_CONFIG_FILES([Makefile
