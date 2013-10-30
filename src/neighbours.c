@@ -1502,48 +1502,65 @@ static void scan_network(struct sockaddr* addr, uint8_t mask)
 	}
 	memset(remote_addr, 0, remote_addr_size);
 	while (increment_addr(addr, mask, remote_addr) > 0) {
-		int fdfl = 0;
-		int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-		if (sockfd == -1) {
-			print_syserror("Unable to create socket");
-		} else if ((fdfl = fcntl(sockfd, F_GETFL)) == -1) {
-			print_syserror("Unable to get socket metadata");
-		} else if (fcntl(sockfd, F_SETFL, fdfl | O_NONBLOCK) == -1) {
-			print_syserror("Unable to put socket into non-blocking mode");
-		} else {
-			char str_temp[BUFSIZ];
-			int errcode = 0;
-			if (remote_addr->sa_family == AF_INET) {
-				struct sockaddr_in* remote_ip4 = (struct sockaddr_in*)remote_addr;
-				if (NULL == inet_ntop(
-						AF_INET,
-						&remote_ip4->sin_addr.s_addr,
-						str_temp,
-						BUFSIZ)) {
-					print_syserror("Unable to parse IP address");
-				}
-				remote_ip4->sin_port = htons(9);
-			} else if (remote_addr->sa_family == AF_INET6) {
-				struct sockaddr_in6* remote_ip6 = (struct sockaddr_in6*)remote_addr;
-				if (NULL == inet_ntop(
-						AF_INET,
-						&remote_ip6->sin6_addr.s6_addr,
-						str_temp,
-						BUFSIZ)) {
-					print_syserror("Unable to parse IP address");
-				}
-				remote_ip6->sin6_port = htons(9);
-			} else {
-				print_error("Internal address iterator has an unexpected address family.");
-			}
-			errcode = connect(sockfd, remote_addr, remote_addr_size);
-			if (errcode == -1) {
-				if (errno != EINPROGRESS) {
-					print_syserror("Unable to connect to %s", str_temp);
-				}
-			}
+		char* buf;
+		struct nlmsghdr* nl_head;
+		struct ndmsg* ndm_head;
+		struct rtattr* rta_body;
+		int errcode = 0;
+		unsigned int seq;
+		unsigned int portid;
+		const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
+		buf = (char*)malloc(bufsiz);
+		if (buf == NULL) {
+			print_syserror("Unable to allocate memory for a netlink communication buffer");
+			exit(EX_OSERR);
 		}
-		close(sockfd);
+	
+		nl_head = mnl_nlmsg_put_header(buf);
+		nl_head->nlmsg_type = RTM_NEWNEIGH;
+		nl_head->nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL;
+		nl_head->nlmsg_seq = seq = time(NULL);
+		ndm_head = mnl_nlmsg_put_extra_header(nl_head, sizeof(struct ndmsg));
+		ndm_head->ndm_family = remote_addr->sa_family;
+		ndm_head->ndm_ifindex = ifindex;
+		ndm_head->ndm_state = NUD_PROBE;
+		ndm_head->ndm_flags = 0;
+	
+		if (retmore_addr->sa_family == AF_INET) {
+			if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_DST, sizeof(struct in_addr), &(((struct sockaddr_in*)remote_addr)->sin_addr.in_addr))) {
+				print_error("Unable to prepare netlink message with a placeholder neighbour");
+				exit(EX_SOFTWARE);
+			}
+		} else if (remote_addr->sa_family == AF_INET6) {
+			if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_DST, sizeof(struct in6_addr), &(((struct sockaddr_in6*)remote_addr)->sin6_addr.in6_addr))) {
+				print_error("Unable to prepare netlink message with a placeholder neighbour");
+				exit(EX_SOFTWARE);
+			}
+		} else {
+			print_error("Internal address iterator has an unexpected address family.");
+			exit(EX_SOFTWARE);
+		}
+	
+	
+		portid = mnl_socket_get_portid(nl_sock);
+	
+		if (mnl_socket_sendto(nl_sock, nl_head, nl_head->nlmsg_len) < 0) {
+			print_syserror("Unable to send placeholder neighbour through netlink");
+			exit(EX_OSERR);
+		}
+	
+		do {
+			errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
+		} while (errcode > 0);
+	
+		if (errcode == -1) {
+			/* TODO: get upstream error message */
+			print_error("Unable to add placeholder neighbour via netlink");
+			exit(EX_OSERR);
+		}
+	
+	
+		free(buf);
 	}
 	free(remote_addr);
 }
