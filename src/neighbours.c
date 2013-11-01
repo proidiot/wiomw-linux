@@ -348,6 +348,33 @@ static if_item_t* get_if_item_by_index(if_list_t if_list, const int if_index)
 }
 
 
+char* get_nlmsg_error(const struct nlmsghdr* nl_head)
+{
+	if (nl_head != NULL && nl_head->nlmsg_type == NLMSG_ERROR) {
+		struct nlmsgerr* nl_err = mnl_nlmsg_get_payload(nl_head);
+		if (nl_err->error != 0) {
+			return strerror(-1 * nl_err->error);
+		}
+	}
+	return NULL;
+}
+
+
+static int print_nlmsg_error_cb(const struct nlmsghdr* nl_head, void* cb_data)
+{
+	if (nl_head != NULL) {
+		char* errstring = get_nlmsg_error(nl_head);
+		if (errstring != NULL) {
+			if (cb_data != NULL) {
+				print_error("%s: Netlink error: %s", (char*)cb_data, errstring);
+			} else {
+				print_error("Netlink error: %s", errstring);
+			}
+			return MNL_CB_ERROR;
+		}
+	}
+	return MNL_CB_OK;
+}
 
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
@@ -704,6 +731,14 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	if (list_cb_data == NULL || list_cb_data->compiled_regex == NULL) {
 		print_error("Invalid argument received in interface list callback");
 		return MNL_CB_ERROR;
+	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
+		char* errstring = get_nlmsg_error(nl_head);
+		if (errstring != NULL) {
+			print_error("Unable to retrieve interface list: Netlink error: %s", errstring);
+			return MNL_CB_ERROR;
+		} else {
+			return MNL_CB_OK;
+		}
 	} else {
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 	
@@ -735,6 +770,14 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	if (cb_data == NULL) {
 		print_error("Invalid argument received in interface address list callback");
 		return MNL_CB_ERROR;
+	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
+		char* errstring = get_nlmsg_error(nl_head);
+		if (errstring != NULL) {
+			print_error("Unable to retrieve interface address list: Netlink error: %s", errstring);
+			return MNL_CB_ERROR;
+		} else {
+			return MNL_CB_OK;
+		}
 	} else {
 		struct ifaddrmsg* if_addr_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data->if_list, if_addr_msg->ifa_index);
@@ -759,6 +802,14 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	if (neigh_list_cb_data == NULL || neigh_list_cb_data->fd == NULL) {
 		print_error("Invalid argument received in neighbour list printing callback");
 		return MNL_CB_ERROR;
+	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
+		char* errstring = get_nlmsg_error(nl_head);
+		if (errstring != NULL) {
+			print_error("Unable to retrieve neighbour list: Netlink error: %s", errstring);
+			return MNL_CB_ERROR;
+		} else {
+			return MNL_CB_OK;
+		}
 	} else {
 		struct ndmsg* nd_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*(neigh_list_cb_data->if_list), nd_msg->ndm_ifindex);
@@ -821,6 +872,12 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	if (list_cb_data == NULL || list_cb_data->compiled_regex == NULL) {
 		print_error("Invalid argument received in interface list callback");
 		return MNL_CB_ERROR;
+	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
+		char* errstring = get_nlmsg_error(nl_head);
+		if (errstring != NULL) {
+			print_error("Unable to retrieve interface list: Netlink error: %s", errstring);
+			exit(EX_OSERR);
+		}
 	} else {
 		struct ifinfomsg* if_msg = mnl_nlmsg_get_payload(nl_head);
 	
@@ -924,6 +981,14 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	if (cb_data == NULL) {
 		print_error("Invalid argument received in interface address list callback");
 		return MNL_CB_ERROR;
+	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
+		char* errstring = get_nlmsg_error(nl_head);
+		if (errstring != NULL) {
+			print_error("Unable to retrieve interface address list: Netlink error: %s", errstring);
+			return MNL_CB_ERROR;
+		} else {
+			return MNL_CB_OK;
+		}
 	} else {
 		struct ifaddrmsg* if_addr_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*addr_list_cb_data->if_list, if_addr_msg->ifa_index);
@@ -1084,6 +1149,14 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 	if (neigh_list_cb_data == NULL || neigh_list_cb_data->fd == NULL) {
 		print_error("Invalid argument received in neighbour list printing callback");
 		return MNL_CB_ERROR;
+	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
+		char* errstring = get_nlmsg_error(nl_head);
+		if (errstring != NULL) {
+			print_error("Unable to retrieve neighbour list: Netlink error: %s", errstring);
+			return MNL_CB_ERROR;
+		} else {
+			return MNL_CB_OK;
+		}
 	} else {
 		struct ndmsg* nd_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*(neigh_list_cb_data->if_list), nd_msg->ndm_ifindex);
@@ -1226,7 +1299,7 @@ static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_
 		errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
 	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_list_cb, &get_if_list_cb_data)) > MNL_CB_STOP);
 
-	if (errcode == -1) {
+	if (errcode < -1) {
 		print_syserror("Unable to retrieve interface list from netlink");
 		exit(EX_OSERR);
 	}
@@ -1271,7 +1344,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list, config_
 		i++;
 	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_addr_list_cb, &addr_list_cb_data)) > MNL_CB_STOP);
 
-	if (errcode == -1) {
+	if (errcode < -1) {
 		print_syserror("Unable to retrieve interface address list from netlink %d", i);
 		exit(EX_OSERR);
 	}
@@ -1313,13 +1386,13 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	do {
 		errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
 	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &print_neigh_list_cb, &neigh_list_cb_data)) > MNL_CB_STOP);
-	destroy_print_neigh_list_cb_data(&neigh_list_cb_data);
 
-	if (errcode == -1) {
+	if (errcode < -1) {
 		/* TODO: get upstream error message */
-		print_error("Unable to retrieve neighbour list from netlink");
+		print_syserror("Unable to retrieve neighbour list from netlink");
 		exit(EX_OSERR);
 	}
+	destroy_print_neigh_list_cb_data(&neigh_list_cb_data);
 
 
 	free(buf);
@@ -1483,7 +1556,7 @@ static void print_if_list(FILE* fd, if_list_t if_list, config_t* config, host_lo
 	}
 }
 
-static void scan_network(struct sockaddr* addr, uint8_t mask)
+static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struct mnl_socket* nl_sock)
 {
 	size_t remote_addr_size;
 	struct sockaddr* remote_addr;
@@ -1505,7 +1578,6 @@ static void scan_network(struct sockaddr* addr, uint8_t mask)
 		char* buf;
 		struct nlmsghdr* nl_head;
 		struct ndmsg* ndm_head;
-		struct rtattr* rta_body;
 		int errcode = 0;
 		unsigned int seq;
 		unsigned int portid;
@@ -1518,7 +1590,7 @@ static void scan_network(struct sockaddr* addr, uint8_t mask)
 	
 		nl_head = mnl_nlmsg_put_header(buf);
 		nl_head->nlmsg_type = RTM_NEWNEIGH;
-		nl_head->nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL;
+		nl_head->nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL | NLM_F_ACK;
 		nl_head->nlmsg_seq = seq = time(NULL);
 		ndm_head = mnl_nlmsg_put_extra_header(nl_head, sizeof(struct ndmsg));
 		ndm_head->ndm_family = remote_addr->sa_family;
@@ -1526,13 +1598,13 @@ static void scan_network(struct sockaddr* addr, uint8_t mask)
 		ndm_head->ndm_state = NUD_PROBE;
 		ndm_head->ndm_flags = 0;
 	
-		if (retmore_addr->sa_family == AF_INET) {
-			if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_DST, sizeof(struct in_addr), &(((struct sockaddr_in*)remote_addr)->sin_addr.in_addr))) {
+		if (remote_addr->sa_family == AF_INET) {
+			if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_DST, sizeof(struct in_addr), &(((struct sockaddr_in*)remote_addr)->sin_addr))) {
 				print_error("Unable to prepare netlink message with a placeholder neighbour");
 				exit(EX_SOFTWARE);
 			}
 		} else if (remote_addr->sa_family == AF_INET6) {
-			if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_DST, sizeof(struct in6_addr), &(((struct sockaddr_in6*)remote_addr)->sin6_addr.in6_addr))) {
+			if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_DST, sizeof(struct in6_addr), &(((struct sockaddr_in6*)remote_addr)->sin6_addr))) {
 				print_error("Unable to prepare netlink message with a placeholder neighbour");
 				exit(EX_SOFTWARE);
 			}
@@ -1551,11 +1623,10 @@ static void scan_network(struct sockaddr* addr, uint8_t mask)
 	
 		do {
 			errcode = mnl_socket_recvfrom(nl_sock, buf, bufsiz);
-		} while (errcode > 0);
+		} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &print_nlmsg_error_cb, NULL)) > MNL_CB_STOP);
 	
-		if (errcode == -1) {
-			/* TODO: get upstream error message */
-			print_error("Unable to add placeholder neighbour via netlink");
+		if (errcode < -1) {
+			print_syserror("Unable to add placeholder neighbour via netlink");
 			exit(EX_OSERR);
 		}
 	
@@ -1577,12 +1648,12 @@ static void scan_networks(struct mnl_socket* nl_sock, if_list_t if_list, config_
 			if_addr_t* if_addr = if_addr_iter->data;
 
 			if (config->autoscan && !if_item->blacklisted && check_autoscannable_range(if_addr->addr, if_addr->mask) > 0) {
-				scan_network(if_addr->addr, if_addr->mask);
+				scan_network(if_addr->addr, if_addr->mask, if_item->index, nl_sock);
 			} else if ((!config->blacklist_overrides_networks || !if_item->blacklisted) && config->networks != NULL) {
 				network_list_t overlapping_networks = get_overlapping_networks(if_addr->addr, if_addr->mask, config->networks);
 				network_list_t network_iterator = overlapping_networks;
 				while (network_iterator != NULL) {
-					scan_network(network_iterator->addr_base, network_iterator->prefix);
+					scan_network(network_iterator->addr_base, network_iterator->prefix, if_item->index, nl_sock);
 					network_iterator = network_iterator->next;
 				}
 				destroy_network_list(&overlapping_networks);
