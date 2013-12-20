@@ -1,4 +1,12 @@
 #include <config.h>
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
+struct nlattr {
+	unsigned short nla_len;
+	unsigned short nla_type;
+};
+#endif
+
 #include "neighbours.h"
 #include "print_error.h"
 #include "sockaddr_helpers.h"
@@ -377,7 +385,8 @@ static int print_nlmsg_error_cb(const struct nlmsghdr* nl_head, void* cb_data)
 }
 
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
+/*#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)*/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,0,15)
 
 typedef struct {
 	FILE* fd;
@@ -1595,7 +1604,7 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 		ndm_head = mnl_nlmsg_put_extra_header(nl_head, sizeof(struct ndmsg));
 		ndm_head->ndm_family = remote_addr->sa_family;
 		ndm_head->ndm_ifindex = ifindex;
-		ndm_head->ndm_state = NUD_PROBE;
+		ndm_head->ndm_state = NUD_NONE;
 		ndm_head->ndm_flags = 0;
 	
 		if (remote_addr->sa_family == AF_INET) {
