@@ -1,4 +1,5 @@
 #include <config.h>
+#include <linux/version.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 struct nlattr {
@@ -14,7 +15,6 @@ struct nlattr {
 #include "mac_ntop.h"
 #include "host_lookup.h"
 #include <stdio.h>
-#include <linux/version.h>
 #include <asm/types.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
