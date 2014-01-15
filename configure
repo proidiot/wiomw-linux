@@ -710,6 +710,8 @@ enable_custom_minimum_ipv4_public_prefix
 enable_custom_minimum_ipv6_public_prefix
 enable_custom_config_file
 enable_custom_iptables_command
+enable_nvram_config
+enable_custom_nvram_command
 enable_custom_session_length
 enable_custom_sync_block_frequency
 enable_sigquit_handling
@@ -1381,6 +1383,10 @@ Optional Features:
   --enable-custom-iptables-command=COMMAND
                           set iptables command, default: iptables (NOTE: set
                           the full path for improved security)
+  --enable-nvram-config   check nvram for config options, default: no
+  --enable-custom-nvram-command=COMMAND
+                          set nvram command, default: nvram (NOTE: set the
+                          full path for improved security)
   --enable-custom-session-length=SECS
                           set session length, default: 288000 (i.e. 8 hours)
   --enable-custom-sync-block-frequency=SECS
@@ -5248,7 +5254,8 @@ $as_echo "#define STRERROR_R_CHAR_P 1" >>confdefs.h
 
 fi
 
-for ac_func in alarm getpagesize malloc memset realloc regcomp socket strnlen
+#AC_FUNC_STRNLEN
+for ac_func in alarm getpagesize malloc memset realloc regcomp socket strerror strnlen
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -5497,6 +5504,44 @@ fi
 
 cat >>confdefs.h <<_ACEOF
 #define IPTABLES_COMMAND "${iptables_command}"
+_ACEOF
+
+
+# Get USE_NVRAM_CONFIG
+# Check whether --enable-nvram_config was given.
+if test "${enable_nvram_config+set}" = set; then :
+  enableval=$enable_nvram_config; case "${enableval}" in
+      no)  nvram_config=0;;
+      yes) nvram_config=1;;
+      "")  nvram_config=1;;
+      *)   as_fn_error $? "Could not determine intended nvram configuration option, valid choices are \"yes\" and \"no\"" "$LINENO" 5;;
+      esac
+else
+  nvram_config=0
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define USE_NVRAM_CONFIG ${nvram_config}
+_ACEOF
+
+
+# Get NVRAM_COMMAND
+# Check whether --enable-custom_nvram_command was given.
+if test "${enable_custom_nvram_command+set}" = set; then :
+  enableval=$enable_custom_nvram_command; case "${enableval}" in
+      no)  nvram_command="nvram";;
+      yes) as_fn_error $? "Custom nvram command was not specified" "$LINENO" 5;;
+      "")  as_fn_error $? "Custom nvram command was not specified" "$LINENO" 5;;
+      *)   nvram_command="${enableval}";;
+      esac
+else
+  nvram_command="nvram"
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define NVRAM_COMMAND "${nvram_command}"
 _ACEOF
 
 

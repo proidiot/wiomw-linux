@@ -67,6 +67,9 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
+/* Define to 1 if you have the `strerror' function. */
+#undef HAVE_STRERROR
+
 /* Define to 1 if you have the `strerror_r' function. */
 #undef HAVE_STRERROR_R
 
@@ -127,6 +130,9 @@
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
 
+/* Command to run for nvram, hopefully with a full path specified */
+#undef NVRAM_COMMAND
+
 /* Name of package */
 #undef PACKAGE
 
@@ -174,6 +180,9 @@
 
 /* Wait period between sync_block calls */
 #undef SYNC_BLOCK_FREQUENCY
+
+/* Whether nvram should be checked for config options */
+#undef USE_NVRAM_CONFIG
 
 /* Version number of package */
 #undef VERSION

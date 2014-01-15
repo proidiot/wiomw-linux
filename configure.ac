@@ -53,7 +53,8 @@ AX_CFLAGS_WARN_ALL_EXTRA
 #AC_FUNC_MALLOC
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strnlen])
+#AC_FUNC_STRNLEN
+AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strerror strnlen])
 
 # Get PERMANENT_IFACE_BLACKLIST_REGEX
 AC_ARG_ENABLE([custom_permanent_iface_blacklist_regex],
@@ -235,6 +236,34 @@ AC_ARG_ENABLE([custom_iptables_command],
    [iptables_command="iptables"])
 AC_DEFINE_UNQUOTED(IPTABLES_COMMAND, "${iptables_command}",
     [Command to run for iptables, hopefully with a full path specified])
+
+# Get USE_NVRAM_CONFIG
+AC_ARG_ENABLE([nvram_config],
+   AC_HELP_STRING([--enable-nvram-config],
+      [check nvram for config options, default: no]),
+   [case "${enableval}" in
+      no)  nvram_config=0;;
+      yes) nvram_config=1;;
+      "")  nvram_config=1;;
+      *)   AC_MSG_ERROR([Could not determine intended nvram configuration option, valid choices are "yes" and "no"]);;
+      esac],
+   [nvram_config=0])
+AC_DEFINE_UNQUOTED(USE_NVRAM_CONFIG, ${nvram_config},
+    [Whether nvram should be checked for config options])
+
+# Get NVRAM_COMMAND
+AC_ARG_ENABLE([custom_nvram_command],
+   AC_HELP_STRING([--enable-custom-nvram-command=COMMAND],
+      [set nvram command, default: nvram (NOTE: set the full path for improved security)]),
+   [case "${enableval}" in
+      no)  nvram_command="nvram";;
+      yes) AC_MSG_ERROR([Custom nvram command was not specified]);;
+      "")  AC_MSG_ERROR([Custom nvram command was not specified]);;
+      *)   nvram_command="${enableval}";;
+      esac],
+   [nvram_command="nvram"])
+AC_DEFINE_UNQUOTED(NVRAM_COMMAND, "${nvram_command}",
+    [Command to run for nvram, hopefully with a full path specified])
 
 # Get SESSION_LENGTH
 AC_ARG_ENABLE([custom_session_length],
