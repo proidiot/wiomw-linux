@@ -14,8 +14,12 @@ void add_network(network_list_t* list, struct sockaddr* addr_base, uint8_t prefi
 
 void destroy_network_list(network_list_t* list);
 
+network_list_t combine_network_lists(network_list_t* list1, network_list_t list2);
 
-int increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr* addr_to_increment);
+network_list_t address_range_network_list(struct sockaddr* first_addr, struct sockaddr* last_addr);
+
+
+long increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr* addr_to_increment);
 
 int check_addr_range(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr* addr_to_check);
 
