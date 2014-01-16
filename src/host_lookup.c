@@ -11,6 +11,21 @@
 /* TODO: Add a check to autoconf. */
 #define ENABLE_DNSMASQ_LEASE_HOST_LOOKUP false
 
+size_t my_strnlen(const char* s, size_t maxlen)
+{
+	if (s == NULL) {
+		return 0;
+	} else {
+		register size_t offset = 0;
+		for (offset = 0; offset < maxlen; offset++) {
+			if (s[offset] == '\0') {
+				return offset;
+			}
+		}
+		return maxlen;
+	}
+}
+
 struct _host_lookup_table_struct {
 	char mac_addr[18];
 	struct _host_lookup_table_struct* next;
@@ -32,7 +47,7 @@ host_lookup_table_t get_host_lookup_table(config_t* config)
 		} else {
 			char line[BUFSIZ];
 			while (fgets(line, BUFSIZ, output) != NULL) {
-				size_t hostname_length = strnlen(line + 17, BUFSIZ - 17);
+				size_t hostname_length = my_strnlen(line + 17, BUFSIZ - 17);
 				if (hostname_length != BUFSIZ - 17) {
 					*temp = (host_lookup_table_t)malloc(sizeof(struct _host_lookup_table_struct));
 					if (*temp == NULL) {
