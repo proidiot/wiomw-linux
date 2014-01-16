@@ -2,6 +2,7 @@
 #include <config.h>
 #include <yajl/yajl_tree.h>
 #include <string.h>
+#include <linux/string.h>
 #include <sys/types.h>
 #include <regex.h>
 #include <stdio.h>
