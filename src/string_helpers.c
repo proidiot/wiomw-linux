@@ -237,3 +237,19 @@ int parse_bool(char* source)
 
 }
 
+/* In lieu of a working, POSIX-compliant strnlen in uClibc's string.h... */
+size_t safe_string_length(const char* s, size_t maxlen)
+{
+	if (s == NULL) {
+		return 0;
+	} else {
+		register size_t offset = 0;
+		for (offset = 0; offset < maxlen; offset++) {
+			if (s[offset] == '\0') {
+				return offset;
+			}
+		}
+		return maxlen;
+	}
+}
+

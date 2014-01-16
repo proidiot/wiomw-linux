@@ -10,6 +10,7 @@
 #include <sysexits.h>
 #include <stdbool.h>
 #include "print_error.h"
+#include "string_helpers.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
 #define IPTABLES_COMMAND_STUB "export TEMPERR='%s'; "\
@@ -29,25 +30,10 @@
 
 #define UNCOMPILED_MAC_REGEX "^([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2}$"
 
-size_t my_strnlen(const char* s, size_t maxlen)
-{
-	if (s == NULL) {
-		return 0;
-	} else {
-		register size_t offset = 0;
-		for (offset = 0; offset < maxlen; offset++) {
-			if (s[offset] == '\0') {
-				return offset;
-			}
-		}
-		return maxlen;
-	}
-}
-
 void print_json_parse_error(const char* json_error_buffer, const size_t json_error_buffer_len)
 {
-	if (0 == my_strnlen(json_error_buffer, json_error_buffer_len)
-			|| json_error_buffer_len == my_strnlen(json_error_buffer, json_error_buffer_len)) {
+	if (0 == safe_string_length(json_error_buffer, json_error_buffer_len)
+			|| json_error_buffer_len == safe_string_length(json_error_buffer, json_error_buffer_len)) {
 		print_error("Unable to parse block data JSON: Unknown error");
 	} else {
 		print_error("Unable to parse block data JSON: %s", json_error_buffer);
