@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sysexits.h>
 #include <string.h>
+#include <linux/string.h>
 #include <stdbool.h>
 #include <sys/types.h>
 #include <unistd.h>

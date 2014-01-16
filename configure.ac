@@ -53,8 +53,8 @@ AX_CFLAGS_WARN_ALL_EXTRA
 #AC_FUNC_MALLOC
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
-AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strerror ])
+#AC_FUNC_STRNLEN
+AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strerror  strnlen])
 
 # Get PERMANENT_IFACE_BLACKLIST_REGEX
 AC_ARG_ENABLE([custom_permanent_iface_blacklist_regex],
