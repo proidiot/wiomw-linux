@@ -143,6 +143,7 @@ config_t get_configuration(int argc, char** argv)
 	config.autoscan = true;
 	config.allow_blocking = true;
 	config.dnsmasq_lease_file = DNSMASQ_LEASE_FILE;
+	config.session_id = NULL;
 
 	if (argc > 1) {
 		char c = '\0';
