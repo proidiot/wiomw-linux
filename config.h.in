@@ -34,8 +34,8 @@
 /* Define to 1 if you have the `polarssl' library (-lpolarssl). */
 #undef HAVE_LIBPOLARSSL
 
-/* Define to 1 if you have the `yajl_s' library (-lyajl_s). */
-#undef HAVE_LIBYAJL_S
+/* Define to 1 if you have the `yajl' library (-lyajl). */
+#undef HAVE_LIBYAJL
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H

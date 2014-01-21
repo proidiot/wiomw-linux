@@ -32,7 +32,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-sbin_PROGRAMS = wiomw-plugin$(EXEEXT)
+sbin_PROGRAMS = wiomw-agent$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -47,15 +47,14 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(sbindir)"
 PROGRAMS = $(sbin_PROGRAMS)
-am_wiomw_plugin_OBJECTS = main.$(OBJEXT) configuration.$(OBJEXT) \
+am_wiomw_agent_OBJECTS = main.$(OBJEXT) configuration.$(OBJEXT) \
 	signal_handler.$(OBJEXT) print_error.$(OBJEXT) api.$(OBJEXT) \
 	neighbours.$(OBJEXT) sockaddr_helpers.$(OBJEXT) \
 	mac_ntop.$(OBJEXT) block.$(OBJEXT) string_helpers.$(OBJEXT) \
 	host_lookup.$(OBJEXT)
-wiomw_plugin_OBJECTS = $(am_wiomw_plugin_OBJECTS)
+wiomw_agent_OBJECTS = $(am_wiomw_agent_OBJECTS)
 am__DEPENDENCIES_1 =
-wiomw_plugin_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+wiomw_agent_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -64,8 +63,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(wiomw_plugin_SOURCES)
-DIST_SOURCES = $(wiomw_plugin_SOURCES)
+SOURCES = $(wiomw_agent_SOURCES)
+DIST_SOURCES = $(wiomw_agent_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -162,7 +161,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-wiomw_plugin_SOURCES = main.c \
+wiomw_agent_SOURCES = main.c \
 		       configuration.c \
 		       configuration.h \
 		       signal_handler.c \
@@ -185,7 +184,7 @@ wiomw_plugin_SOURCES = main.c \
 		       host_lookup.h
 
 AM_CFLAGS = ${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
-wiomw_plugin_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
+wiomw_agent_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 all: all-am
 
 .SUFFIXES:
@@ -257,9 +256,9 @@ uninstall-sbinPROGRAMS:
 
 clean-sbinPROGRAMS:
 	-test -z "$(sbin_PROGRAMS)" || rm -f $(sbin_PROGRAMS)
-wiomw-plugin$(EXEEXT): $(wiomw_plugin_OBJECTS) $(wiomw_plugin_DEPENDENCIES) $(EXTRA_wiomw_plugin_DEPENDENCIES) 
-	@rm -f wiomw-plugin$(EXEEXT)
-	$(LINK) $(wiomw_plugin_OBJECTS) $(wiomw_plugin_LDADD) $(LIBS)
+wiomw-agent$(EXEEXT): $(wiomw_agent_OBJECTS) $(wiomw_agent_DEPENDENCIES) $(EXTRA_wiomw_agent_DEPENDENCIES) 
+	@rm -f wiomw-agent$(EXEEXT)
+	$(LINK) $(wiomw_agent_OBJECTS) $(wiomw_agent_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

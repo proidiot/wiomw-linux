@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([wiomw-plugin], [1.0], [support@io3o.com], [wiomw-plugin], [http://www.whoisonmywifi.net])
+AC_INIT([wiomw], [1.0], [support@io3o.com], [wiomw], [http://www.whoisonmywifi.net])
 AC_CONFIG_MACRO_DIR[(m4])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
@@ -37,7 +37,7 @@ AS_IF([test "x$found_ssl" = xno],
    [])
 #AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
-AC_CHECK_LIB([yajl_s], [yajl_tree_parse])
+AC_CHECK_LIB([yajl], [yajl_tree_parse])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
