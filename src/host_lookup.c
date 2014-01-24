@@ -17,7 +17,7 @@ struct _host_lookup_table_struct {
 
 host_lookup_table_t get_host_lookup_table(config_t* config)
 {
-	if (USE_DNSMASQ_LEASE_LOOKUP && config != NULL) {
+	if (CONFIG_OPTION_DNSMASQ_LEASE_LOOKUP && config != NULL) {
 		host_lookup_table_t lookup_table = NULL;
 		host_lookup_table_t* temp = &lookup_table;
 		char command[BUFSIZ];

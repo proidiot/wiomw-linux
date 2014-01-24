@@ -1273,7 +1273,7 @@ static void scan_networks(struct mnl_socket* nl_sock, if_list_t if_list, config_
 
 void print_neighbours(config_t* config, FILE* fd)
 {
-	char uncompiled_regex[MAX_IFACE_BLACKLIST_REGEX_LENGTH + PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH + 1];
+	char uncompiled_regex[CONFIG_OPTION_IFACE_BLACKLIST_REGEX_LENGTH + CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH + 1];
 	regex_t compiled_regex;
 	if_list_t if_list = new_if_list();
 	struct mnl_socket* nl_sock;
@@ -1290,11 +1290,11 @@ void print_neighbours(config_t* config, FILE* fd)
 	if (config->iface_blacklist_regex != NULL && strlen(config->iface_blacklist_regex) > 0) {
 		snprintf(
 				uncompiled_regex,
-				MAX_IFACE_BLACKLIST_REGEX_LENGTH + PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH + 1,
-				PERMANENT_IFACE_BLACKLIST_REGEX "|%s",
+				CONFIG_OPTION_IFACE_BLACKLIST_REGEX_LENGTH + CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH + 1,
+				CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX "|%s",
 				config->iface_blacklist_regex);
 	} else {
-		strcpy(uncompiled_regex, PERMANENT_IFACE_BLACKLIST_REGEX);
+		strcpy(uncompiled_regex, CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX);
 	}
 	errcode = regcomp(&compiled_regex, uncompiled_regex, REG_EXTENDED | REG_ICASE);
 	if (errcode != 0) {

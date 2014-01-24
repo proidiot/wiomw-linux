@@ -1,25 +1,82 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* agent type */
+#undef CONFIG_OPTION_AGENT_TYPE
+
+/* maximum allowable length of an API URL defined at runtime */
+#undef CONFIG_OPTION_API_URL_LENGTH
+
+/* run time overriding of API URLs */
+#undef CONFIG_OPTION_API_URL_OVERRIDES
+
+/* path to the certificate authority file */
+#undef CONFIG_OPTION_CA_PATH
+
 /* URL of config_agent API */
-#undef CONFIG_AGENT_API_URL
+#undef CONFIG_OPTION_CONFIG_AGENT_URL
 
-/* Location of config file */
-#undef CONFIG_FILE_LOCATION
+/* config file location */
+#undef CONFIG_OPTION_CONFIG_FILE
 
-/* set default CA path */
-#undef CUSTOM_DEFAULT_CA_PATH
+/* maximum allowable length of any line in the configuration file */
+#undef CONFIG_OPTION_CONFIG_LINE_LENGTH
 
-/* set dnsmasq.lease file location */
-#undef CUSTOM_DNSMASQ_LEASE_FILE
+/* dnsmasq lease file location */
+#undef CONFIG_OPTION_DNSMASQ_LEASE_FILE
 
-/* set a permanent interface blacklist regular expression */
-#undef CUSTOM_PERMANENT_IFACE_BLACKLIST_REGEX
+/* dnsmasq.lease-based hostname lookup */
+#undef CONFIG_OPTION_DNSMASQ_LEASE_LOOKUP
 
-/* set sync_block frequency */
-#undef CUSTOM_SYNC_BLOCK_FREQUENCY
+/* maximum allowable length of an interface blacklist regular expression
+   defined at runtime */
+#undef CONFIG_OPTION_IFACE_BLACKLIST_REGEX_LENGTH
 
-/* username_length */
-#undef CUSTOM_USERNAME_LENGTH
+/* path to iptables executable */
+#undef CONFIG_OPTION_IPTABLES_PATH
+
+/* minimum prefix of a publicly-accessible IPv4 network specified at runtime
+   that will be scanned */
+#undef CONFIG_OPTION_IPV4_PUBLIC_PREFIX
+
+/* minimum prefix of a publicly-accessible IPv6 network specified at runtime
+   that will be scanned */
+#undef CONFIG_OPTION_IPV6_PUBLIC_PREFIX
+
+/* URL of login API */
+#undef CONFIG_OPTION_LOGIN_URL
+
+/* nvram config option storage */
+#undef CONFIG_OPTION_NVRAM_CONFIG
+
+/* path to nvram command executable */
+#undef CONFIG_OPTION_NVRAM_PATH
+
+/* maximum allowable password hash length */
+#undef CONFIG_OPTION_PASSHASH_LENGTH
+
+/* permanent interface blacklist regular expression */
+#undef CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX
+
+/* permanent interface blacklist regular expression length */
+#undef CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH
+
+/* URL of send devices API */
+#undef CONFIG_OPTION_SEND_DEVICES_URL
+
+/* maximum allowable session ID length */
+#undef CONFIG_OPTION_SESSION_ID_LENGTH
+
+/* length of time (in seconds) before requesting a new session */
+#undef CONFIG_OPTION_SESSION_LENGTH
+
+/* length of time (in seconds) before resyncing with the server */
+#undef CONFIG_OPTION_SYNC_BLOCK_FREQUENCY
+
+/* URL of sync_block API */
+#undef CONFIG_OPTION_SYNC_BLOCK_URL
+
+/* maximum allowable username length */
+#undef CONFIG_OPTION_USERNAME_LENGTH
 
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
@@ -112,9 +169,6 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
-/* Command to run for iptables, hopefully with a full path specified */
-#undef IPTABLES_COMMAND
-
 /* Defined if libcurl supports AsynchDNS */
 #undef LIBCURL_FEATURE_ASYNCHDNS
 
@@ -178,35 +232,8 @@
 /* Defined if libcurl supports TFTP */
 #undef LIBCURL_PROTOCOL_TFTP
 
-/* URL of login API */
-#undef LOGIN_API_URL
-
-/* Maximum API URL length */
-#undef MAX_API_URL_LENGTH
-
-/* Maximum config line length */
-#undef MAX_CONFIG_LINE_LENGTH
-
-/* Maximum interface blacklist regular expression length */
-#undef MAX_IFACE_BLACKLIST_REGEX_LENGTH
-
-/* Maximum passhash length */
-#undef MAX_PASSHASH_LENGTH
-
-/* Maximum session ID length */
-#undef MAX_SESSION_ID_LENGTH
-
-/* Minimum IPv4 public prefix */
-#undef MINIMUM_IPV4_PUBLIC_PREFIX
-
-/* Minimum IPv6 public prefix */
-#undef MINIMUM_IPV6_PUBLIC_PREFIX
-
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
-
-/* Command to run for nvram, hopefully with a full path specified */
-#undef NVRAM_COMMAND
 
 /* Name of package */
 #undef PACKAGE
@@ -229,38 +256,14 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Permanent interface blacklist regular expression length */
-#undef PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH
-
-/* URL of send devices API */
-#undef SEND_DEVICES_API_URL
-
-/* Wait period between wiomw_login calls */
-#undef SESSION_LENGTH
-
-/* Handle SIGQUIT */
-#undef SHOULD_HANDLE_SIGQUIT
-
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
 /* Define to 1 if strerror_r returns char *. */
 #undef STRERROR_R_CHAR_P
 
-/* URL of sync_block API */
-#undef SYNC_BLOCK_API_URL
-
-/* Whether dnsmasq.lease should be checked for hostnames */
-#undef USE_DNSMASQ_LEASE_LOOKUP
-
-/* Whether nvram should be checked for config options */
-#undef USE_NVRAM_CONFIG
-
 /* Version number of package */
 #undef VERSION
-
-/* wiomw agent type */
-#undef WIOMW_AGENT_TYPE
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the

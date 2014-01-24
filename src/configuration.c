@@ -21,7 +21,7 @@ char* nvram_get(char* name)
 	char* result = NULL;
 	long reslen;
 	FILE* output;
-	snprintf(command, BUFSIZ, NVRAM_COMMAND " get %s", name);
+	snprintf(command, BUFSIZ, CONFIG_OPTION_NVRAM_PATH " get %s", name);
 	output = popen(command, "r");
 	if (feof(output)) {
 		pclose(output);
@@ -39,12 +39,6 @@ char* nvram_get(char* name)
 	}
 	return result;
 }
-#endif
-
-#define ALLOW_URL_OVERRIDES 0
-
-#ifndef DNSMASQ_LEASE_FILE
-#define DNSMASQ_LEASE_FILE "/var/lib/misc/dnsmas.lease"
 #endif
 
 #define USERNAME_CONFIG_PREFIX "USERNAME"
@@ -100,9 +94,9 @@ char* find_config_value(char* source, const char* prefix)
 config_t get_configuration(int argc, char** argv)
 {
 	FILE* config_file;
-	char raw_line[MAX_CONFIG_LINE_LENGTH + 2];
+	char raw_line[CONFIG_OPTION_CONFIG_LINE_LENGTH + 2];
 	config_t config;
-	char* config_file_location = CONFIG_FILE_LOCATION; /* Maybe also allow this to be set on command line? */
+	char* config_file_location = CONFIG_OPTION_CONFIG_FILE;
 	bool config_username_is_set = false;
 	bool config_passhash_is_set = false;
 	bool config_agentkey_is_set = false;
@@ -131,11 +125,11 @@ config_t get_configuration(int argc, char** argv)
 	config.passhash = NULL;
 	config.agentkey = NULL;
 	config.iface_blacklist_regex = NULL;
-	config.capath = string_chomp_copy(DEFAULT_CA_PATH);
-	config.login_url = string_chomp_copy(LOGIN_API_URL);
-	config.config_agent_url = string_chomp_copy(CONFIG_AGENT_API_URL);
-	config.sync_block_url = string_chomp_copy(SYNC_BLOCK_API_URL);
-	config.send_devices_url = string_chomp_copy(SEND_DEVICES_API_URL);
+	config.capath = string_chomp_copy(CONFIG_OPTION_CA_PATH);
+	config.login_url = string_chomp_copy(CONFIG_OPTION_LOGIN_URL);
+	config.config_agent_url = string_chomp_copy(CONFIG_OPTION_CONFIG_AGENT_URL);
+	config.sync_block_url = string_chomp_copy(CONFIG_OPTION_SYNC_BLOCK_URL);
+	config.send_devices_url = string_chomp_copy(CONFIG_OPTION_SEND_DEVICES_URL);
 	config.networks = NULL;
 	config.ignore_blacklist_iface = true;
 	config.show_unreachable_neighs = false;
@@ -145,7 +139,7 @@ config_t get_configuration(int argc, char** argv)
 	config.blacklist_overrides_networks = true;
 	config.autoscan = true;
 	config.allow_blocking = true;
-	config.dnsmasq_lease_file = DNSMASQ_LEASE_FILE;
+	config.dnsmasq_lease_file = CONFIG_OPTION_DNSMASQ_LEASE_FILE;
 	config.session_id = NULL;
 
 	if (argc > 1) {
@@ -177,7 +171,7 @@ config_t get_configuration(int argc, char** argv)
 		}
 	}
 
-	if (USE_NVRAM_CONFIG) {
+	if (CONFIG_OPTION_NVRAM_CONFIG) {
 		char* nvram_value = NULL;
 
 		if (!config_username_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_username"))) {
@@ -203,7 +197,7 @@ config_t get_configuration(int argc, char** argv)
 	if (config_file == NULL) {
 		print_syserror(CONFIG_ERROR_STRING_PREFIX "Unable to open the configuration file (%s)", config_file_location);
 	} else {
-		while (fgets(raw_line, MAX_CONFIG_LINE_LENGTH + 2, config_file) != NULL) {
+		while (fgets(raw_line, CONFIG_OPTION_CONFIG_LINE_LENGTH + 2, config_file) != NULL) {
 			char* value = NULL;
 	
 			char* current_line = raw_line;
@@ -213,11 +207,11 @@ config_t get_configuration(int argc, char** argv)
 	
 			if (current_line[0] == '\0'	|| current_line[0] == '\n' || current_line[0] == '#') {
 				/* This was either an empty or comment line, so it should be safe to ignore. */
-			} else if (strlen(current_line) > MAX_CONFIG_LINE_LENGTH && current_line[MAX_CONFIG_LINE_LENGTH] != '\n') {
+			} else if (strlen(current_line) > CONFIG_OPTION_CONFIG_LINE_LENGTH && current_line[CONFIG_OPTION_CONFIG_LINE_LENGTH] != '\n') {
 				print_error(
 						CONFIG_ERROR_STRING_PREFIX "A non-comment line in the configuration file has more than %d "
 						"characters",
-						MAX_CONFIG_LINE_LENGTH);
+						CONFIG_OPTION_CONFIG_LINE_LENGTH);
 				fclose(config_file);
 				/* TODO: Any remaining cleanup goes here. */
 				exit(EX_CONFIG);
@@ -266,7 +260,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, LOGIN_URL_CONFIG_PREFIX)) != NULL) {
 				if (!config_login_url_is_set) {
 					config_login_url_is_set = true;
-					if (ALLOW_URL_OVERRIDES) {
+					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
 							free(config.login_url);
@@ -280,7 +274,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, CONFIG_AGENT_URL_CONFIG_PREFIX)) != NULL) {
 				if (!config_config_agent_url_is_set) {
 					config_config_agent_url_is_set = true;
-					if (ALLOW_URL_OVERRIDES) {
+					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
 							free(config.config_agent_url);
@@ -294,7 +288,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, SYNC_BLOCK_URL_CONFIG_PREFIX)) != NULL) {
 				if (!config_sync_block_url_is_set) {
 					config_sync_block_url_is_set = true;
-					if (ALLOW_URL_OVERRIDES) {
+					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
 							free(config.sync_block_url);
@@ -308,7 +302,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, SEND_URL_CONFIG_PREFIX)) != NULL) {
 				if (!config_send_devices_url_is_set) {
 					config_send_devices_url_is_set = true;
-					if (ALLOW_URL_OVERRIDES) {
+					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
 							free(config.send_devices_url);

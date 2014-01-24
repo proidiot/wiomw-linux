@@ -710,15 +710,14 @@ enable_custom_session_id_length
 enable_custom_iface_blacklist_regex_length
 enable_custom_api_url_length
 enable_custom_config_line_length
-enable_custom_minimum_ipv4_public_prefix
-enable_custom_minimum_ipv6_public_prefix
+enable_custom_ipv4_public_prefix
+enable_custom_ipv6_public_prefix
 enable_custom_config_file
-enable_custom_iptables_command
+enable_custom_iptables_path
 enable_nvram_config
-enable_custom_nvram_command
+enable_custom_nvram_path
 enable_custom_session_length
 enable_custom_sync_block_frequency
-enable_sigquit_handling
 enable_custom_login_url
 enable_custom_config_agent_url
 enable_custom_sync_block_url
@@ -726,7 +725,8 @@ enable_custom_send_devices_url
 enable_custom_agent_type
 enable_custom_dnsmasq_lease_file
 enable_dnsmasq_lease_lookup
-enable_custom_default_ca_path
+enable_api_url_overrides
+enable_custom_ca_path
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1363,65 +1363,79 @@ Optional Features:
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-custom-permanent-iface-blacklist-regex=REGEX
-                          permanent interface blacklist regular expression,
-                          default: "^virbr[0-9]+$"
+                          set a permanent interface blacklist regular
+                          expression, default: "^virbr[0-9]+$"
   --enable-custom-username-length=BYTES
-                          maximum username length, default: 1024, minimum: 1
+                          set custom maximum allowable username length,
+                          default: 1024, minimum: 8
   --enable-custom-passhash-length=BYTES
-                          set maximum passhash length, default: 1024
+                          set custom maximum allowable password hash length,
+                          default: 1024, minimum: 40
   --enable-custom-session-id-length=BYTES
-                          set maximum length of the session ID, default: 4096
+                          set custom maximum allowable session ID length,
+                          default: 4096, minimum: 128
   --enable-custom-iface-blacklist-regex-length=BYTES
-                          set maximum length of the interface blacklist
-                          regular expression, default: 128
+                          set custom maximum allowable length of an interface
+                          blacklist regular expression defined at runtime,
+                          default: 128, minimum: 4
   --enable-custom-api-url-length=BYTES
-                          set maximum length of the API URL, default: 4096
+                          set custom maximum allowable length of an API URL
+                          defined at runtime, default: 4096, minimum: 60
   --enable-custom-config-line-length=BYTES
-                          set maximum length of any line in the configuration
-                          file, default: 4096
-  --enable-custom-minimum-ipv4-public-prefix=BITS
-                          set minimum IPv4 public prefix, default: 32
-  --enable-custom-minimum-ipv6-public-prefix=BITS
-                          set minimum IPv6 public prefix, default: 128
-  --enable-custom-config-file=/PATH/TO/FILE.CONF
-                          set config file location, default:
+                          set custom maximum allowable length of any line in
+                          the configuration file, default: 4096, minimum: 50
+  --enable-custom-ipv4-public-prefix=BITS
+                          set custom minimum prefix of a publicly-accessible
+                          IPv4 network specified at runtime that will be
+                          scanned, default: 32, min: 24, max: 32
+  --enable-custom-ipv6-public-prefix=BITS
+                          set custom minimum prefix of a publicly-accessible
+                          IPv6 network specified at runtime that will be
+                          scanned, default: 128, min: 112, max: 128
+  --enable-custom-config-file=/PATH/TO/wiomw.conf
+                          set custom config file location, default:
                           SYSCONFDIR/wiomw.conf
-  --enable-custom-iptables-command=COMMAND
-                          set iptables command, default: iptables (NOTE: set
-                          the full path for improved security)
-  --enable-nvram-config   check nvram for config options, default: no
-  --enable-custom-nvram-command=COMMAND
-                          set nvram command, default: nvram (NOTE: set the
-                          full path for improved security)
+  --enable-custom-iptables-path=/PATH/TO/iptables
+                          set custom path to iptables executable, default:
+                          (find iptables in $PATH, less secure)
+  --enable-nvram-config   enable nvram config option storage, default: no
+  --enable-custom-nvram-path=/PATH/TO/nvram
+                          set custom path to nvram command executable,
+                          default: (find nvram in $PATH, less secure)
   --enable-custom-session-length=SECS
-                          set session length, default: 288000 (i.e. 8 hours)
+                          set custom length of time (in seconds) before
+                          requesting a new session, default: 288000 (i.e. 8
+                          hours), minimum: 300
   --enable-custom-sync-block-frequency=SECS
-                          wait period between sync_block calls, default: 300
-                          (i.e. 5 mins), minimum: 90
-  --enable-sigquit-handling
-                          handle SIGQUIT in the same way as SIGTERM and
-                          SIGINT, default: no
+                          set custom length of time (in seconds) before
+                          resyncing with the server, default: 300 (i.e. 5
+                          mins), minimum: 90
   --enable-custom-login-url=URL
-                          set login API URL, default:
+                          set custom URL of login API, default:
                           https://www.whoisonmywifi.net/api/v100/rest/login
   --enable-custom-config-agent-url=URL
-                          set config agent API URL, default:
+                          set custom URL of config_agent API, default:
                           https://www.whoisonmywifi.net/api/v100/rest/config_agent
   --enable-custom-sync-block-url=URL
-                          set sync_block API URL, default:
+                          set custom URL of sync_block API, default:
                           https://www.whoisonmywifi.net/api/v100/rest/sync_block
   --enable-custom-send-devices-url=URL
-                          set send devices API URL, default:
-                          https://www.whoisonmywifi.net/api/v100/rest/senddevice
+                          set custom URL of send devices API, default:
+                          https://www.whoisonmywifi.net/api/v100/rest/senddeivce
   --enable-custom-agent-type=STRING
-                          wiomw agent type, default: linux
+                          set custom agent type, default: linux
   --enable-custom-dnsmasq-lease-file=/PATH/TO/dnsmasq.lease
-                          dnsmasq.lease file, default:
+                          set custom dnsmasq lease file location, default:
                           /var/lib/misc/dnsmasq.lease
   --enable-dnsmasq-lease-lookup
-                          check dnsmasq.lease file for hostnames, default: no
-  --enable-custom-default-ca-path=/PATH/TO/ca-bundle.crt
-                          CA path, default: SYSCONFDIR/ssl/certs/CA_FILE
+                          enable dnsmasq.lease-based hostname lookup, default:
+                          no
+  --enable-api-url-overrides
+                          allow API URLs to be overridden at run time
+                          (potentially very dangerous), default: no
+  --enable-custom-ca-path=/PATH/TO/ca-bundle.crt
+                          set custom path to the certificate authority file,
+                          default: SYSCONFDIR/ssl/certs/CA_FILE
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -4017,7 +4031,7 @@ if ${ac_cv_lib_m_rint+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lm which is odd" "$LINENO" 5 $LIBS"
+LIBS="-lm  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -4055,31 +4069,9 @@ _ACEOF
   LIBS="-lm $LIBS"
 
 else
-  as_fn_error $? "libm was not found
+  as_fn_error $? "libm was not found" "$LINENO" 5
 fi
 
-# PKG_CHECK_MODULES([CURL], [libcurl])
-# AC_ARG_WITH([openssl],
-#    AC_HELP_STRING([--with-openssl],
-#       [assume cURL uses OpenSSL and not PolarSSL, default: no]),
-#    [case "${withval}" in
-#       no)  with_polarssl=check;;
-#       yes) with_polarssl=no;;
-#       *)   AC_MSG_ERROR([Custom OpenSSL path not yet supported]);;
-#     esac],
-#    [with_polarssl=check])
-# #AC_CHECK_LIB([polarssl], [ssl_init])
-# AS_IF([test "x$with_polarssl" != xno],
-#    [AC_CHECK_LIB([polarssl], [ssl_init],
-#       [with_openssl=no], [with_openssl=check])],
-#    [with_openssl=check])
-# AS_IF([test "x$with_openssl" != xno],
-#    [AC_CHECK_LIB([ssl], [SSL_library_init],
-#       [found_ssl=yes], [found_ssl=no])],
-#    [found_ssl=yes])
-# AS_IF([test "x$found_ssl" = xno],
-#    [AC_MSG_ERROR([Neither PolarSSL nor OpenSSL was found])],
-#    [])
 
 
 
@@ -4675,7 +4667,7 @@ _ACEOF
 
   unset _libcurl_with
 
-if test "x$libcurl_protocol_HTTPS" != "xyes" || test "x$libcurl_feature_SSL" != "xyes"; then :
+if test "x$libcurl_protocol_HTTPS" != xyes || test "x$libcurl_feature_SSL" != xyes; then :
   as_fn_error $? "libcurl does not have HTTPS support enabled" "$LINENO" 5
 fi
 #AX_PTHREAD
@@ -4881,13 +4873,14 @@ fi
 
 fi
 
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for yajl_tree_parse in -lyajl_s" >&5
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for yajl_tree_parse in -lyajl_s" >&5
 $as_echo_n "checking for yajl_tree_parse in -lyajl_s... " >&6; }
 if ${ac_cv_lib_yajl_s_yajl_tree_parse+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lyajl_s perhaps you did not mean to use --with-static-yajl ?" "$LINENO" 5 $LIBS"
+LIBS="-lyajl_s  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -4925,7 +4918,7 @@ _ACEOF
   LIBS="-lyajl_s $LIBS"
 
 else
-  as_fn_error $? "No static version of yajl was found
+  as_fn_error $? "No static version of yajl was found; perhaps you did not mean to use --with-static-yajl ?" "$LINENO" 5
 fi
 
 fi
@@ -5572,7 +5565,7 @@ $as_echo "#define STRERROR_R_CHAR_P 1" >>confdefs.h
 fi
 
 #AC_FUNC_STRNLEN
-for ac_func in alarm getpagesize malloc memset realloc regcomp socket strerror  strnlen
+for ac_func in alarm getpagesize malloc memset realloc regcomp socket strerror strnlen
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -5585,19 +5578,11 @@ fi
 done
 
 
-# # Get PERMANENT_IFACE_BLACKLIST_REGEX
-# AC_ARG_ENABLE([custom_permanent_iface_blacklist_regex],
-#    AC_HELP_STRING([--enable-custom-permanent-iface-blacklist-regex=REGEX],
-#       [set a permanent interface blacklist regular expression, default: '^virbr[0-9]+$']),
-#    [case "${enableval}" in
-#       no)  permanent_iface_blacklist_regex='^virbr[0-9]+$';;
-#       yes) AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
-#       "")  AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
-#       *)   permanent_iface_blacklist_regex=${enableval};;
-#       esac],
-#    [permanent_iface_blacklist_regex='^virbr[0-9]+$'])
-# AC_DEFINE_UNQUOTED(PERMANENT_IFACE_BLACKLIST_REGEX, "${permanent_iface_blacklist_regex}",
-#    [Permanent interface blacklist regular expression])
+
+
+# Check for optional features and default overrides
+#TODO: group these items in a more logical way
+
 
   # Check whether --enable-custom_permanent_iface_blacklist_regex was given.
 if test "${enable_custom_permanent_iface_blacklist_regex+set}" = set; then :
@@ -5605,47 +5590,29 @@ if test "${enable_custom_permanent_iface_blacklist_regex+set}" = set; then :
   no) :
     permanent_iface_blacklist_regex="^virbr[0-9]+$" ;; #(
   yes) :
-    as_fn_error $? "Custom set a permanent interface blacklist regular expression not specified" "$LINENO" 5 ;; #(
+    as_fn_error $? "Custom permanent interface blacklist regular expression not specified" "$LINENO" 5 ;; #(
   "") :
-    as_fn_error $? "Custom set a permanent interface blacklist regular expression not specified" "$LINENO" 5 ;; #(
+    as_fn_error $? "Custom permanent interface blacklist regular expression not specified" "$LINENO" 5 ;; #(
   *) :
-    eval permanent_iface_blacklist_regex=\${enableval}
-     ;;
+    eval permanent_iface_blacklist_regex=\${enableval} ;;
 esac
 else
   permanent_iface_blacklist_regex="^virbr[0-9]+$"
-
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define CUSTOM_PERMANENT_IFACE_BLACKLIST_REGEX "${permanent_iface_blacklist_regex}"
+#define CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX "${permanent_iface_blacklist_regex}"
 _ACEOF
 
 
 permanent_iface_blacklist_regex_length=`echo $permanent_iface_blacklist_regex | wc -m`;
 
 cat >>confdefs.h <<_ACEOF
-#define PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH ${permanent_iface_blacklist_regex_length}
+#define CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH ${permanent_iface_blacklist_regex_length}
 _ACEOF
 
 
-# # Get MAX_USERNAME_LENGTH
-# AC_ARG_ENABLE([custom_username_length],
-#    AC_HELP_STRING([--enable-custom-username-length=BYTES],
-#       [set maximum username length, default: 1024]),
-#    [case "${enableval}" in
-#       no)  max_username_length=1024;;
-#       yes) AC_MSG_ERROR([Custom username length was not specified]);;
-#       "")  AC_MSG_ERROR([Custom username length was not specified]);;
-#       *)   if test "0${enableval}" -gt 0;
-#               then max_username_length=${enableval};
-#               else AC_MSG_ERROR([Username length must be a number greater than 0]);
-#               fi;;
-#       esac],
-#    [max_username_length=1024])
-# AC_DEFINE_UNQUOTED(MAX_USERNAME_LENGTH, ${max_username_length},
-#    [Maximum username length])
 
   # Check whether --enable-custom_username_length was given.
 if test "${enable_custom_username_length+set}" = set; then :
@@ -5653,299 +5620,341 @@ if test "${enable_custom_username_length+set}" = set; then :
   no) :
     username_length=1024 ;; #(
   yes) :
-    as_fn_error $? "Custom username_length not specified" "$LINENO" 5 ;; #(
+    as_fn_error $? "Custom maximum allowable username length not specified" "$LINENO" 5 ;; #(
   "") :
-    as_fn_error $? "Custom username_length not specified" "$LINENO" 5 ;; #(
+    as_fn_error $? "Custom maximum allowable username length not specified" "$LINENO" 5 ;; #(
   *) :
-    if test "0${enableval}" -ge 1; then :
+    if test "0${enableval}" -ge 8; then :
   eval username_length=\${enableval}
 else
-  as_fn_error $? "Custom username_length must be at least 1" "$LINENO" 5
-
-fi
-     ;;
+  as_fn_error $? "Custom maximum allowable username length must be at least 8" "$LINENO" 5
+fi ;;
 esac
 else
   username_length=1024
-
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define CUSTOM_USERNAME_LENGTH ${username_length}
+#define CONFIG_OPTION_USERNAME_LENGTH ${username_length}
 _ACEOF
 
 
 
-# Get MAX_PASSHASH_LENGTH
-# Check whether --enable-custom_passhash_length was given.
+  # Check whether --enable-custom_passhash_length was given.
 if test "${enable_custom_passhash_length+set}" = set; then :
-  enableval=$enable_custom_passhash_length; case "${enableval}" in
-      no)  max_passhash_length=1024;;
-      yes) as_fn_error $? "Custom passhash length was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom passhash length was not specified" "$LINENO" 5;;
-      *)   if "0${enableval}" -gt 0;
-              then max_passhash_length=${enableval};
-              else as_fn_error $? "Passhash length must be a number greater than 0" "$LINENO" 5;
-              fi;;
-      esac
+  enableval=$enable_custom_passhash_length; case ${enableval} in #(
+  no) :
+    passhash_length=1024 ;; #(
+  yes) :
+    as_fn_error $? "Custom maximum allowable password hash length not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom maximum allowable password hash length not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 40; then :
+  eval passhash_length=\${enableval}
 else
-  max_passhash_length=1024
+  as_fn_error $? "Custom maximum allowable password hash length must be at least 40" "$LINENO" 5
+fi ;;
+esac
+else
+  passhash_length=1024
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define MAX_PASSHASH_LENGTH ${max_passhash_length}
+#define CONFIG_OPTION_PASSHASH_LENGTH ${passhash_length}
 _ACEOF
 
 
-# Get MAX_SESSION_ID_LENGTH
-# Check whether --enable-custom_session_id_length was given.
+
+  # Check whether --enable-custom_session_id_length was given.
 if test "${enable_custom_session_id_length+set}" = set; then :
-  enableval=$enable_custom_session_id_length; case "${enableval}" in
-      no)  max_session_id_length=4096;;
-      yes) as_fn_error $? "Custom session ID length was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom session ID length was not specified" "$LINENO" 5;;
-      *)   if test "0${enableval}" -gt 0;
-              then max_session_id_length=${enableval};
-              else as_fn_error $? "Session ID length must be a number greater than 0" "$LINENO" 5;
-              fi;;
-      esac
+  enableval=$enable_custom_session_id_length; case ${enableval} in #(
+  no) :
+    session_id_length=4096 ;; #(
+  yes) :
+    as_fn_error $? "Custom maximum allowable session ID length not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom maximum allowable session ID length not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 128; then :
+  eval session_id_length=\${enableval}
 else
-  max_session_id_length=4096
+  as_fn_error $? "Custom maximum allowable session ID length must be at least 128" "$LINENO" 5
+fi ;;
+esac
+else
+  session_id_length=4096
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define MAX_SESSION_ID_LENGTH ${max_session_id_length}
+#define CONFIG_OPTION_SESSION_ID_LENGTH ${session_id_length}
 _ACEOF
 
 
-# Get MAX_IFACE_BLACKLIST_REGEX_LENGTH
-# Check whether --enable-custom_iface_blacklist_regex_length was given.
+
+  # Check whether --enable-custom_iface_blacklist_regex_length was given.
 if test "${enable_custom_iface_blacklist_regex_length+set}" = set; then :
-  enableval=$enable_custom_iface_blacklist_regex_length; case "${enableval}" in
-      no)  max_iface_blacklist_regex_length=128;;
-      yes) as_fn_error $? "Custom interface blacklist regular expression length was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom interface blacklist regular expression length was not specified" "$LINENO" 5;;
-      *)   if test "0${enableval}" -gt 0;
-              then max_iface_blacklist_regex_length=${enableval};
-              else as_fn_error $? "Interface blacklist regular expression length must be a number greater than 0" "$LINENO" 5;
-              fi;;
-      esac
+  enableval=$enable_custom_iface_blacklist_regex_length; case ${enableval} in #(
+  no) :
+    iface_blacklist_regex_length=128 ;; #(
+  yes) :
+    as_fn_error $? "Custom maximum allowable length of an interface blacklist regular expression defined at runtime not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom maximum allowable length of an interface blacklist regular expression defined at runtime not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 4; then :
+  eval iface_blacklist_regex_length=\${enableval}
 else
-  max_iface_blacklist_regex_length=128
+  as_fn_error $? "Custom maximum allowable length of an interface blacklist regular expression defined at runtime must be at least 4" "$LINENO" 5
+fi ;;
+esac
+else
+  iface_blacklist_regex_length=128
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define MAX_IFACE_BLACKLIST_REGEX_LENGTH ${max_iface_blacklist_regex_length}
+#define CONFIG_OPTION_IFACE_BLACKLIST_REGEX_LENGTH ${iface_blacklist_regex_length}
 _ACEOF
 
 
-# Get MAX_API_URL_LENGTH
-# Check whether --enable-custom_api_url_length was given.
+
+  # Check whether --enable-custom_api_url_length was given.
 if test "${enable_custom_api_url_length+set}" = set; then :
-  enableval=$enable_custom_api_url_length; case "${enableval}" in
-      no)  max_api_url_length=4096;;
-      yes) as_fn_error $? "Custom API URL length was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom API URL length was not specified" "$LINENO" 5;;
-      *)   if test "0${enableval}" -gt 0;
-              then max_api_url_length=${enableval};
-              else as_fn_error $? "API URL length must be a number greater than 0" "$LINENO" 5;
-              fi;;
-      esac
+  enableval=$enable_custom_api_url_length; case ${enableval} in #(
+  no) :
+    api_url_length=4096 ;; #(
+  yes) :
+    as_fn_error $? "Custom maximum allowable length of an API URL defined at runtime not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom maximum allowable length of an API URL defined at runtime not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 60; then :
+  eval api_url_length=\${enableval}
 else
-  max_api_url_length=4096
+  as_fn_error $? "Custom maximum allowable length of an API URL defined at runtime must be at least 60" "$LINENO" 5
+fi ;;
+esac
+else
+  api_url_length=4096
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define MAX_API_URL_LENGTH ${max_api_url_length}
+#define CONFIG_OPTION_API_URL_LENGTH ${api_url_length}
 _ACEOF
 
 
-# Get MAX_CONFIG_LINE_LENGTH
-# Check whether --enable-custom_config_line_length was given.
+
+  # Check whether --enable-custom_config_line_length was given.
 if test "${enable_custom_config_line_length+set}" = set; then :
-  enableval=$enable_custom_config_line_length; case "${enableval}" in
-      no)  max_config_line_length=4096;;
-      yes) as_fn_error $? "Custom config line length was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom config line length was not specified" "$LINENO" 5;;
-      *)   if test "0${enableval}" -gt 0;
-              then max_config_line_length=${enableval};
-              else as_fn_error $? "Config line length must be a number greater than 0" "$LINENO" 5;
-              fi;;
-      esac
+  enableval=$enable_custom_config_line_length; case ${enableval} in #(
+  no) :
+    config_line_length=4096 ;; #(
+  yes) :
+    as_fn_error $? "Custom maximum allowable length of any line in the configuration file not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom maximum allowable length of any line in the configuration file not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 50; then :
+  eval config_line_length=\${enableval}
 else
-  max_config_line_length=4096
+  as_fn_error $? "Custom maximum allowable length of any line in the configuration file must be at least 50" "$LINENO" 5
+fi ;;
+esac
+else
+  config_line_length=4096
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define MAX_CONFIG_LINE_LENGTH ${max_config_line_length}
+#define CONFIG_OPTION_CONFIG_LINE_LENGTH ${config_line_length}
 _ACEOF
 
 
-# Get MINIMUM_IPV4_PUBLIC_PREFIX
-# Check whether --enable-custom_minimum_ipv4_public_prefix was given.
-if test "${enable_custom_minimum_ipv4_public_prefix+set}" = set; then :
-  enableval=$enable_custom_minimum_ipv4_public_prefix; case "${enableval}" in
-      no)  minimum_ipv4_public_prefix=32;;
-      yes) as_fn_error $? "Custom minimum IPv4 public prefix was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom minimum IPv4 public prefix was not specified" "$LINENO" 5;;
-      *)   if test "0${enableval}" -gt 0;
-              then minimum_ipv4_public_prefix=${enableval};
-              else as_fn_error $? "Minimum IPv4 public prefix must be a number greater than 0" "$LINENO" 5;
-              fi;;
-      esac
+
+  # Check whether --enable-custom_ipv4_public_prefix was given.
+if test "${enable_custom_ipv4_public_prefix+set}" = set; then :
+  enableval=$enable_custom_ipv4_public_prefix; case ${enableval} in #(
+  no) :
+    ipv4_public_prefix=32 ;; #(
+  yes) :
+    as_fn_error $? "Custom minimum prefix of a publicly-accessible IPv4 network specified at runtime that will be scanned not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom minimum prefix of a publicly-accessible IPv4 network specified at runtime that will be scanned not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 24 && test "0${enableval}" -le 32; then :
+  eval ipv4_public_prefix=\${enableval}
 else
-  minimum_ipv4_public_prefix=32
+  as_fn_error $? "Custom minimum prefix of a publicly-accessible IPv4 network specified at runtime that will be scanned must be between 24 and 32 " "$LINENO" 5
+fi ;;
+esac
+else
+  ipv4_public_prefix=32
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define MINIMUM_IPV4_PUBLIC_PREFIX ${minimum_ipv4_public_prefix}
+#define CONFIG_OPTION_IPV4_PUBLIC_PREFIX ${ipv4_public_prefix}
 _ACEOF
 
 
-# Get MINIMUM_IPV6_PUBLIC_PREFIX
-# Check whether --enable-custom_minimum_ipv6_public_prefix was given.
-if test "${enable_custom_minimum_ipv6_public_prefix+set}" = set; then :
-  enableval=$enable_custom_minimum_ipv6_public_prefix; case "${enableval}" in
-      no)  minimum_ipv6_public_prefix=128;;
-      yes) as_fn_error $? "Custom minimum IPv6 public prefix was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom minimum IPv6 public prefix was not specified" "$LINENO" 5;;
-      *)   if test "0${enableval}" -gt 0;
-              then minimum_ipv6_public_prefix=${enableval};
-              else as_fn_error $? "Minimum IPv6 public prefix must be a number greater than 0" "$LINENO" 5;
-              fi;;
-      esac
+
+  # Check whether --enable-custom_ipv6_public_prefix was given.
+if test "${enable_custom_ipv6_public_prefix+set}" = set; then :
+  enableval=$enable_custom_ipv6_public_prefix; case ${enableval} in #(
+  no) :
+    ipv6_public_prefix=128 ;; #(
+  yes) :
+    as_fn_error $? "Custom minimum prefix of a publicly-accessible IPv6 network specified at runtime that will be scanned not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom minimum prefix of a publicly-accessible IPv6 network specified at runtime that will be scanned not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 112 && test "0${enableval}" -le 128; then :
+  eval ipv6_public_prefix=\${enableval}
 else
-  minimum_ipv6_public_prefix=128
+  as_fn_error $? "Custom minimum prefix of a publicly-accessible IPv6 network specified at runtime that will be scanned must be between 112 and 128 " "$LINENO" 5
+fi ;;
+esac
+else
+  ipv6_public_prefix=128
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define MINIMUM_IPV6_PUBLIC_PREFIX ${minimum_ipv6_public_prefix}
+#define CONFIG_OPTION_IPV6_PUBLIC_PREFIX ${ipv6_public_prefix}
 _ACEOF
 
 
-# Get CONFIG_FILE_LOCATION
-# Check whether --enable-custom_config_file was given.
+
+  # Check whether --enable-custom_config_file was given.
 if test "${enable_custom_config_file+set}" = set; then :
-  enableval=$enable_custom_config_file; case "${enableval}" in
-      no)  config_file_location="\"SYSCONFDIR\"/wiomw.conf";;
-      yes) as_fn_error $? "Custom config file location was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom config file location was not specified" "$LINENO" 5;;
-      *)   config_file_location="${enableval}";;
-      esac
+  enableval=$enable_custom_config_file; case ${enableval} in #(
+  no) :
+    config_file="\"SYSCONFDIR\"/wiomw.conf" ;; #(
+  yes) :
+    as_fn_error $? "Custom config file location not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom config file location not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval config_file=\${enableval} ;;
+esac
 else
-  config_file_location="\"SYSCONFDIR\"/wiomw.conf"
+  config_file="\"SYSCONFDIR\"/wiomw.conf"
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define CONFIG_FILE_LOCATION "${config_file_location}"
+#define CONFIG_OPTION_CONFIG_FILE "${config_file}"
 _ACEOF
 
 
-# Get IPTABLES_COMMAND
-# Check whether --enable-custom_iptables_command was given.
-if test "${enable_custom_iptables_command+set}" = set; then :
-  enableval=$enable_custom_iptables_command; case "${enableval}" in
-      no)  iptables_command="iptables";;
-      yes) as_fn_error $? "Custom iptables command was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom iptables command was not specified" "$LINENO" 5;;
-      *)   iptables_command="${enableval}";;
-      esac
+
+  # Check whether --enable-custom_iptables_path was given.
+if test "${enable_custom_iptables_path+set}" = set; then :
+  enableval=$enable_custom_iptables_path; case ${enableval} in #(
+  no) :
+    iptables_path=iptables ;; #(
+  yes) :
+    as_fn_error $? "Custom path to iptables executable not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom path to iptables executable not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval iptables_path=\${enableval} ;;
+esac
 else
-  iptables_command="iptables"
+  iptables_path=iptables
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define IPTABLES_COMMAND "${iptables_command}"
+#define CONFIG_OPTION_IPTABLES_PATH "${iptables_path}"
 _ACEOF
 
 
-# Get USE_NVRAM_CONFIG
-# Check whether --enable-nvram_config was given.
+
+
+  # Check whether --enable-nvram_config was given.
 if test "${enable_nvram_config+set}" = set; then :
-  enableval=$enable_nvram_config; case "${enableval}" in
-      no)  nvram_config=0;;
-      yes) nvram_config=1;;
-      "")  nvram_config=1;;
-      *)   as_fn_error $? "Could not determine intended nvram configuration option, valid choices are \"yes\" and \"no\"" "$LINENO" 5;;
-      esac
+  enableval=$enable_nvram_config; case ${enableval} in #(
+  no) :
+    nvram_config=0 ;; #(
+  yes) :
+    nvram_config=1 ;; #(
+  "") :
+    nvram_config=1 ;; #(
+  *) :
+    as_fn_error $? "Only \"yes\" and \"no\" are accepted as values for nvram config option storage" "$LINENO" 5 ;;
+esac
+else
+  if test "xno" == xyes; then :
+  nvram_config=1
 else
   nvram_config=0
 fi
-
-
-cat >>confdefs.h <<_ACEOF
-#define USE_NVRAM_CONFIG ${nvram_config}
-_ACEOF
-
-
-# Get NVRAM_COMMAND
-# Check whether --enable-custom_nvram_command was given.
-if test "${enable_custom_nvram_command+set}" = set; then :
-  enableval=$enable_custom_nvram_command; case "${enableval}" in
-      no)  nvram_command="nvram";;
-      yes) as_fn_error $? "Custom nvram command was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom nvram command was not specified" "$LINENO" 5;;
-      *)   nvram_command="${enableval}";;
-      esac
-else
-  nvram_command="nvram"
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define NVRAM_COMMAND "${nvram_command}"
+#define CONFIG_OPTION_NVRAM_CONFIG ${nvram_config}
 _ACEOF
 
 
-# Get SESSION_LENGTH
-# Check whether --enable-custom_session_length was given.
+
+  # Check whether --enable-custom_nvram_path was given.
+if test "${enable_custom_nvram_path+set}" = set; then :
+  enableval=$enable_custom_nvram_path; case ${enableval} in #(
+  no) :
+    nvram_path=nvram ;; #(
+  yes) :
+    as_fn_error $? "Custom path to nvram command executable not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom path to nvram command executable not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval nvram_path=\${enableval} ;;
+esac
+else
+  nvram_path=nvram
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define CONFIG_OPTION_NVRAM_PATH "${nvram_path}"
+_ACEOF
+
+
+
+
+  # Check whether --enable-custom_session_length was given.
 if test "${enable_custom_session_length+set}" = set; then :
-  enableval=$enable_custom_session_length; case "${enableval}" in
-      no)  session_length=288000;;
-      yes) as_fn_error $? "Custom session length was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom session length was not specified" "$LINENO" 5;;
-      *)   if test "0${enableval}" -gt 300;
-              then session_length=${enableval};
-              else as_fn_error $? "Session length must be at least 5 minutes" "$LINENO" 5;
-              fi;;
-      esac
+  enableval=$enable_custom_session_length; case ${enableval} in #(
+  no) :
+    session_length=288000 ;; #(
+  yes) :
+    as_fn_error $? "Custom length of time (in seconds) before requesting a new session not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom length of time (in seconds) before requesting a new session not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 300; then :
+  eval session_length=\${enableval}
+else
+  as_fn_error $? "Custom length of time (in seconds) before requesting a new session must be at least 300" "$LINENO" 5
+fi ;;
+esac
 else
   session_length=288000
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define SESSION_LENGTH ${session_length}
+#define CONFIG_OPTION_SESSION_LENGTH ${session_length}
 _ACEOF
 
 
 
-# # Get SYNC_BLOCK_FREQUENCY
-# AC_ARG_ENABLE([custom_sync_block_frequency],
-#    AC_HELP_STRING([--enable-custom-sync-block-frequency=SECS],
-#       [set sync_block frequency, default: 300 (i.e. 5 mins)]),
-#    [case "${enableval}" in
-#       no)  sync_block_frequency=300;;
-#       yes) AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
-#       "")  AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
-#       *)   if test "0${enableval}" -gt 0;
-#               then sync_block_frequency=${enableval};
-#               else AC_MSG_ERROR([Frequency of sync_block must be at least 1 second]);
-#               fi;;
-#       esac],
-#    [sync_block_frequency=300])
-# AC_DEFINE_UNQUOTED(SYNC_BLOCK_FREQUENCY, ${sync_block_frequency},
-#    [Wait period between sync_block calls])
 
   # Check whether --enable-custom_sync_block_frequency was given.
 if test "${enable_custom_sync_block_frequency+set}" = set; then :
@@ -5953,141 +5962,138 @@ if test "${enable_custom_sync_block_frequency+set}" = set; then :
   no) :
     sync_block_frequency=300 ;; #(
   yes) :
-    as_fn_error $? "Custom set sync_block frequency not specified" "$LINENO" 5 ;; #(
+    as_fn_error $? "Custom length of time (in seconds) before resyncing with the server not specified" "$LINENO" 5 ;; #(
   "") :
-    as_fn_error $? "Custom set sync_block frequency not specified" "$LINENO" 5 ;; #(
+    as_fn_error $? "Custom length of time (in seconds) before resyncing with the server not specified" "$LINENO" 5 ;; #(
   *) :
     if test "0${enableval}" -ge 90; then :
   eval sync_block_frequency=\${enableval}
 else
-  as_fn_error $? "Custom set sync_block frequency must be at least 90" "$LINENO" 5
-
-fi
-     ;;
+  as_fn_error $? "Custom length of time (in seconds) before resyncing with the server must be at least 90" "$LINENO" 5
+fi ;;
 esac
 else
   sync_block_frequency=300
-
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define CUSTOM_SYNC_BLOCK_FREQUENCY ${sync_block_frequency}
+#define CONFIG_OPTION_SYNC_BLOCK_FREQUENCY ${sync_block_frequency}
 _ACEOF
 
 
 
-# Get HANDLE_SIGQUIT
-# Check whether --enable-sigquit-handling was given.
-if test "${enable_sigquit_handling+set}" = set; then :
-  enableval=$enable_sigquit_handling; case "${enableval}" in
-      no)  handle_sigquit=0;;
-      yes) handle_sigquit=1;;
-      "")  as_fn_error $? "SIGQUIT handling decision was not specified" "$LINENO" 5;;
-      *)   as_fn_error $? "Unexpected value for --enable-sigquit-handling " "$LINENO" 5;;
-    esac
-else
-  handle_sigquit=0
-fi
-
-
-cat >>confdefs.h <<_ACEOF
-#define SHOULD_HANDLE_SIGQUIT ${handle_sigquit}
-_ACEOF
-
-
-# Get LOGIN_URL
-# Check whether --enable-custom_login_url was given.
+  # Check whether --enable-custom_login_url was given.
 if test "${enable_custom_login_url+set}" = set; then :
-  enableval=$enable_custom_login_url; case "${enableval}" in
-      no)  login_url="https://www.whoisonmywifi.net/api/v100/rest/login";;
-      yes) as_fn_error $? "Custom login API URL was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom login API URL was not specified" "$LINENO" 5;;
-      *)   login_url="${enableval}";;
-      esac
+  enableval=$enable_custom_login_url; case ${enableval} in #(
+  no) :
+    login_url=https://www.whoisonmywifi.net/api/v100/rest/login ;; #(
+  yes) :
+    as_fn_error $? "Custom URL of login API not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom URL of login API not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval login_url=\${enableval} ;;
+esac
 else
-  login_url="https://www.whoisonmywifi.net/api/v100/rest/login"
+  login_url=https://www.whoisonmywifi.net/api/v100/rest/login
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define LOGIN_API_URL "${login_url}"
+#define CONFIG_OPTION_LOGIN_URL "${login_url}"
 _ACEOF
 
 
-# Get CONFIG_AGENT_URL
-# Check whether --enable-custom_config_agent_url was given.
+
+  # Check whether --enable-custom_config_agent_url was given.
 if test "${enable_custom_config_agent_url+set}" = set; then :
-  enableval=$enable_custom_config_agent_url; case "${enableval}" in
-      no)  config_agent_url="https://www.whoisonmywifi.net/api/v100/rest/config_agent";;
-      yes) as_fn_error $? "Custom config agent API URL was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom config agent API URL was not specified" "$LINENO" 5;;
-      *)   config_agent_url="${enableval}";;
-      esac
+  enableval=$enable_custom_config_agent_url; case ${enableval} in #(
+  no) :
+    config_agent_url=https://www.whoisonmywifi.net/api/v100/rest/config_agent ;; #(
+  yes) :
+    as_fn_error $? "Custom URL of config_agent API not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom URL of config_agent API not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval config_agent_url=\${enableval} ;;
+esac
 else
-  config_agent_url="https://www.whoisonmywifi.net/api/v100/rest/config_agent"
+  config_agent_url=https://www.whoisonmywifi.net/api/v100/rest/config_agent
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define CONFIG_AGENT_API_URL "${config_agent_url}"
+#define CONFIG_OPTION_CONFIG_AGENT_URL "${config_agent_url}"
 _ACEOF
 
 
-# Get SYNC_BLOCK_URL
-# Check whether --enable-custom_sync_block_url was given.
+
+  # Check whether --enable-custom_sync_block_url was given.
 if test "${enable_custom_sync_block_url+set}" = set; then :
-  enableval=$enable_custom_sync_block_url; case "${enableval}" in
-      no)  sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block";;
-      yes) as_fn_error $? "Custom sync_block API URL was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom sync_block API URL was not specified" "$LINENO" 5;;
-      *)   sync_block_url="${enableval}";;
-      esac
+  enableval=$enable_custom_sync_block_url; case ${enableval} in #(
+  no) :
+    sync_block_url=https://www.whoisonmywifi.net/api/v100/rest/sync_block ;; #(
+  yes) :
+    as_fn_error $? "Custom URL of sync_block API not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom URL of sync_block API not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval sync_block_url=\${enableval} ;;
+esac
 else
-  sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block"
+  sync_block_url=https://www.whoisonmywifi.net/api/v100/rest/sync_block
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define SYNC_BLOCK_API_URL "${sync_block_url}"
+#define CONFIG_OPTION_SYNC_BLOCK_URL "${sync_block_url}"
 _ACEOF
 
 
-# Get SEND_DEVICES_URL
-# Check whether --enable-custom_send_devices_url was given.
+
+  # Check whether --enable-custom_send_devices_url was given.
 if test "${enable_custom_send_devices_url+set}" = set; then :
-  enableval=$enable_custom_send_devices_url; case "${enableval}" in
-      no)  send_devices_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice";;
-      yes) as_fn_error $? "Custom send devices API URL was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom send devices API URL was not specified" "$LINENO" 5;;
-      *)   send_devices_url="${enableval}";;
-      esac
+  enableval=$enable_custom_send_devices_url; case ${enableval} in #(
+  no) :
+    send_devices_url=https://www.whoisonmywifi.net/api/v100/rest/senddeivce ;; #(
+  yes) :
+    as_fn_error $? "Custom URL of send devices API not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom URL of send devices API not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval send_devices_url=\${enableval} ;;
+esac
 else
-  send_devices_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice"
+  send_devices_url=https://www.whoisonmywifi.net/api/v100/rest/senddeivce
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define SEND_DEVICES_API_URL "${send_devices_url}"
+#define CONFIG_OPTION_SEND_DEVICES_URL "${send_devices_url}"
 _ACEOF
 
 
-# Get WIOMW_AGENT_TYPE
-# Check whether --enable-custom_agent_type was given.
+
+  # Check whether --enable-custom_agent_type was given.
 if test "${enable_custom_agent_type+set}" = set; then :
-  enableval=$enable_custom_agent_type; case "${enableval}" in
-      no)  wiomw_agent_type="linux";;
-      yes) as_fn_error $? "Custom agent type was not specified" "$LINENO" 5;;
-      "")  as_fn_error $? "Custom agent type was not specified" "$LINENO" 5;;
-      *)   wiomw_agent_type="${enableval}";;
-      esac
+  enableval=$enable_custom_agent_type; case ${enableval} in #(
+  no) :
+    agent_type=linux ;; #(
+  yes) :
+    as_fn_error $? "Custom agent type not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom agent type not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval agent_type=\${enableval} ;;
+esac
 else
-  wiomw_agent_type="linux"
+  agent_type=linux
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define WIOMW_AGENT_TYPE "${wiomw_agent_type}"
+#define CONFIG_OPTION_AGENT_TYPE "${agent_type}"
 _ACEOF
 
 
@@ -6098,68 +6104,97 @@ if test "${enable_custom_dnsmasq_lease_file+set}" = set; then :
   no) :
     dnsmasq_lease_file=/var/lib/misc/dnsmasq.lease ;; #(
   yes) :
-    as_fn_error $? "Custom set dnsmasq.lease file location not specified" "$LINENO" 5 ;; #(
+    as_fn_error $? "Custom dnsmasq lease file location not specified" "$LINENO" 5 ;; #(
   "") :
-    as_fn_error $? "Custom set dnsmasq.lease file location not specified" "$LINENO" 5 ;; #(
+    as_fn_error $? "Custom dnsmasq lease file location not specified" "$LINENO" 5 ;; #(
   *) :
-    eval dnsmasq_lease_file=\${enableval}
-     ;;
+    eval dnsmasq_lease_file=\${enableval} ;;
 esac
 else
   dnsmasq_lease_file=/var/lib/misc/dnsmasq.lease
-
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define CUSTOM_DNSMASQ_LEASE_FILE "${dnsmasq_lease_file}"
+#define CONFIG_OPTION_DNSMASQ_LEASE_FILE "${dnsmasq_lease_file}"
 _ACEOF
 
 
 
-# Get USE_DNSMASQ_LEASE_LOOKUP
-# Check whether --enable-dnsmasq_lease_lookup was given.
+  # Check whether --enable-dnsmasq_lease_lookup was given.
 if test "${enable_dnsmasq_lease_lookup+set}" = set; then :
-  enableval=$enable_dnsmasq_lease_lookup; case "${enableval}" in
-      no)  dnsmasq_lease_lookup=0;;
-      yes) dnsmasq_lease_lookup=1;;
-      "")  dnsmasq_lease_lookup=1;;
-      *)   as_fn_error $? "Could not determine intended dnsmasq.lease hostname lookup configuration option, valid choices are \"yes\" and \"no\"" "$LINENO" 5;;
-      esac
+  enableval=$enable_dnsmasq_lease_lookup; case ${enableval} in #(
+  no) :
+    dnsmasq_lease_lookup=0 ;; #(
+  yes) :
+    dnsmasq_lease_lookup=1 ;; #(
+  "") :
+    dnsmasq_lease_lookup=1 ;; #(
+  *) :
+    as_fn_error $? "Only \"yes\" and \"no\" are accepted as values for dnsmasq.lease-based hostname lookup" "$LINENO" 5 ;;
+esac
+else
+  if test "xno" == xyes; then :
+  dnsmasq_lease_lookup=1
 else
   dnsmasq_lease_lookup=0
 fi
-
-
-cat >>confdefs.h <<_ACEOF
-#define USE_DNSMASQ_LEASE_LOOKUP ${dnsmasq_lease_lookup}
-_ACEOF
-
-
-
-  # Check whether --enable-custom_default_ca_path was given.
-if test "${enable_custom_default_ca_path+set}" = set; then :
-  enableval=$enable_custom_default_ca_path; case ${enableval} in #(
-  no) :
-    default_ca_path="\"SYSCONFDIR\"/ssl/certs/f081611a.0" ;; #(
-  yes) :
-    as_fn_error $? "Custom set default CA path not specified" "$LINENO" 5 ;; #(
-  "") :
-    as_fn_error $? "Custom set default CA path not specified" "$LINENO" 5 ;; #(
-  *) :
-    eval default_ca_path=\${enableval}
-     ;;
-esac
-else
-  default_ca_path="\"SYSCONFDIR\"/ssl/certs/f081611a.0"
-
 fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define CUSTOM_DEFAULT_CA_PATH "${default_ca_path}"
+#define CONFIG_OPTION_DNSMASQ_LEASE_LOOKUP ${dnsmasq_lease_lookup}
 _ACEOF
 
+
+
+  # Check whether --enable-api_url_overrides was given.
+if test "${enable_api_url_overrides+set}" = set; then :
+  enableval=$enable_api_url_overrides; case ${enableval} in #(
+  no) :
+    api_url_overrides=0 ;; #(
+  yes) :
+    api_url_overrides=1 ;; #(
+  "") :
+    api_url_overrides=1 ;; #(
+  *) :
+    as_fn_error $? "Only \"yes\" and \"no\" are accepted as values for run time overriding of API URLs" "$LINENO" 5 ;;
+esac
+else
+  if test "xno" == xyes; then :
+  api_url_overrides=1
+else
+  api_url_overrides=0
+fi
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define CONFIG_OPTION_API_URL_OVERRIDES ${api_url_overrides}
+_ACEOF
+
+
+
+  # Check whether --enable-custom_ca_path was given.
+if test "${enable_custom_ca_path+set}" = set; then :
+  enableval=$enable_custom_ca_path; case ${enableval} in #(
+  no) :
+    ca_path="\"SYSCONFDIR\"/ssl/certs/f081611a.0" ;; #(
+  yes) :
+    as_fn_error $? "Custom path to the certificate authority file not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom path to the certificate authority file not specified" "$LINENO" 5 ;; #(
+  *) :
+    eval ca_path=\${enableval} ;;
+esac
+else
+  ca_path="\"SYSCONFDIR\"/ssl/certs/f081611a.0"
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define CONFIG_OPTION_CA_PATH "${ca_path}"
+_ACEOF
 
 
 ac_config_files="$ac_config_files Makefile etc/Makefile etc/ssl/Makefile etc/ssl/certs/Makefile src/Makefile"

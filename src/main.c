@@ -28,17 +28,17 @@ int main(int argc, char** argv)
 		last_session_request = time(NULL);
 		send_config(&config);
 
-		while (!stop_signal_received() && time(NULL) < (last_session_request + SESSION_LENGTH)) {
+		while (!stop_signal_received() && time(NULL) < (last_session_request + CONFIG_OPTION_SESSION_LENGTH)) {
 			time_t next_session_request_wait = 0;
 			if (config.allow_blocking) {
 				sync_block(&config);
 			}
-			if (time(NULL) < (last_session_request + SESSION_LENGTH)) {
+			if (time(NULL) < (last_session_request + CONFIG_OPTION_SESSION_LENGTH)) {
 				send_devices(&config);
 			}
-			next_session_request_wait = (last_session_request + SESSION_LENGTH) - time(NULL);
+			next_session_request_wait = (last_session_request + CONFIG_OPTION_SESSION_LENGTH) - time(NULL);
 			if (next_session_request_wait > 0) {
-				alarm(MINIMUM(SYNC_BLOCK_FREQUENCY, next_session_request_wait));
+				alarm(MINIMUM(CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, next_session_request_wait));
 				sleep_until_signalled();
 			}
 		}

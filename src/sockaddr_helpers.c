@@ -405,9 +405,9 @@ network_list_t get_overlapping_networks(struct sockaddr* addr_base, uint8_t pref
 	uint8_t min_public_prefix;
 
 	if (addr_base->sa_family == AF_INET) {
-		min_public_prefix = MINIMUM_IPV4_PUBLIC_PREFIX;
+		min_public_prefix = CONFIG_OPTION_IPV4_PUBLIC_PREFIX;
 	} else if (addr_base->sa_family == AF_INET6) {
-		min_public_prefix = MINIMUM_IPV6_PUBLIC_PREFIX;
+		min_public_prefix = CONFIG_OPTION_IPV6_PUBLIC_PREFIX;
 	} else {
 		print_error("Unexpected address family when checking for overlapping networks");
 		return NULL;

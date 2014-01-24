@@ -1,7 +1,11 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([wiomw], [1.0], [support@io3o.com], [wiomw], [http://www.whoisonmywifi.net])
+AC_INIT([wiomw],
+	[1.0],
+	[support@io3o.com],
+	[wiomw],
+	[http://www.whoisonmywifi.net])
 AC_CONFIG_MACRO_DIR[(m4])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
@@ -12,32 +16,10 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 # Checks for libraries.
-AC_CHECK_LIB([m], [rint], , AC_MSG_ERROR([libm was not found, which is odd]))
-# PKG_CHECK_MODULES([CURL], [libcurl])
-# AC_ARG_WITH([openssl],
-#    AC_HELP_STRING([--with-openssl],
-#       [assume cURL uses OpenSSL and not PolarSSL, default: no]),
-#    [case "${withval}" in
-#       no)  with_polarssl=check;;
-#       yes) with_polarssl=no;;
-#       *)   AC_MSG_ERROR([Custom OpenSSL path not yet supported]);;
-#     esac],
-#    [with_polarssl=check])
-# #AC_CHECK_LIB([polarssl], [ssl_init])
-# AS_IF([test "x$with_polarssl" != xno],
-#    [AC_CHECK_LIB([polarssl], [ssl_init],
-#       [with_openssl=no], [with_openssl=check])],
-#    [with_openssl=check])
-# AS_IF([test "x$with_openssl" != xno],
-#    [AC_CHECK_LIB([ssl], [SSL_library_init],
-#       [found_ssl=yes], [found_ssl=no])],
-#    [found_ssl=yes])
-# AS_IF([test "x$found_ssl" = xno],
-#    [AC_MSG_ERROR([Neither PolarSSL nor OpenSSL was found])],
-#    [])
+AC_CHECK_LIB([m], [rint], ,AC_MSG_ERROR([libm was not found]))
 PKG_CHECK_MODULES([CURL], [libcurl])
 LIBCURL_CHECK_CONFIG
-AS_IF([test "x$libcurl_protocol_HTTPS" != "xyes" || test "x$libcurl_feature_SSL" != "xyes"],
+AS_IF([test "x$libcurl_protocol_HTTPS" != xyes || test "x$libcurl_feature_SSL" != xyes],
       [AC_MSG_ERROR([libcurl does not have HTTPS support enabled])])
 #AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
@@ -53,9 +35,9 @@ AC_ARG_WITH([static_yajl],
 AS_IF([test "x$static_yajl" != xyes],
    [AC_CHECK_LIB([yajl], [yajl_tree_parse], ,
       [AC_CHECK_LIB([yajl_s], [yajl_tree_parse], ,
-         AC_MSG_ERROR([Either a dynamic or static version of yajl is required]))])]
+         AC_MSG_ERROR([Either a dynamic or static version of yajl is required]))])],
    [AC_CHECK_LIB([yajl_s], [yajl_tree_parse], ,
-      AC_MSG_ERROR([No static version of yajl was found, perhaps you did not mean to use --with-static-yajl ?]))])
+      AC_MSG_ERROR([No static version of yajl was found; perhaps you did not mean to use --with-static-yajl ?]))])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
@@ -72,355 +54,162 @@ AC_TYPE_UINT8_T
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
 #AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strerror  strnlen])
+AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strerror strnlen])
 
-# # Get PERMANENT_IFACE_BLACKLIST_REGEX
-# AC_ARG_ENABLE([custom_permanent_iface_blacklist_regex],
-#    AC_HELP_STRING([--enable-custom-permanent-iface-blacklist-regex=REGEX],
-#       [set a permanent interface blacklist regular expression, default: '^virbr@<:@0-9@:>@+$']),
-#    [case "${enableval}" in
-#       no)  permanent_iface_blacklist_regex='^virbr@<:@0-9@:>@+$';;
-#       yes) AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
-#       "")  AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
-#       *)   permanent_iface_blacklist_regex=${enableval};;
-#       esac],
-#    [permanent_iface_blacklist_regex='^virbr@<:@0-9@:>@+$'])
-# AC_DEFINE_UNQUOTED(PERMANENT_IFACE_BLACKLIST_REGEX, "${permanent_iface_blacklist_regex}",
-#    [Permanent interface blacklist regular expression])
-AX_ENABLE_CUSTOM_STRING([permanent_iface_blacklist_regex], ["^virbr@<:@0-9@:>@+$"], [set a permanent interface blacklist regular expression], [REGEX], [permanent interface blacklist regular expression])
+
+
+# Check for optional features and default overrides
+#TODO: group these items in a more logical way
+
+AX_CONFIG_OPTION_STRING_NN([permanent_iface_blacklist_regex],
+	["^virbr@<:@0-9@:>@+$"],
+	[permanent interface blacklist regular expression],
+	[REGEX],
+	[set a permanent interface blacklist regular expression])
+
 permanent_iface_blacklist_regex_length=`echo $permanent_iface_blacklist_regex | wc -m`;
-AC_DEFINE_UNQUOTED(PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH, ${permanent_iface_blacklist_regex_length},
-   [Permanent interface blacklist regular expression length])
+AC_DEFINE_UNQUOTED(CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH,
+	${permanent_iface_blacklist_regex_length},
+	[permanent interface blacklist regular expression length])
 
-# # Get MAX_USERNAME_LENGTH
-# AC_ARG_ENABLE([custom_username_length],
-#    AC_HELP_STRING([--enable-custom-username-length=BYTES],
-#       [set maximum username length, default: 1024]),
-#    [case "${enableval}" in
-#       no)  max_username_length=1024;;
-#       yes) AC_MSG_ERROR([Custom username length was not specified]);;
-#       "")  AC_MSG_ERROR([Custom username length was not specified]);;
-#       *)   if test "0${enableval}" -gt 0;
-#               then max_username_length=${enableval};
-#               else AC_MSG_ERROR([Username length must be a number greater than 0]);
-#               fi;;
-#       esac],
-#    [max_username_length=1024])
-# AC_DEFINE_UNQUOTED(MAX_USERNAME_LENGTH, ${max_username_length},
-#    [Maximum username length])
-AX_ENABLE_CUSTOM_NUMBER([username_length], 1024, , , [BYTES], [maximum username length])
+AX_CONFIG_OPTION_NUMBER_GE([username_length],
+	1024,
+	8,
+	[maximum allowable username length],
+	[BYTES])
 
-# Get MAX_PASSHASH_LENGTH
-AC_ARG_ENABLE([custom_passhash_length],
-   AC_HELP_STRING([--enable-custom-passhash-length=BYTES],
-      [set maximum passhash length, default: 1024]),
-   [case "${enableval}" in
-      no)  max_passhash_length=1024;;
-      yes) AC_MSG_ERROR([Custom passhash length was not specified]);;
-      "")  AC_MSG_ERROR([Custom passhash length was not specified]);;
-      *)   if "0${enableval}" -gt 0;
-              then max_passhash_length=${enableval};
-              else AC_MSG_ERROR([Passhash length must be a number greater than 0]);
-              fi;;
-      esac],
-   [max_passhash_length=1024])
-AC_DEFINE_UNQUOTED(MAX_PASSHASH_LENGTH, ${max_passhash_length},
-   [Maximum passhash length])
+AX_CONFIG_OPTION_NUMBER_GE([passhash_length],
+	1024,
+	40,
+	[maximum allowable password hash length],
+	[BYTES])
 
-# Get MAX_SESSION_ID_LENGTH
-AC_ARG_ENABLE([custom_session_id_length],
-   AC_HELP_STRING([--enable-custom-session-id-length=BYTES],
-      [set maximum length of the session ID, default: 4096]),
-   [case "${enableval}" in
-      no)  max_session_id_length=4096;;
-      yes) AC_MSG_ERROR([Custom session ID length was not specified]);;
-      "")  AC_MSG_ERROR([Custom session ID length was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then max_session_id_length=${enableval};
-              else AC_MSG_ERROR([Session ID length must be a number greater than 0]);
-              fi;;
-      esac],
-   [max_session_id_length=4096])
-AC_DEFINE_UNQUOTED(MAX_SESSION_ID_LENGTH, ${max_session_id_length},
-   [Maximum session ID length])
+AX_CONFIG_OPTION_NUMBER_GE([session_id_length],
+	4096,
+	128,
+	[maximum allowable session ID length],
+	[BYTES])
 
-# Get MAX_IFACE_BLACKLIST_REGEX_LENGTH
-AC_ARG_ENABLE([custom_iface_blacklist_regex_length],
-   AC_HELP_STRING([--enable-custom-iface-blacklist-regex-length=BYTES],
-      [set maximum length of the interface blacklist regular expression, default: 128]),
-   [case "${enableval}" in
-      no)  max_iface_blacklist_regex_length=128;;
-      yes) AC_MSG_ERROR([Custom interface blacklist regular expression length was not specified]);;
-      "")  AC_MSG_ERROR([Custom interface blacklist regular expression length was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then max_iface_blacklist_regex_length=${enableval};
-              else AC_MSG_ERROR([Interface blacklist regular expression length must be a number greater than 0]);
-              fi;;
-      esac],
-   [max_iface_blacklist_regex_length=128])
-AC_DEFINE_UNQUOTED(MAX_IFACE_BLACKLIST_REGEX_LENGTH, ${max_iface_blacklist_regex_length},
-   [Maximum interface blacklist regular expression length])
+AX_CONFIG_OPTION_NUMBER_GE([iface_blacklist_regex_length],
+	128,
+	4,
+	[maximum allowable length of an interface blacklist regular expression defined at runtime],
+	[BYTES])
 
-# Get MAX_API_URL_LENGTH
-AC_ARG_ENABLE([custom_api_url_length],
-   AC_HELP_STRING([--enable-custom-api-url-length=BYTES],
-      [set maximum length of the API URL, default: 4096]),
-   [case "${enableval}" in
-      no)  max_api_url_length=4096;;
-      yes) AC_MSG_ERROR([Custom API URL length was not specified]);;
-      "")  AC_MSG_ERROR([Custom API URL length was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then max_api_url_length=${enableval};
-              else AC_MSG_ERROR([API URL length must be a number greater than 0]);
-              fi;;
-      esac],
-   [max_api_url_length=4096])
-AC_DEFINE_UNQUOTED(MAX_API_URL_LENGTH, ${max_api_url_length},
-   [Maximum API URL length])
+AX_CONFIG_OPTION_NUMBER_GE([api_url_length],
+	4096,
+	60,
+	[maximum allowable length of an API URL defined at runtime],
+	[BYTES])
 
-# Get MAX_CONFIG_LINE_LENGTH
-AC_ARG_ENABLE([custom_config_line_length],
-   AC_HELP_STRING([--enable-custom-config-line-length=BYTES],
-      [set maximum length of any line in the configuration file, default: 4096]),
-   [case "${enableval}" in
-      no)  max_config_line_length=4096;;
-      yes) AC_MSG_ERROR([Custom config line length was not specified]);;
-      "")  AC_MSG_ERROR([Custom config line length was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then max_config_line_length=${enableval};
-              else AC_MSG_ERROR([Config line length must be a number greater than 0]);
-              fi;;
-      esac],
-   [max_config_line_length=4096])
-AC_DEFINE_UNQUOTED(MAX_CONFIG_LINE_LENGTH, ${max_config_line_length},
-   [Maximum config line length])
+AX_CONFIG_OPTION_NUMBER_GE([config_line_length],
+	4096,
+	50,
+	[maximum allowable length of any line in the configuration file],
+	[BYTES])
 
-# Get MINIMUM_IPV4_PUBLIC_PREFIX
-AC_ARG_ENABLE([custom_minimum_ipv4_public_prefix],
-   AC_HELP_STRING([--enable-custom-minimum-ipv4-public-prefix=BITS],
-      [set minimum IPv4 public prefix, default: 32]),
-   [case "${enableval}" in
-      no)  minimum_ipv4_public_prefix=32;;
-      yes) AC_MSG_ERROR([Custom minimum IPv4 public prefix was not specified]);;
-      "")  AC_MSG_ERROR([Custom minimum IPv4 public prefix was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then minimum_ipv4_public_prefix=${enableval};
-              else AC_MSG_ERROR([Minimum IPv4 public prefix must be a number greater than 0]);
-              fi;;
-      esac],
-   [minimum_ipv4_public_prefix=32])
-AC_DEFINE_UNQUOTED(MINIMUM_IPV4_PUBLIC_PREFIX, ${minimum_ipv4_public_prefix},
-   [Minimum IPv4 public prefix])
+AX_CONFIG_OPTION_NUMBER_RANGE([ipv4_public_prefix],
+	32,
+	24,
+	32,
+	[minimum prefix of a publicly-accessible IPv4 network specified at runtime that will be scanned],
+	[BITS])
 
-# Get MINIMUM_IPV6_PUBLIC_PREFIX
-AC_ARG_ENABLE([custom_minimum_ipv6_public_prefix],
-   AC_HELP_STRING([--enable-custom-minimum-ipv6-public-prefix=BITS],
-      [set minimum IPv6 public prefix, default: 128]),
-   [case "${enableval}" in
-      no)  minimum_ipv6_public_prefix=128;;
-      yes) AC_MSG_ERROR([Custom minimum IPv6 public prefix was not specified]);;
-      "")  AC_MSG_ERROR([Custom minimum IPv6 public prefix was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then minimum_ipv6_public_prefix=${enableval};
-              else AC_MSG_ERROR([Minimum IPv6 public prefix must be a number greater than 0]);
-              fi;;
-      esac],
-   [minimum_ipv6_public_prefix=128])
-AC_DEFINE_UNQUOTED(MINIMUM_IPV6_PUBLIC_PREFIX, ${minimum_ipv6_public_prefix},
-   [Minimum IPv6 public prefix])
+AX_CONFIG_OPTION_NUMBER_RANGE([ipv6_public_prefix],
+	128,
+	112,
+	128,
+	[minimum prefix of a publicly-accessible IPv6 network specified at runtime that will be scanned],
+	[BITS])
 
-# Get CONFIG_FILE_LOCATION
-AC_ARG_ENABLE([custom_config_file],
-   AC_HELP_STRING([--enable-custom-config-file=/PATH/TO/FILE.CONF],
-      [set config file location, default: SYSCONFDIR/wiomw.conf]),
-   [case "${enableval}" in
-      no)  config_file_location="\"SYSCONFDIR\"/wiomw.conf";;
-      yes) AC_MSG_ERROR([Custom config file location was not specified]);;
-      "")  AC_MSG_ERROR([Custom config file location was not specified]);;
-      *)   config_file_location="${enableval}";;
-      esac],
-   [config_file_location="\"SYSCONFDIR\"/wiomw.conf"])
-AC_DEFINE_UNQUOTED(CONFIG_FILE_LOCATION, "${config_file_location}",
-    [Location of config file])
+AX_CONFIG_OPTION_STRING_NN([config_file],
+	["\"SYSCONFDIR\"/wiomw.conf"],
+	[config file location],
+	[/PATH/TO/wiomw.conf],
+	,
+	[SYSCONFDIR/wiomw.conf])
 
-# Get IPTABLES_COMMAND
-AC_ARG_ENABLE([custom_iptables_command],
-   AC_HELP_STRING([--enable-custom-iptables-command=COMMAND],
-      [set iptables command, default: iptables (NOTE: set the full path for improved security)]),
-   [case "${enableval}" in
-      no)  iptables_command="iptables";;
-      yes) AC_MSG_ERROR([Custom iptables command was not specified]);;
-      "")  AC_MSG_ERROR([Custom iptables command was not specified]);;
-      *)   iptables_command="${enableval}";;
-      esac],
-   [iptables_command="iptables"])
-AC_DEFINE_UNQUOTED(IPTABLES_COMMAND, "${iptables_command}",
-    [Command to run for iptables, hopefully with a full path specified])
-
-# Get USE_NVRAM_CONFIG
-AC_ARG_ENABLE([nvram_config],
-   AC_HELP_STRING([--enable-nvram-config],
-      [check nvram for config options, default: no]),
-   [case "${enableval}" in
-      no)  nvram_config=0;;
-      yes) nvram_config=1;;
-      "")  nvram_config=1;;
-      *)   AC_MSG_ERROR([Could not determine intended nvram configuration option, valid choices are "yes" and "no"]);;
-      esac],
-   [nvram_config=0])
-AC_DEFINE_UNQUOTED(USE_NVRAM_CONFIG, ${nvram_config},
-    [Whether nvram should be checked for config options])
-
-# Get NVRAM_COMMAND
-AC_ARG_ENABLE([custom_nvram_command],
-   AC_HELP_STRING([--enable-custom-nvram-command=COMMAND],
-      [set nvram command, default: nvram (NOTE: set the full path for improved security)]),
-   [case "${enableval}" in
-      no)  nvram_command="nvram";;
-      yes) AC_MSG_ERROR([Custom nvram command was not specified]);;
-      "")  AC_MSG_ERROR([Custom nvram command was not specified]);;
-      *)   nvram_command="${enableval}";;
-      esac],
-   [nvram_command="nvram"])
-AC_DEFINE_UNQUOTED(NVRAM_COMMAND, "${nvram_command}",
-    [Command to run for nvram, hopefully with a full path specified])
-
-# Get SESSION_LENGTH
-AC_ARG_ENABLE([custom_session_length],
-   AC_HELP_STRING([--enable-custom-session-length=SECS],
-      [set session length, default: 288000 (i.e. 8 hours)]),
-   [case "${enableval}" in
-      no)  session_length=288000;;
-      yes) AC_MSG_ERROR([Custom session length was not specified]);;
-      "")  AC_MSG_ERROR([Custom session length was not specified]);;
-      *)   if test "0${enableval}" -gt 300;
-              then session_length=${enableval};
-              else AC_MSG_ERROR([Session length must be at least 5 minutes]);
-              fi;;
-      esac],
-   [session_length=288000])
-AC_DEFINE_UNQUOTED(SESSION_LENGTH, ${session_length},
-   [Wait period between wiomw_login calls])
+AX_CONFIG_OPTION_STRING_NN([iptables_path],
+	[iptables],
+	[path to iptables executable],
+	[/PATH/TO/iptables],
+	,
+	[(find iptables in $PATH, less secure)])
 
 
-# # Get SYNC_BLOCK_FREQUENCY
-# AC_ARG_ENABLE([custom_sync_block_frequency],
-#    AC_HELP_STRING([--enable-custom-sync-block-frequency=SECS],
-#       [set sync_block frequency, default: 300 (i.e. 5 mins)]),
-#    [case "${enableval}" in
-#       no)  sync_block_frequency=300;;
-#       yes) AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
-#       "")  AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
-#       *)   if test "0${enableval}" -gt 0;
-#               then sync_block_frequency=${enableval};
-#               else AC_MSG_ERROR([Frequency of sync_block must be at least 1 second]);
-#               fi;;
-#       esac],
-#    [sync_block_frequency=300])
-# AC_DEFINE_UNQUOTED(SYNC_BLOCK_FREQUENCY, ${sync_block_frequency},
-#    [Wait period between sync_block calls])
-AX_ENABLE_CUSTOM_NUMBER([sync_block_frequency], 300, 90, [set sync_block frequency], [SECS], [wait period between sync_block calls], [300 (i.e. 5 mins)])
+AX_CONFIG_OPTION_BOOL([nvram_config],
+	[no],
+	[nvram config option storage])
 
-# Get HANDLE_SIGQUIT
-AC_ARG_ENABLE([sigquit-handling],
-   AC_HELP_STRING([--enable-sigquit-handling],
-      [handle SIGQUIT in the same way as SIGTERM and SIGINT, default: no]),
-   [case "${enableval}" in
-      no)  handle_sigquit=0;;
-      yes) handle_sigquit=1;;
-      "")  AC_MSG_ERROR([SIGQUIT handling decision was not specified]);;
-      *)   AC_MSG_ERROR([Unexpected value for --enable-sigquit-handling ]);;
-    esac],
-   [handle_sigquit=0])
-AC_DEFINE_UNQUOTED(SHOULD_HANDLE_SIGQUIT, ${handle_sigquit}, [Handle SIGQUIT])
+AX_CONFIG_OPTION_STRING_NN([nvram_path],
+	[nvram],
+	[path to nvram command executable],
+	[/PATH/TO/nvram],
+	,
+	[(find nvram in $PATH, less secure)])
 
-# Get LOGIN_URL
-AC_ARG_ENABLE([custom_login_url],
-   AC_HELP_STRING([--enable-custom-login-url=URL],
-      [set login API URL, default: https://www.whoisonmywifi.net/api/v100/rest/login]),
-   [case "${enableval}" in
-      no)  login_url="https://www.whoisonmywifi.net/api/v100/rest/login";;
-      yes) AC_MSG_ERROR([Custom login API URL was not specified]);;
-      "")  AC_MSG_ERROR([Custom login API URL was not specified]);;
-      *)   login_url="${enableval}";;
-      esac],
-   [login_url="https://www.whoisonmywifi.net/api/v100/rest/login"])
-AC_DEFINE_UNQUOTED(LOGIN_API_URL, "${login_url}",
-    [URL of login API])
 
-# Get CONFIG_AGENT_URL
-AC_ARG_ENABLE([custom_config_agent_url],
-   AC_HELP_STRING([--enable-custom-config-agent-url=URL],
-      [set config agent API URL, default: https://www.whoisonmywifi.net/api/v100/rest/config_agent]),
-   [case "${enableval}" in
-      no)  config_agent_url="https://www.whoisonmywifi.net/api/v100/rest/config_agent";;
-      yes) AC_MSG_ERROR([Custom config agent API URL was not specified]);;
-      "")  AC_MSG_ERROR([Custom config agent API URL was not specified]);;
-      *)   config_agent_url="${enableval}";;
-      esac],
-   [config_agent_url="https://www.whoisonmywifi.net/api/v100/rest/config_agent"])
-AC_DEFINE_UNQUOTED(CONFIG_AGENT_API_URL, "${config_agent_url}",
-    [URL of config_agent API])
+AX_CONFIG_OPTION_NUMBER_GE([session_length],
+	288000,
+	300,
+	[length of time (in seconds) before requesting a new session],
+	[SECS],
+	,
+	[288000 (i.e. 8 hours)])
 
-# Get SYNC_BLOCK_URL
-AC_ARG_ENABLE([custom_sync_block_url],
-   AC_HELP_STRING([--enable-custom-sync-block-url=URL],
-      [set sync_block API URL, default: https://www.whoisonmywifi.net/api/v100/rest/sync_block]),
-   [case "${enableval}" in
-      no)  sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block";;
-      yes) AC_MSG_ERROR([Custom sync_block API URL was not specified]);;
-      "")  AC_MSG_ERROR([Custom sync_block API URL was not specified]);;
-      *)   sync_block_url="${enableval}";;
-      esac],
-   [sync_block_url="https://www.whoisonmywifi.net/api/v100/rest/sync_block"])
-AC_DEFINE_UNQUOTED(SYNC_BLOCK_API_URL, "${sync_block_url}",
-    [URL of sync_block API])
 
-# Get SEND_DEVICES_URL
-AC_ARG_ENABLE([custom_send_devices_url],
-   AC_HELP_STRING([--enable-custom-send-devices-url=URL],
-      [set send devices API URL, default: https://www.whoisonmywifi.net/api/v100/rest/senddevice]),
-   [case "${enableval}" in
-      no)  send_devices_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice";;
-      yes) AC_MSG_ERROR([Custom send devices API URL was not specified]);;
-      "")  AC_MSG_ERROR([Custom send devices API URL was not specified]);;
-      *)   send_devices_url="${enableval}";;
-      esac],
-   [send_devices_url="https://www.whoisonmywifi.net/api/v100/rest/senddevice"])
-AC_DEFINE_UNQUOTED(SEND_DEVICES_API_URL, "${send_devices_url}",
-    [URL of send devices API])
+AX_CONFIG_OPTION_NUMBER_GE([sync_block_frequency],
+	300,
+	90,
+	[length of time (in seconds) before resyncing with the server],
+	[SECS],
+	,
+	[300 (i.e. 5 mins)])
 
-# Get WIOMW_AGENT_TYPE
-AC_ARG_ENABLE([custom_agent_type],
-   AC_HELP_STRING([--enable-custom-agent-type=STRING],
-      [wiomw agent type, default: linux]),
-   [case "${enableval}" in
-      no)  wiomw_agent_type="linux";;
-      yes) AC_MSG_ERROR([Custom agent type was not specified]);;
-      "")  AC_MSG_ERROR([Custom agent type was not specified]);;
-      *)   wiomw_agent_type="${enableval}";;
-      esac],
-   [wiomw_agent_type="linux"])
-AC_DEFINE_UNQUOTED(WIOMW_AGENT_TYPE, "${wiomw_agent_type}",
-    [wiomw agent type])
+AX_CONFIG_OPTION_STRING_NN([login_url],
+	[https://www.whoisonmywifi.net/api/v100/rest/login],
+	[URL of login API],
+	[URL])
 
-AX_ENABLE_CUSTOM_STRING([dnsmasq_lease_file], [/var/lib/misc/dnsmasq.lease], [set dnsmasq.lease file location], [/PATH/TO/dnsmasq.lease], [dnsmasq.lease file])
+AX_CONFIG_OPTION_STRING_NN([config_agent_url],
+	[https://www.whoisonmywifi.net/api/v100/rest/config_agent],
+	[URL of config_agent API],
+	[URL])
 
-# Get USE_DNSMASQ_LEASE_LOOKUP
-AC_ARG_ENABLE([dnsmasq_lease_lookup],
-   AC_HELP_STRING([--enable-dnsmasq-lease-lookup],
-      [check dnsmasq.lease file for hostnames, default: no]),
-   [case "${enableval}" in
-      no)  dnsmasq_lease_lookup=0;;
-      yes) dnsmasq_lease_lookup=1;;
-      "")  dnsmasq_lease_lookup=1;;
-      *)   AC_MSG_ERROR([Could not determine intended dnsmasq.lease hostname lookup configuration option, valid choices are "yes" and "no"]);;
-      esac],
-   [dnsmasq_lease_lookup=0])
-AC_DEFINE_UNQUOTED(USE_DNSMASQ_LEASE_LOOKUP, ${dnsmasq_lease_lookup},
-    [Whether dnsmasq.lease should be checked for hostnames])
+AX_CONFIG_OPTION_STRING_NN([sync_block_url],
+	[https://www.whoisonmywifi.net/api/v100/rest/sync_block],
+	[URL of sync_block API],
+	[URL])
 
-AX_ENABLE_CUSTOM_STRING([default_ca_path], ["\"SYSCONFDIR\"/ssl/certs/f081611a.0"], [set default CA path], [/PATH/TO/ca-bundle.crt], [CA path], [SYSCONFDIR/ssl/certs/CA_FILE])
+AX_CONFIG_OPTION_STRING_NN([send_devices_url],
+	[https://www.whoisonmywifi.net/api/v100/rest/senddeivce],
+	[URL of send devices API],
+	[URL])
+
+AX_CONFIG_OPTION_STRING_NN([agent_type],
+	[linux],
+	[agent type])
+
+AX_CONFIG_OPTION_STRING_NN([dnsmasq_lease_file],
+	[/var/lib/misc/dnsmasq.lease],
+	[dnsmasq lease file location],
+	[/PATH/TO/dnsmasq.lease])
+
+AX_CONFIG_OPTION_BOOL([dnsmasq_lease_lookup],
+	[no],
+	[dnsmasq.lease-based hostname lookup])
+
+AX_CONFIG_OPTION_BOOL([api_url_overrides],
+	[no],
+	[run time overriding of API URLs],
+	[allow API URLs to be overridden at run time (potentially very dangerous)])
+
+AX_CONFIG_OPTION_STRING_NN([ca_path],
+	["\"SYSCONFDIR\"/ssl/certs/f081611a.0"],
+	[path to the certificate authority file],
+	[/PATH/TO/ca-bundle.crt],
+	,
+	[SYSCONFDIR/ssl/certs/CA_FILE])
 
 AC_CONFIG_FILES([Makefile
                  etc/Makefile

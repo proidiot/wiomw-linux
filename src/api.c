@@ -11,8 +11,6 @@
 #include <sysexits.h>
 #include <ctype.h>
 
-#define AGENT_VERSION "linux-0.100.0-testing-0"
-
 typedef struct holder_t_struct {
 	size_t size_offset;
 	char* str_data;
@@ -91,7 +89,7 @@ void wiomw_login(config_t* config)
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->login_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAPATH, config->capath);
+	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
@@ -107,8 +105,8 @@ void wiomw_login(config_t* config)
 		}
 		
 		size_data_length = strlen(holder_t_data->str_data);
-		if (size_data_length > MAX_SESSION_ID_LENGTH) {
-			print_error("Session ID received was larger than %d bytes", MAX_SESSION_ID_LENGTH);
+		if (size_data_length > CONFIG_OPTION_SESSION_ID_LENGTH) {
+			print_error("Session ID received was larger than %d bytes", CONFIG_OPTION_SESSION_ID_LENGTH);
 			exit(EX_PROTOCOL);
 		} else {
 			int i = 0;
@@ -158,7 +156,7 @@ void send_config(config_t* config)
 		print_syserror("Unable to open the temproary file to store data to send to the server");
 	}
 
-	fprintf(fd, "[%s, {\"frequency\":\"%d\",\"agent_version\":\"%s_%s_%s\",\"apiversion\":\"v100\",\"agentdetail\":\"%s, agent type %s, calling REST interface\", \"agenttime\":\"%ld\"}]", config->session_id, SYNC_BLOCK_FREQUENCY, WIOMW_AGENT_TYPE, PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING, WIOMW_AGENT_TYPE, time(NULL));
+	fprintf(fd, "[%s, {\"frequency\":\"%d\",\"agent_version\":\"%s_%s_%s\",\"apiversion\":\"v100\",\"agentdetail\":\"%s, agent type %s, calling REST interface\", \"agenttime\":\"%ld\"}]", config->session_id, CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, CONFIG_OPTION_AGENT_TYPE, PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING, CONFIG_OPTION_AGENT_TYPE, time(NULL));
 
 	fseek(fd, 0, SEEK_END);
 	fd_size = ftell(fd);
@@ -166,7 +164,7 @@ void send_config(config_t* config)
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->config_agent_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAPATH, config->capath);
+	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
@@ -223,7 +221,7 @@ void sync_block(config_t* config)
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->sync_block_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAPATH, config->capath);
+	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
@@ -278,7 +276,7 @@ void send_devices(config_t* config)
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->send_devices_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAPATH, config->capath);
+	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
