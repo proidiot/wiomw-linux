@@ -6,8 +6,20 @@
 /* Location of config file */
 #undef CONFIG_FILE_LOCATION
 
-/* dnsmasq.lease file */
-#undef DNSMASQ_LEASE_FILE
+/* set default CA path */
+#undef CUSTOM_DEFAULT_CA_PATH
+
+/* set dnsmasq.lease file location */
+#undef CUSTOM_DNSMASQ_LEASE_FILE
+
+/* set a permanent interface blacklist regular expression */
+#undef CUSTOM_PERMANENT_IFACE_BLACKLIST_REGEX
+
+/* set sync_block frequency */
+#undef CUSTOM_SYNC_BLOCK_FREQUENCY
+
+/* username_length */
+#undef CUSTOM_USERNAME_LENGTH
 
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
@@ -28,14 +40,17 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have a functional curl library. */
+#undef HAVE_LIBCURL
+
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
-/* Define to 1 if you have the `polarssl' library (-lpolarssl). */
-#undef HAVE_LIBPOLARSSL
-
 /* Define to 1 if you have the `yajl' library (-lyajl). */
 #undef HAVE_LIBYAJL
+
+/* Define to 1 if you have the `yajl_s' library (-lyajl_s). */
+#undef HAVE_LIBYAJL_S
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
@@ -100,6 +115,69 @@
 /* Command to run for iptables, hopefully with a full path specified */
 #undef IPTABLES_COMMAND
 
+/* Defined if libcurl supports AsynchDNS */
+#undef LIBCURL_FEATURE_ASYNCHDNS
+
+/* Defined if libcurl supports IDN */
+#undef LIBCURL_FEATURE_IDN
+
+/* Defined if libcurl supports IPv6 */
+#undef LIBCURL_FEATURE_IPV6
+
+/* Defined if libcurl supports KRB4 */
+#undef LIBCURL_FEATURE_KRB4
+
+/* Defined if libcurl supports libz */
+#undef LIBCURL_FEATURE_LIBZ
+
+/* Defined if libcurl supports NTLM */
+#undef LIBCURL_FEATURE_NTLM
+
+/* Defined if libcurl supports SSL */
+#undef LIBCURL_FEATURE_SSL
+
+/* Defined if libcurl supports SSPI */
+#undef LIBCURL_FEATURE_SSPI
+
+/* Defined if libcurl supports DICT */
+#undef LIBCURL_PROTOCOL_DICT
+
+/* Defined if libcurl supports FILE */
+#undef LIBCURL_PROTOCOL_FILE
+
+/* Defined if libcurl supports FTP */
+#undef LIBCURL_PROTOCOL_FTP
+
+/* Defined if libcurl supports FTPS */
+#undef LIBCURL_PROTOCOL_FTPS
+
+/* Defined if libcurl supports HTTP */
+#undef LIBCURL_PROTOCOL_HTTP
+
+/* Defined if libcurl supports HTTPS */
+#undef LIBCURL_PROTOCOL_HTTPS
+
+/* Defined if libcurl supports IMAP */
+#undef LIBCURL_PROTOCOL_IMAP
+
+/* Defined if libcurl supports LDAP */
+#undef LIBCURL_PROTOCOL_LDAP
+
+/* Defined if libcurl supports POP3 */
+#undef LIBCURL_PROTOCOL_POP3
+
+/* Defined if libcurl supports RTSP */
+#undef LIBCURL_PROTOCOL_RTSP
+
+/* Defined if libcurl supports SMTP */
+#undef LIBCURL_PROTOCOL_SMTP
+
+/* Defined if libcurl supports TELNET */
+#undef LIBCURL_PROTOCOL_TELNET
+
+/* Defined if libcurl supports TFTP */
+#undef LIBCURL_PROTOCOL_TFTP
+
 /* URL of login API */
 #undef LOGIN_API_URL
 
@@ -117,9 +195,6 @@
 
 /* Maximum session ID length */
 #undef MAX_SESSION_ID_LENGTH
-
-/* Maximum username length */
-#undef MAX_USERNAME_LENGTH
 
 /* Minimum IPv4 public prefix */
 #undef MINIMUM_IPV4_PUBLIC_PREFIX
@@ -154,9 +229,6 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Permanent interface blacklist regular expression */
-#undef PERMANENT_IFACE_BLACKLIST_REGEX
-
 /* Permanent interface blacklist regular expression length */
 #undef PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH
 
@@ -178,8 +250,8 @@
 /* URL of sync_block API */
 #undef SYNC_BLOCK_API_URL
 
-/* Wait period between sync_block calls */
-#undef SYNC_BLOCK_FREQUENCY
+/* Whether dnsmasq.lease should be checked for hostnames */
+#undef USE_DNSMASQ_LEASE_LOOKUP
 
 /* Whether nvram should be checked for config options */
 #undef USE_NVRAM_CONFIG
@@ -199,6 +271,9 @@
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
 #undef _UINT8_T
+
+/* Define curl_free() as free() if our version of curl lacks curl_free. */
+#undef curl_free
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t

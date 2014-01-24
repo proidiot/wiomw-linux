@@ -91,6 +91,7 @@ void wiomw_login(config_t* config)
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->login_url);
+	curl_easy_setopt(curl_handle, CURLOPT_CAPATH, config->capath);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
@@ -165,6 +166,7 @@ void send_config(config_t* config)
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->config_agent_url);
+	curl_easy_setopt(curl_handle, CURLOPT_CAPATH, config->capath);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
@@ -221,6 +223,7 @@ void sync_block(config_t* config)
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->sync_block_url);
+	curl_easy_setopt(curl_handle, CURLOPT_CAPATH, config->capath);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
@@ -275,6 +278,7 @@ void send_devices(config_t* config)
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->send_devices_url);
+	curl_easy_setopt(curl_handle, CURLOPT_CAPATH, config->capath);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);

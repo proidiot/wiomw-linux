@@ -12,32 +12,50 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 # Checks for libraries.
-AC_CHECK_LIB([m], [rint])
+AC_CHECK_LIB([m], [rint], , AC_MSG_ERROR([libm was not found, which is odd]))
+# PKG_CHECK_MODULES([CURL], [libcurl])
+# AC_ARG_WITH([openssl],
+#    AC_HELP_STRING([--with-openssl],
+#       [assume cURL uses OpenSSL and not PolarSSL, default: no]),
+#    [case "${withval}" in
+#       no)  with_polarssl=check;;
+#       yes) with_polarssl=no;;
+#       *)   AC_MSG_ERROR([Custom OpenSSL path not yet supported]);;
+#     esac],
+#    [with_polarssl=check])
+# #AC_CHECK_LIB([polarssl], [ssl_init])
+# AS_IF([test "x$with_polarssl" != xno],
+#    [AC_CHECK_LIB([polarssl], [ssl_init],
+#       [with_openssl=no], [with_openssl=check])],
+#    [with_openssl=check])
+# AS_IF([test "x$with_openssl" != xno],
+#    [AC_CHECK_LIB([ssl], [SSL_library_init],
+#       [found_ssl=yes], [found_ssl=no])],
+#    [found_ssl=yes])
+# AS_IF([test "x$found_ssl" = xno],
+#    [AC_MSG_ERROR([Neither PolarSSL nor OpenSSL was found])],
+#    [])
 PKG_CHECK_MODULES([CURL], [libcurl])
-AC_ARG_WITH([openssl],
-   AC_HELP_STRING([--with-openssl],
-      [assume cURL uses OpenSSL and not PolarSSL, default: no]),
-   [case "${withval}" in
-      no)  with_polarssl=check;;
-      yes) with_polarssl=no;;
-      *)   AC_MSG_ERROR([Custom OpenSSL path not yet supported]);;
-    esac],
-   [with_polarssl=check])
-AC_CHECK_LIB([polarssl], [ssl_init])
-AS_IF([test "x$with_polarssl" != xno],
-   [AC_CHECK_LIB([polarssl], [ssl_init],
-      [with_openssl=no], [with_openssl=check])],
-   [with_openssl=check])
-AS_IF([test "x$with_openssl" != xno],
-   [AC_CHECK_LIB([ssl], [SSL_library_init],
-      [found_ssl=yes], [found_ssl=no])],
-   [found_ssl=yes])
-AS_IF([test "x$found_ssl" = xno],
-   [AC_MSG_ERROR([Neither PolarSSL nor OpenSSL was found])],
-   [])
+LIBCURL_CHECK_CONFIG
+AS_IF([test "x$libcurl_protocol_HTTPS" != "xyes" || test "x$libcurl_feature_SSL" != "xyes"],
+      [AC_MSG_ERROR([libcurl does not have HTTPS support enabled])])
 #AX_PTHREAD
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0])
-AC_CHECK_LIB([yajl], [yajl_tree_parse])
+AC_ARG_WITH([static_yajl],
+   AC_HELP_STRING([--with-static-yajl],
+      [use the staticly-linked version of yajl even if the dynamically-linked version is available, default: no]),
+   AS_CASE([${withval}],
+      [no], AS_VAR_SET([static_yajl], [no]),
+      [yes], AS_VAR_SET([static_yajl], [yes]),
+      [""], AS_VAR_SET([static_yajl], [yes]),
+      AC_MSG_ERROR([Custom path to yajl library is not yet supported])),
+   AS_VAR_SET([static_yajl], [no]))
+AS_IF([test "x$static_yajl" != xyes],
+   [AC_CHECK_LIB([yajl], [yajl_tree_parse], ,
+      [AC_CHECK_LIB([yajl_s], [yajl_tree_parse], ,
+         AC_MSG_ERROR([Either a dynamic or static version of yajl is required]))])]
+   [AC_CHECK_LIB([yajl_s], [yajl_tree_parse], ,
+      AC_MSG_ERROR([No static version of yajl was found, perhaps you did not mean to use --with-static-yajl ?]))])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
@@ -47,7 +65,7 @@ AC_HEADER_STDBOOL
 AC_TYPE_SIZE_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
-AX_CFLAGS_WARN_ALL_EXTRA
+#AX_CFLAGS_WARN_ALL_EXTRA
 
 # Checks for library functions.
 #AC_FUNC_MALLOC
@@ -56,39 +74,41 @@ AC_FUNC_STRERROR_R
 #AC_FUNC_STRNLEN
 AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strerror  strnlen])
 
-# Get PERMANENT_IFACE_BLACKLIST_REGEX
-AC_ARG_ENABLE([custom_permanent_iface_blacklist_regex],
-   AC_HELP_STRING([--enable-custom-permanent-iface-blacklist-regex=REGEX],
-      [set a permanent interface blacklist regular expression, default: '^virbr@<:@0-9@:>@+$']),
-   [case "${enableval}" in
-      no)  permanent_iface_blacklist_regex='^virbr@<:@0-9@:>@+$';;
-      yes) AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
-      "")  AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
-      *)   permanent_iface_blacklist_regex=${enableval};;
-      esac],
-   [permanent_iface_blacklist_regex='^virbr@<:@0-9@:>@+$'])
-AC_DEFINE_UNQUOTED(PERMANENT_IFACE_BLACKLIST_REGEX, "${permanent_iface_blacklist_regex}",
-   [Permanent interface blacklist regular expression])
+# # Get PERMANENT_IFACE_BLACKLIST_REGEX
+# AC_ARG_ENABLE([custom_permanent_iface_blacklist_regex],
+#    AC_HELP_STRING([--enable-custom-permanent-iface-blacklist-regex=REGEX],
+#       [set a permanent interface blacklist regular expression, default: '^virbr@<:@0-9@:>@+$']),
+#    [case "${enableval}" in
+#       no)  permanent_iface_blacklist_regex='^virbr@<:@0-9@:>@+$';;
+#       yes) AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
+#       "")  AC_MSG_ERROR([Custom permanent interface blacklist regular expression was not specified]);;
+#       *)   permanent_iface_blacklist_regex=${enableval};;
+#       esac],
+#    [permanent_iface_blacklist_regex='^virbr@<:@0-9@:>@+$'])
+# AC_DEFINE_UNQUOTED(PERMANENT_IFACE_BLACKLIST_REGEX, "${permanent_iface_blacklist_regex}",
+#    [Permanent interface blacklist regular expression])
+AX_ENABLE_CUSTOM_STRING([permanent_iface_blacklist_regex], ["^virbr@<:@0-9@:>@+$"], [set a permanent interface blacklist regular expression], [REGEX], [permanent interface blacklist regular expression])
 permanent_iface_blacklist_regex_length=`echo $permanent_iface_blacklist_regex | wc -m`;
 AC_DEFINE_UNQUOTED(PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH, ${permanent_iface_blacklist_regex_length},
    [Permanent interface blacklist regular expression length])
 
-# Get MAX_USERNAME_LENGTH
-AC_ARG_ENABLE([custom_username_length],
-   AC_HELP_STRING([--enable-custom-username-length=BYTES],
-      [set maximum username length, default: 1024]),
-   [case "${enableval}" in
-      no)  max_username_length=1024;;
-      yes) AC_MSG_ERROR([Custom username length was not specified]);;
-      "")  AC_MSG_ERROR([Custom username length was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then max_username_length=${enableval};
-              else AC_MSG_ERROR([Username length must be a number greater than 0]);
-              fi;;
-      esac],
-   [max_username_length=1024])
-AC_DEFINE_UNQUOTED(MAX_USERNAME_LENGTH, ${max_username_length},
-   [Maximum username length])
+# # Get MAX_USERNAME_LENGTH
+# AC_ARG_ENABLE([custom_username_length],
+#    AC_HELP_STRING([--enable-custom-username-length=BYTES],
+#       [set maximum username length, default: 1024]),
+#    [case "${enableval}" in
+#       no)  max_username_length=1024;;
+#       yes) AC_MSG_ERROR([Custom username length was not specified]);;
+#       "")  AC_MSG_ERROR([Custom username length was not specified]);;
+#       *)   if test "0${enableval}" -gt 0;
+#               then max_username_length=${enableval};
+#               else AC_MSG_ERROR([Username length must be a number greater than 0]);
+#               fi;;
+#       esac],
+#    [max_username_length=1024])
+# AC_DEFINE_UNQUOTED(MAX_USERNAME_LENGTH, ${max_username_length},
+#    [Maximum username length])
+AX_ENABLE_CUSTOM_NUMBER([username_length], 1024, , , [BYTES], [maximum username length])
 
 # Get MAX_PASSHASH_LENGTH
 AC_ARG_ENABLE([custom_passhash_length],
@@ -283,22 +303,23 @@ AC_DEFINE_UNQUOTED(SESSION_LENGTH, ${session_length},
    [Wait period between wiomw_login calls])
 
 
-# Get SYNC_BLOCK_FREQUENCY
-AC_ARG_ENABLE([custom_sync_block_frequency],
-   AC_HELP_STRING([--enable-custom-sync-block-frequency=SECS],
-      [set sync_block frequency, default: 300 (i.e. 5 mins)]),
-   [case "${enableval}" in
-      no)  sync_block_frequency=300;;
-      yes) AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
-      "")  AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
-      *)   if test "0${enableval}" -gt 0;
-              then sync_block_frequency=${enableval};
-              else AC_MSG_ERROR([Frequency of sync_block must be at least 1 second]);
-              fi;;
-      esac],
-   [sync_block_frequency=300])
-AC_DEFINE_UNQUOTED(SYNC_BLOCK_FREQUENCY, ${sync_block_frequency},
-   [Wait period between sync_block calls])
+# # Get SYNC_BLOCK_FREQUENCY
+# AC_ARG_ENABLE([custom_sync_block_frequency],
+#    AC_HELP_STRING([--enable-custom-sync-block-frequency=SECS],
+#       [set sync_block frequency, default: 300 (i.e. 5 mins)]),
+#    [case "${enableval}" in
+#       no)  sync_block_frequency=300;;
+#       yes) AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
+#       "")  AC_MSG_ERROR([Custom sync_block frequency was not specified]);;
+#       *)   if test "0${enableval}" -gt 0;
+#               then sync_block_frequency=${enableval};
+#               else AC_MSG_ERROR([Frequency of sync_block must be at least 1 second]);
+#               fi;;
+#       esac],
+#    [sync_block_frequency=300])
+# AC_DEFINE_UNQUOTED(SYNC_BLOCK_FREQUENCY, ${sync_block_frequency},
+#    [Wait period between sync_block calls])
+AX_ENABLE_CUSTOM_NUMBER([sync_block_frequency], 300, 90, [set sync_block frequency], [SECS], [wait period between sync_block calls], [300 (i.e. 5 mins)])
 
 # Get HANDLE_SIGQUIT
 AC_ARG_ENABLE([sigquit-handling],
@@ -385,8 +406,25 @@ AC_DEFINE_UNQUOTED(WIOMW_AGENT_TYPE, "${wiomw_agent_type}",
 
 AX_ENABLE_CUSTOM_STRING([dnsmasq_lease_file], [/var/lib/misc/dnsmasq.lease], [set dnsmasq.lease file location], [/PATH/TO/dnsmasq.lease], [dnsmasq.lease file])
 
+# Get USE_DNSMASQ_LEASE_LOOKUP
+AC_ARG_ENABLE([dnsmasq_lease_lookup],
+   AC_HELP_STRING([--enable-dnsmasq-lease-lookup],
+      [check dnsmasq.lease file for hostnames, default: no]),
+   [case "${enableval}" in
+      no)  dnsmasq_lease_lookup=0;;
+      yes) dnsmasq_lease_lookup=1;;
+      "")  dnsmasq_lease_lookup=1;;
+      *)   AC_MSG_ERROR([Could not determine intended dnsmasq.lease hostname lookup configuration option, valid choices are "yes" and "no"]);;
+      esac],
+   [dnsmasq_lease_lookup=0])
+AC_DEFINE_UNQUOTED(USE_DNSMASQ_LEASE_LOOKUP, ${dnsmasq_lease_lookup},
+    [Whether dnsmasq.lease should be checked for hostnames])
+
+AX_ENABLE_CUSTOM_STRING([default_ca_path], ["\"SYSCONFDIR\"/ssl/certs/f081611a.0"], [set default CA path], [/PATH/TO/ca-bundle.crt], [CA path], [SYSCONFDIR/ssl/certs/CA_FILE])
 
 AC_CONFIG_FILES([Makefile
                  etc/Makefile
+                 etc/ssl/Makefile
+                 etc/ssl/certs/Makefile
                  src/Makefile])
 AC_OUTPUT

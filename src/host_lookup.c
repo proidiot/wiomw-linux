@@ -9,9 +9,6 @@
 
 #define DNSMASQ_DUMP_COMMAND "cat %s | awk '{print $2 $4}'"
 
-/* TODO: Add a check to autoconf. */
-#define ENABLE_DNSMASQ_LEASE_HOST_LOOKUP false
-
 struct _host_lookup_table_struct {
 	char mac_addr[18];
 	struct _host_lookup_table_struct* next;
@@ -20,7 +17,7 @@ struct _host_lookup_table_struct {
 
 host_lookup_table_t get_host_lookup_table(config_t* config)
 {
-	if (ENABLE_DNSMASQ_LEASE_HOST_LOOKUP && config != NULL) {
+	if (USE_DNSMASQ_LEASE_LOOKUP && config != NULL) {
 		host_lookup_table_t lookup_table = NULL;
 		host_lookup_table_t* temp = &lookup_table;
 		char command[BUFSIZ];

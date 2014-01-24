@@ -64,6 +64,7 @@ char* nvram_get(char* name)
 #define BLACKLIST_OVERRIDES_NETWORKS_CONFIG_PREFIX "BLACKLIST_OVERRIDES_NETWORKS"
 #define AUTOSCAN_CONFIG_PREFIX "AUTOSCAN"
 #define ALLOW_BLOCKING_CONFIG_PREFIX "ALLOW_BLOCKING"
+#define CAPATH_CONFIG_PREFIX "CA_PATH"
 /* TODO: add config option for identity/broadcast inclusion for NETWORKS */
 /* TODO: add config option for identity/broadcast inclusion for real? */
 /* TODO: add config option for config file overwrite (add warnings) */
@@ -105,6 +106,7 @@ config_t get_configuration(int argc, char** argv)
 	bool config_username_is_set = false;
 	bool config_passhash_is_set = false;
 	bool config_agentkey_is_set = false;
+	bool config_capath_is_set = false;
 	bool config_iface_blacklist_regex_is_set = false;
 	bool config_login_url_is_set = false;
 	bool config_config_agent_url_is_set = false;
@@ -129,6 +131,7 @@ config_t get_configuration(int argc, char** argv)
 	config.passhash = NULL;
 	config.agentkey = NULL;
 	config.iface_blacklist_regex = NULL;
+	config.capath = string_chomp_copy(DEFAULT_CA_PATH);
 	config.login_url = string_chomp_copy(LOGIN_API_URL);
 	config.config_agent_url = string_chomp_copy(CONFIG_AGENT_API_URL);
 	config.sync_block_url = string_chomp_copy(SYNC_BLOCK_API_URL);
@@ -239,6 +242,14 @@ config_t get_configuration(int argc, char** argv)
 					config_agentkey_is_set = true;
 					if ((config.agentkey = string_chomp_copy(value)) == NULL) {
 						print_error(CONFIG_ERROR_STRING_PREFIX AGENTKEY_CONFIG_PREFIX " must not be empty");
+						exit(EX_CONFIG);
+					}
+				}
+			} else if ((value = find_config_value(current_line, CAPATH_CONFIG_PREFIX)) != NULL) {
+				if (!config_capath_is_set) {
+					config_capath_is_set = true;
+					if ((config.agentkey = string_chomp_copy(value)) == NULL) {
+						print_error(CONFIG_ERROR_STRING_PREFIX CAPATH_CONFIG_PREFIX " must not be empty");
 						exit(EX_CONFIG);
 					}
 				}

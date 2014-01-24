@@ -11,6 +11,7 @@ typedef struct {
 	char* agentkey;
 	char* session_id;
 	char* iface_blacklist_regex;
+	char* capath;
 	char* login_url;
 	char* config_agent_url;
 	char* sync_block_url;
