@@ -38,6 +38,13 @@ AS_IF([test "x$static_yajl" != xyes],
          AC_MSG_ERROR([Either a dynamic or static version of yajl is required]))])],
    [AC_CHECK_LIB([yajl_s], [yajl_tree_parse], ,
       AC_MSG_ERROR([No static version of yajl was found; perhaps you did not mean to use --with-static-yajl ?]))])
+AX_CONFIG_OPTION_BOOL([uci],
+	[no],
+	[uci configuration storage])
+AS_IF([test "0$uci" -eq 01],
+   [AC_CHECK_LIB([uci], [uci_alloc_context], ,
+      AC_MSG_ERROR([Unable to find libuci; perhaps you did not mean to use -enable-uci ?]))])
+
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
@@ -139,7 +146,7 @@ AX_CONFIG_OPTION_STRING_NN([iptables_path],
 
 AX_CONFIG_OPTION_BOOL([nvram_config],
 	[no],
-	[nvram config option storage])
+	[nvram configutation storage])
 
 AX_CONFIG_OPTION_STRING_NN([nvram_path],
 	[nvram],

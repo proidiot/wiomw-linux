@@ -14,6 +14,11 @@
 #include "print_error.h"
 #include "string_helpers.h"
 
+#if CONFIG_OPTION_UCI == 1
+#include <uci.h>
+#endif
+
+#if CONFIG_OPTION_NVRAM_CONFIG == 1
 #ifndef HAVE_NVRAM_GET
 char* nvram_get(char* name)
 {
@@ -39,6 +44,7 @@ char* nvram_get(char* name)
 	}
 	return result;
 }
+#endif
 #endif
 
 #define USERNAME_CONFIG_PREFIX "USERNAME"
@@ -171,7 +177,51 @@ config_t get_configuration(int argc, char** argv)
 		}
 	}
 
-	if (CONFIG_OPTION_NVRAM_CONFIG) {
+#if CONFIG_OPTION_UCI == 1
+	{
+		struct uci_context* ctx = uci_alloc_context();
+		if (!config_username_is_set) {
+			struct uci_ptr ptr;
+			char* path = strdup("wiomw.@wiomw-agent[0].username");
+			int status = uci_lookup_ptr(ctx, &ptr, path, true);
+			if (UCI_OK == status) {
+				config_username_is_set = true;
+				config.username = ptr.o->v.string;
+			} else if (UCI_ERR_NOTFOUND != status) {
+				uci_perror(ctx, CONFIG_ERROR_STRING_PREFIX " Unable to retrieve username from UCI");
+				exit(EX_CONFIG);
+			}
+		}
+		if (!config_passhash_is_set) {
+			struct uci_ptr ptr;
+			char* path = strdup("wiomw.@wiomw-agent[0].passhash");
+			int status = uci_lookup_ptr(ctx, &ptr, path, true);
+			if (UCI_OK == status) {
+				config_passhash_is_set = true;
+				config.passhash = ptr.o->v.string;
+			} else if (UCI_ERR_NOTFOUND != status) {
+				uci_perror(ctx, CONFIG_ERROR_STRING_PREFIX " Unable to retrieve passhash from UCI");
+				exit(EX_CONFIG);
+			}
+		}
+		if (!config_agentkey_is_set) {
+			struct uci_ptr ptr;
+			char* path = strdup("wiomw.@wiomw-agent[0].agentkey");
+			int status = uci_lookup_ptr(ctx, &ptr, path, true);
+			if (UCI_OK == status) {
+				config_agentkey_is_set = true;
+				config.agentkey = ptr.o->v.string;
+			} else if (UCI_ERR_NOTFOUND != status) {
+				uci_perror(ctx, CONFIG_ERROR_STRING_PREFIX " Unable to retrieve agentkey from UCI");
+				exit(EX_CONFIG);
+			}
+		}
+		uci_free_context(ctx);
+	}
+#endif
+
+#if CONFIG_OPTION_NVRAM_CONFIG == 1
+	{
 		char* nvram_value = NULL;
 
 		if (!config_username_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_username"))) {
@@ -191,6 +241,7 @@ config_t get_configuration(int argc, char** argv)
 			config_file_location = nvram_value;
 		}
 	}
+#endif
 
 	/* Time to get the file and read the data we want from it. */
 	config_file = fopen(config_file_location, "r");

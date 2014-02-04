@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 				sync_block(&config);
 			}
 			if (time(NULL) < (last_session_request + CONFIG_OPTION_SESSION_LENGTH)) {
-				send_devices(&config);
+				send_subnet_and_devices(&config);
 			}
 			next_session_request_wait = (last_session_request + CONFIG_OPTION_SESSION_LENGTH) - time(NULL);
 			if (next_session_request_wait > 0) {

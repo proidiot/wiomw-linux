@@ -14,6 +14,7 @@ typedef struct {
 	char* capath;
 	char* login_url;
 	char* config_agent_url;
+	char* config_subnet_url;
 	char* sync_block_url;
 	char* send_devices_url;
 	char* dnsmasq_lease_file;

@@ -45,7 +45,7 @@
 /* URL of login API */
 #undef CONFIG_OPTION_LOGIN_URL
 
-/* nvram config option storage */
+/* nvram configutation storage */
 #undef CONFIG_OPTION_NVRAM_CONFIG
 
 /* path to nvram command executable */
@@ -75,6 +75,9 @@
 /* URL of sync_block API */
 #undef CONFIG_OPTION_SYNC_BLOCK_URL
 
+/* uci configuration storage */
+#undef CONFIG_OPTION_UCI
+
 /* maximum allowable username length */
 #undef CONFIG_OPTION_USERNAME_LENGTH
 
@@ -102,6 +105,9 @@
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
+
+/* Define to 1 if you have the `uci' library (-luci). */
+#undef HAVE_LIBUCI
 
 /* Define to 1 if you have the `yajl' library (-lyajl). */
 #undef HAVE_LIBYAJL

@@ -994,7 +994,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	free(buf);
 }
 
-static void print_if_list(FILE* fd, if_list_t if_list, config_t* config, host_lookup_table_t lookup_table)
+static void print_if_list(FILE* subnet_fd, FILE* devices_fd, if_list_t if_list, config_t* config, host_lookup_table_t lookup_table)
 {
 	if_list_t if_list_iter = if_list;
 
@@ -1011,106 +1011,110 @@ static void print_if_list(FILE* fd, if_list_t if_list, config_t* config, host_lo
 			while (if_addr_list_iter != NULL) {
 				char str_temp[BUFSIZ];
 				if_addr_t* if_addr = if_addr_list_iter->data;
-				fprintf(fd, ",{");
+				fprintf(subnet_fd, ",{");
+				fprintf(devices_fd, ",{");
 
 				if (if_item->flags & IFF_UP) {
-					fprintf(fd, "\"ifup\":1,");
+					fprintf(devices_fd, "\"ifup\":1,");
 				}
 				if (if_item->flags & IFF_BROADCAST) {
-					fprintf(fd, "\"bcastset\":1,");
+					fprintf(devices_fd, "\"bcastset\":1,");
 				}
 				if (if_item->flags & IFF_POINTOPOINT) {
-					fprintf(fd, "\"ptp\":1,");
+					fprintf(devices_fd, "\"ptp\":1,");
 				}
 				if (if_item->flags & IFF_NOARP) {
-					fprintf(fd, "\"noarp\":1,");
+					fprintf(devices_fd, "\"noarp\":1,");
 				}
 				if (if_item->flags & IFF_PROMISC) {
-					fprintf(fd, "\"promiscuous\":1,");
+					fprintf(devices_fd, "\"promiscuous\":1,");
 				}
 				if (if_item->flags & IFF_NOTRAILERS) {
-					fprintf(fd, "\"notrailers\":1,");
+					fprintf(devices_fd, "\"notrailers\":1,");
 				}
 				if (if_item->flags & IFF_ALLMULTI) {
-					fprintf(fd, "\"recvallmcast\":1,");
+					fprintf(devices_fd, "\"recvallmcast\":1,");
 				}
 				if (if_item->flags & IFF_MASTER) {
-					fprintf(fd, "\"lbmaster\":1,");
+					fprintf(devices_fd, "\"lbmaster\":1,");
 				}
 				if (if_item->flags & IFF_SLAVE) {
-					fprintf(fd, "\"lbslave\":1,");
+					fprintf(devices_fd, "\"lbslave\":1,");
 				}
 				if (if_item->flags & IFF_MULTICAST) {
-					fprintf(fd, "\"supportmcast\":1,");
+					fprintf(devices_fd, "\"supportmcast\":1,");
 				}
 				if (if_item->flags & IFF_PORTSEL) {
-					fprintf(fd, "\"portsel\":1,");
+					fprintf(devices_fd, "\"portsel\":1,");
 				}
 				if (if_item->flags & IFF_AUTOMEDIA) {
-					fprintf(fd, "\"automedia\":1,");
+					fprintf(devices_fd, "\"automedia\":1,");
 				}
 				if (if_item->flags & IFF_DYNAMIC) {
-					fprintf(fd, "\"dynamic\":1,");
+					fprintf(devices_fd, "\"dynamic\":1,");
 				}
-				fprintf(fd, "\"iface\":\"%s\",", if_item->name);
+				fprintf(subnet_fd, "\"iface\":\"%s\",", if_item->name);
+				fprintf(devices_fd, "\"iface\":\"%s\",", if_item->name);
 				if (NULL == mac_ntop(if_item->mac, str_temp, 6)) {
 					print_error("Unable to print MAC address for %s", if_item->name);
-					fprintf(fd, "\"netbios\":\"\",");
+					fprintf(devices_fd, "\"netbios\":\"\",");
 				} else {
 					char* hostname = NULL;
-					fprintf(fd, "\"macaddress\":\"%s\",", str_temp);
+					fprintf(devices_fd, "\"macaddress\":\"%s\",", str_temp);
 					if ((hostname = host_lookup(lookup_table, str_temp)) != NULL) {
-						fprintf(fd, "\"netbios\":\"%s\",", hostname);
+						fprintf(devices_fd, "\"netbios\":\"%s\",", hostname);
 					} else {
-						fprintf(fd, "\"netbios\":\"\",");
+						fprintf(devices_fd, "\"netbios\":\"\",");
 					}
 				}
 				if (NULL == mac_ntop(if_item->bmac, str_temp, 6)) {
 					print_error("Unable to print broadcast MAC address for %s", if_item->name);
 				} else {
-					fprintf(fd, "\"bmac\":\"%s\",", str_temp);
+					fprintf(devices_fd, "\"bmac\":\"%s\",", str_temp);
 				}
-				fprintf(fd, "\"mtu\":%"PRIu32",", if_item->mtu);
+				fprintf(devices_fd, "\"mtu\":%"PRIu32",", if_item->mtu);
 				if (real_if_item != NULL) {
-					fprintf(fd, "\"realiface\":\"%s\",", real_if_item->name);
+					fprintf(subnet_fd, "\"realiface\":\"%s\",", real_if_item->name);
+					fprintf(devices_fd, "\"realiface\":\"%s\",", real_if_item->name);
 				}
-				fprintf(fd, "\"qdiscipline\":\"%s\",", if_item->qdsp);
+				fprintf(devices_fd, "\"qdiscipline\":\"%s\",", if_item->qdsp);
 				if (if_addr->flags & IFA_F_SECONDARY) {
-					fprintf(fd, "\"secondaryaddr\":1,");
+					fprintf(devices_fd, "\"secondaryaddr\":1,");
 				}
 				if (if_addr->flags & IFA_F_PERMANENT) {
-					fprintf(fd, "\"permanent\":1,");
+					fprintf(devices_fd, "\"permanent\":1,");
 				}
-				fprintf(fd, "\"addrname\":\"%s\",", if_addr->label);
-				fprintf(fd, "\"masklength\":%u,", if_addr->mask);
+				fprintf(devices_fd, "\"addrname\":\"%s\",", if_addr->label);
+				fprintf(devices_fd, "\"masklength\":%u,", if_addr->mask);
 				if (if_addr->family == AF_INET) {
 					if (if_addr->addr == NULL) {
 						/*print_error("No address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->addr))->sin_addr.s_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an IP address for %s", if_item->name);
 					} else {
-						fprintf(fd, "\"ipaddress\":\"%s\",", str_temp);
+						fprintf(subnet_fd, "\"iprange\":\"%s/%u\"", str_temp, if_addr->mask);
+						fprintf(devices_fd, "\"ipaddress\":\"%s\",", str_temp);
 					}
 					if (if_addr->local == NULL) {
 						/*print_error("No local address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->local))->sin_addr.s_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an internal IP address for %s", if_item->name);
 					} else {
-						fprintf(fd, "\"internalip\":\"%s\",", str_temp);
+						fprintf(devices_fd, "\"internalip\":\"%s\",", str_temp);
 					}
 					if (if_addr->bcast == NULL) {
 						/*print_error("No broadcast address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->bcast))->sin_addr.s_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print a broadcast IP address for %s", if_item->name);
 					} else {
-						fprintf(fd, "\"bcast\":\"%s\",", str_temp);
+						fprintf(devices_fd, "\"bcast\":\"%s\",", str_temp);
 					}
 					if (if_addr->acast == NULL) {
 						/*print_error("No anycast address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->acast))->sin_addr.s_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an anycast IP address for %s", if_item->name);
 					} else {
-						fprintf(fd, "\"acast\":\"%s\",", str_temp);
+						fprintf(devices_fd, "\"acast\":\"%s\",", str_temp);
 					}
 				} else if (if_addr->family == AF_INET6) {
 					if (if_addr->addr == NULL) {
@@ -1118,33 +1122,35 @@ static void print_if_list(FILE* fd, if_list_t if_list, config_t* config, host_lo
 					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->addr))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an IP address for %s", if_item->name);
 					} else {
-						fprintf(fd, "\"ip6\":\"%s\",", str_temp);
+						fprintf(subnet_fd, "\"ip6range\":\"%s/%u\"", str_temp, if_addr->mask);
+						fprintf(devices_fd, "\"ip6\":\"%s\",", str_temp);
 					}
 					if (if_addr->local == NULL) {
 						/*print_error("No local address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->local))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an internal IP address for %s", if_item->name);
 					} else {
-						fprintf(fd, "\"internalip\":\"%s\",", str_temp);
+						fprintf(devices_fd, "\"internalip\":\"%s\",", str_temp);
 					}
 					if (if_addr->bcast == NULL) {
 						/*print_error("No broadcast address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->bcast))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print a broadcast IP address for %s", if_item->name);
 					} else {
-						fprintf(fd, "\"bcast\":\"%s\",", str_temp);
+						fprintf(devices_fd, "\"bcast\":\"%s\",", str_temp);
 					}
 					if (if_addr->acast == NULL) {
 						/*print_error("No anycast address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->acast))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
 						print_syserror("Unable to print an anycast IP address for %s", if_item->name);
 					} else {
-						fprintf(fd, "\"acast\":\"%s\",", str_temp);
+						fprintf(devices_fd, "\"acast\":\"%s\",", str_temp);
 					}
 				} else {
 					print_error("Interface address was neither IPv4 nor IPv6");
 				}
-				fprintf(fd, "\"isagent\":1}");
+				fprintf(subnet_fd, "}");
+				fprintf(devices_fd, "\"isagent\":1}");
 				if_addr_list_iter = if_addr_list_iter->next;
 			}
 		}
@@ -1271,7 +1277,7 @@ static void scan_networks(struct mnl_socket* nl_sock, if_list_t if_list, config_
 
 
 
-void print_neighbours(config_t* config, FILE* fd)
+void print_neighbours(config_t* config, FILE* subnet_fd, FILE* devices_fd)
 {
 	char uncompiled_regex[CONFIG_OPTION_IFACE_BLACKLIST_REGEX_LENGTH + CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH + 1];
 	regex_t compiled_regex;
@@ -1283,7 +1289,7 @@ void print_neighbours(config_t* config, FILE* fd)
 	if (config == NULL) {
 		print_error("Empty config received");
 		exit(EX_SOFTWARE);
-	} else if (fd == NULL) {
+	} else if ((subnet_fd == NULL) || (devices_fd == NULL)) {
 		print_error("Bad file descriptor received");
 	}
 
@@ -1323,17 +1329,20 @@ void print_neighbours(config_t* config, FILE* fd)
 
 	sleep(30);
 
-	fprintf(fd, "[\"%s\"", config->session_id);
+	fprintf(subnet_fd, "[\"%s\"", config->session_id);
+	fprintf(devices_fd, "[\"%s\"", config->session_id);
 
 	lookup_table = get_host_lookup_table(config);
 
-	print_if_list(fd, if_list, config, lookup_table);
+	print_if_list(subnet_fd, devices_fd, if_list, config, lookup_table);
 
-	print_neigh_list(nl_sock, fd, if_list, config, lookup_table);
+	fprintf(subnet_fd, "]");
+
+	print_neigh_list(nl_sock, devices_fd, if_list, config, lookup_table);
 
 	mnl_socket_close(nl_sock);
 
-	fprintf(fd, "]");
+	fprintf(devices_fd, "]");
 
 	destroy_host_lookup_table(&lookup_table);
 	destroy_if_list(&if_list);

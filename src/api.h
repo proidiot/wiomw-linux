@@ -9,6 +9,6 @@ void send_config(config_t* config);
 
 void sync_block(config_t* config);
 
-void send_devices(config_t* config);
+void send_subnet_and_devices(config_t* config);
 
 #endif

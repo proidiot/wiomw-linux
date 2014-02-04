@@ -128,6 +128,7 @@ void wiomw_login(config_t* config)
 	}
 
 	curl_easy_cleanup(curl_handle);
+	free(holder_t_data->str_data);
 	free(holder_t_data);
 }
 
@@ -183,6 +184,7 @@ void send_config(config_t* config)
 	}
 
 	curl_easy_cleanup(curl_handle);
+	free(holder_t_data->str_data);
 	free(holder_t_data);
 }
 
@@ -242,16 +244,19 @@ void sync_block(config_t* config)
 	}
 
 	curl_easy_cleanup(curl_handle);
+	free(holder_t_data->str_data);
 	free(holder_t_data);
 }
 
-void send_devices(config_t* config)
+void send_subnet_and_devices(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
 	CURL* curl_handle;
-	FILE* fd;
-	long fd_size;
+	FILE* subnet_fd;
+	FILE* devices_fd;
+	long subnet_fd_size;
+	long devices_fd_size;
 
 	if (config == NULL) {
 		print_error("Unexpected empty configuration");
@@ -266,13 +271,42 @@ void send_devices(config_t* config)
 	holder_t_data->size_offset = 0;
 	holder_t_data->str_data = NULL;
 
-	if ((fd = tmpfile()) == NULL) {
+	if (((subnet_fd = tmpfile()) == NULL) || ((devices_fd = tmpfile()) == NULL)) {
 		print_syserror("Unable to open the temproary file to store data to send to the server");
+		exit(EX_OSERR);
 	}
-	print_neighbours(config, fd);
-	fseek(fd, 0, SEEK_END);
-	fd_size = ftell(fd);
-	rewind(fd);
+	print_neighbours(config, subnet_fd, devices_fd);
+	fseek(subnet_fd, 0, SEEK_END);
+	subnet_fd_size = ftell(subnet_fd);
+	rewind(subnet_fd);
+	fseek(devices_fd, 0, SEEK_END);
+	devices_fd_size = ftell(devices_fd);
+	rewind(devices_fd);
+
+	curl_handle = curl_easy_init();
+	curl_easy_setopt(curl_handle, CURLOPT_URL, config->config_subnet_url);
+	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
+	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
+	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
+	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
+	curl_easy_setopt(curl_handle, CURLOPT_READDATA, subnet_fd);
+	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, subnet_fd_size);
+
+	if (curl_easy_perform(curl_handle) == 0) {
+		if (holder_t_data->size_offset == 0) {
+			print_error("Did not receive data from the server");
+			exit(EX_PROTOCOL);
+		}
+	} else {
+		print_error("Config subnet failed: %s", str_error_buffer);
+		exit(EX_UNAVAILABLE);
+	}
+
+	curl_easy_cleanup(curl_handle);
+	free(holder_t_data->str_data);
+
+	memset(holder_t_data, 0, sizeof(struct holder_t_struct));
 
 	curl_handle = curl_easy_init();
 	curl_easy_setopt(curl_handle, CURLOPT_URL, config->send_devices_url);
@@ -281,8 +315,8 @@ void send_devices(config_t* config)
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
 	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
-	curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
-	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
+	curl_easy_setopt(curl_handle, CURLOPT_READDATA, devices_fd);
+	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, devices_fd_size);
 
 	if (curl_easy_perform(curl_handle) == 0) {
 		if (holder_t_data->size_offset == 0) {
@@ -295,6 +329,7 @@ void send_devices(config_t* config)
 	}
 
 	curl_easy_cleanup(curl_handle);
+	free(holder_t_data->str_data);
 	free(holder_t_data);
 }
 
