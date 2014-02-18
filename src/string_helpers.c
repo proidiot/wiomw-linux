@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
-#include "print_error.h"
+#include <syslog.h>
+#include "syslog_syserror.h"
 
 char* string_chomp_copy(char* source)
 {
@@ -28,7 +29,7 @@ char* string_chomp_copy(char* source)
 
 	dest = (char*)malloc(len + 1);
 	if (dest == NULL) {
-		print_syserror("Unable to allocate memory for a copy of a string");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 

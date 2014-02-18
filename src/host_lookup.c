@@ -4,7 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <sysexits.h>
-#include "print_error.h"
+#include <syslog.h>
+#include "syslog_syserror.h"
 #include "string_helpers.h"
 
 #define DNSMASQ_DUMP_COMMAND "cat %s | awk '{print $2 $4}'"
@@ -25,7 +26,7 @@ host_lookup_table_t get_host_lookup_table(config_t* config)
 		snprintf(command, BUFSIZ, DNSMASQ_DUMP_COMMAND, config->dnsmasq_lease_file);
 		output = popen(command, "r");
 		if (output == NULL) {
-			print_syserror("Unable to parse the dnsmasq lease file");
+			syslog_syserror(LOG_CRIT, "Unable to connect to shell for dnsmasq lookup");
 			exit(EX_OSERR);
 		} else {
 			char line[BUFSIZ];
@@ -34,12 +35,12 @@ host_lookup_table_t get_host_lookup_table(config_t* config)
 				if (hostname_length != BUFSIZ - 17) {
 					*temp = (host_lookup_table_t)malloc(sizeof(struct _host_lookup_table_struct));
 					if (*temp == NULL) {
-						print_syserror("Unable to allocate hostname lookup table entry");
+						syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 						exit(EX_OSERR);
 					}
 					(*temp)->hostname = (char*)malloc(hostname_length);
 					if ((*temp)->hostname == NULL) {
-						print_syserror("Unable to allocate hostname string");
+						syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 						exit(EX_OSERR);
 					}
 					strncpy((*temp)->mac_addr, line, 17);

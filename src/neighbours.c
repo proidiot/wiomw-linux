@@ -1,6 +1,7 @@
 #include <config.h>
 #include "neighbours.h"
-#include "print_error.h"
+#include "syslog_syserror.h"
+#include <syslog.h>
 #include "sockaddr_helpers.h"
 #include "configuration.h"
 #include "mac_ntop.h"
@@ -121,7 +122,7 @@ static if_addr_t* new_if_addr()
 {
 	if_addr_t* if_addr = (if_addr_t*)malloc(sizeof(if_addr_t));
 	if (if_addr == NULL) {
-		print_syserror("Unable to allocate memory for an interface address object");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	} else {
 		if_addr->family = AF_UNSPEC;
@@ -171,7 +172,7 @@ static if_item_t* new_if_item()
 {
 	if_item_t* if_item = (if_item_t*)malloc(sizeof(if_item_t));
 	if (if_item == NULL) {
-		print_syserror("Unable to allocate memory for an interface object");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 	if_item->family = AF_UNSPEC;
@@ -203,7 +204,7 @@ static if_item_t* new_if_item()
 static void destroy_if_item(if_item_t** if_item)
 {
 	if (if_item == NULL || *if_item == NULL) {
-		print_error("Unable to destroy an empty interface object");
+		syslog(LOG_DEBUG, "Internal error (unable to destroy an empty interface object)");
 	} else {
 		free((*if_item)->name);
 		free((*if_item)->qdsp);
@@ -244,7 +245,7 @@ static get_if_list_cb_data_t new_get_if_list_cb_data(regex_t* compiled_regex, co
 static void destroy_get_if_list_cb_data(get_if_list_cb_data_t* get_if_list_cb_data)
 {
 	if (get_if_list_cb_data == NULL) {
-		print_error("Unable to destroy an empty interface list callback argument");
+		syslog(LOG_DEBUG, "Internal error (unable to destroy an empty interface list callback argument)");
 	} else {
 		get_if_list_cb_data->compiled_regex = NULL;
 		get_if_list_cb_data->config = NULL;
@@ -266,7 +267,7 @@ static print_neigh_list_cb_data_t new_print_neigh_list_cb_data(FILE* fd, if_list
 static void destroy_print_neigh_list_cb_data(print_neigh_list_cb_data_t* print_neigh_list_cb_data)
 {
 	if (print_neigh_list_cb_data == NULL) {
-		print_error("Unable to destroy an empty print neighbour list callback argument");
+		syslog(LOG_DEBUG, "Internal error (unable to destroy an empty print neighbour list callback argument)");
 	}
 }
 
@@ -288,7 +289,7 @@ static if_addr_list_t push_if_addr(if_addr_list_t* if_addr_list, if_addr_t* if_a
 {
 	if_addr_list_t temp = (if_addr_list_t)malloc(sizeof(struct if_addr_list_struct));
 	if (temp == NULL) {
-		print_syserror("Unable to allocate interface address list entry");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 
@@ -313,7 +314,7 @@ static if_list_t push_if_item(if_list_t* if_list, if_item_t* if_item)
 {
 	if_list_t temp = (if_list_t)malloc(sizeof(struct if_list_struct));
 	if (temp == NULL) {
-		print_syserror("Unable to allocate interface list entry");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 	temp->data = if_item;
@@ -366,9 +367,9 @@ static int print_nlmsg_error_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		char* errstring = get_nlmsg_error(nl_head);
 		if (errstring != NULL) {
 			if (cb_data != NULL) {
-				print_error("%s: Netlink error: %s", (char*)cb_data, errstring);
+				syslog(LOG_ALERT, "%s: Netlink error: %s", (char*)cb_data, errstring);
 			} else {
-				print_error("Netlink error: %s", errstring);
+				syslog(LOG_ALERT, "Netlink error: %s", errstring);
 			}
 			return MNL_CB_ERROR;
 		}
@@ -400,7 +401,7 @@ static print_neigh_cb_data_t new_print_neigh_cb_data(FILE* fd, unsigned char fam
 static void destroy_print_neigh_cb_data(print_neigh_cb_data_t* print_neigh_cb_data)
 {
 	if (print_neigh_cb_data == NULL) {
-		print_error("Unable to destroy an empty print neighbour callback argument");
+		syslog(LOG_DEBUG, "Internal error (unable to destroy an empty print neighbour callback argument)");
 	}
 }
 
@@ -416,7 +417,7 @@ static get_if_item_cb_data_t new_get_if_item_cb_data(regex_t* compiled_regex, co
 static void destroy_get_if_item_cb_data(get_if_item_cb_data_t* get_if_item_cb_data)
 {
 	if (get_if_item_cb_data == NULL) {
-		print_error("Unable to destroy an empty interface item callback argument");
+		syslog(LOG_DEBUG, "Internal error (unable to destroy an empty interface item callback argument)");
 	}
 }
 
@@ -428,10 +429,10 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 {
 	get_if_item_cb_data_t* item_cb_data = (get_if_item_cb_data_t*)cb_data;
 	if (item_cb_data == NULL || item_cb_data->compiled_regex == NULL || item_cb_data->if_item == NULL) {
-		print_error("Inavlid argument received in interface item callback");
+		syslog(LOG_CRIT, "Internal error (inavlid argument received in interface item callback)");
 		return MNL_CB_ERROR;
 	} else if (mnl_attr_type_valid(nl_attr, IFLA_MAX) < 0) {
-		print_syserror("Received invalid netlink attribute type");
+		syslog_syserror(LOG_ALERT, "Received invalid netlink attribute type");
 		return MNL_CB_ERROR;
 	} else if (item_cb_data->if_item->loopback) {
 		return MNL_CB_OK;
@@ -441,14 +442,14 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 		switch (mnl_attr_get_type(nl_attr)) {
 		case IFLA_IFNAME:
 			if (mnl_attr_validate(nl_attr, MNL_TYPE_NUL_STRING) < 0) {
-				print_syserror("Received invalid interface name from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid interface name from netlink");
 				return MNL_CB_ERROR;
 			} else {
 				int errcode = 0;
 				const char* if_name = mnl_attr_get_str(nl_attr);
 				item_cb_data->if_item->name = (char*)malloc(strlen(if_name) + 1);
 				if (item_cb_data->if_item->name == NULL) {
-					print_syserror("Unable to allocate interface name");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				strcpy(item_cb_data->if_item->name, if_name);
@@ -462,7 +463,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 					} else if (errcode == REG_NOMATCH) {
 						item_cb_data->if_item->blacklisted = false;
 					} else {
-						print_syserror("Unable to evaluate the interface blacklist regex");
+						syslog_syserror(LOG_CRIT, "Unable to evaluate the interface blacklist regex");
 						return MNL_CB_ERROR;
 					}
 				}
@@ -470,7 +471,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 			break;
 		case IFLA_ADDRESS:
 			if (mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, 6) < 0) {
-				print_syserror("Received invalid MAC address from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid MAC address from netlink");
 				return MNL_CB_ERROR;
 			} else {
 				const unsigned char* mac = mnl_attr_get_payload(nl_attr);
@@ -479,7 +480,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 			break;
 		case IFLA_BROADCAST:
 			if (mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, 6) < 0) {
-				print_syserror("Received invalid broadcast MAC address from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid broadcast MAC address from netlink");
 				return MNL_CB_ERROR;
 			} else {
 				const unsigned char* bmac = mnl_attr_get_payload(nl_attr);
@@ -488,7 +489,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 			break;
 		case IFLA_MTU:
 			if (mnl_attr_validate(nl_attr, MNL_TYPE_U32) < 0) {
-				print_syserror("Received invalid MTU from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid MTU from netlink");
 				return MNL_CB_ERROR;
 			} else {
 				item_cb_data->if_item->mtu = mnl_attr_get_u32(nl_attr);
@@ -496,7 +497,7 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 			break;
 		case IFLA_LINK:
 			if (mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, sizeof(int)) < 0) {
-				print_syserror("Received invalid link type from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid link type from netlink");
 				return MNL_CB_ERROR;
 			} else {
 				int* link_ptr = mnl_attr_get_payload(nl_attr);
@@ -505,13 +506,13 @@ static int get_if_item_cb(const struct nlattr* nl_attr, void* cb_data)
 			break;
 		case IFLA_QDISC:
 			if (mnl_attr_validate(nl_attr, MNL_TYPE_NUL_STRING) < 0) {
-				print_syserror("Received invalid queue discipline from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid queue discipline from netlink");
 				return MNL_CB_ERROR;
 			} else {
 				const char* qdsp = mnl_attr_get_str(nl_attr);
 				item_cb_data->if_item->qdsp = (char*)malloc(strlen(qdsp) + 1);
 				if (item_cb_data->if_item->qdsp == NULL) {
-					print_syserror("Unable to allocate interface queue discipline name");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				strcpy(item_cb_data->if_item->qdsp, qdsp);
@@ -526,10 +527,10 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 {
 	if_addr_t* if_addr = (if_addr_t*)cb_data;
 	if (if_addr == NULL) {
-		print_error("Invalid argument received in interface address callback ");
+		syslog(LOG_CRIT, "Internal error (invalid argument received in interface address callback)");
 		return MNL_CB_ERROR;
 	} else if (mnl_attr_type_valid(nl_attr, IFA_MAX) < 0) {
-		print_syserror("Received invalid netlink attribute type");
+		syslog_syserror(LOG_ALERT, "Received invalid netlink attribute type");
 		return MNL_CB_ERROR;
 	} else {
 		switch(mnl_attr_get_type(nl_attr)) {
@@ -538,7 +539,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in_addr* bin_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 				if (addr == NULL) {
-					print_syserror("Unable to allocate memory for a socket address");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				memset(addr, 0, sizeof(struct sockaddr_in));
@@ -549,7 +550,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in6_addr* bin6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 				if (addr == NULL) {
-					print_syserror("Unable to allocate memory for a socket address");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				memset(addr, 0, sizeof(struct sockaddr_in6));
@@ -557,7 +558,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
 				if_addr->addr = (struct sockaddr*)addr;
 			} else {
-				print_syserror("Received invalid address from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid address from netlink");
 				return MNL_CB_ERROR;
 			}
 			break;
@@ -566,7 +567,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in_addr* bin_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 				if (addr == NULL) {
-					print_syserror("Unable to allocate memory for a socket address");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				memset(addr, 0, sizeof(struct sockaddr_in));
@@ -577,7 +578,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in6_addr* bin6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 				if (addr == NULL) {
-					print_syserror("Unable to allocate memory for a socket address");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				memset(addr, 0, sizeof(struct sockaddr_in6));
@@ -585,19 +586,19 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
 				if_addr->local = (struct sockaddr*)addr;
 			} else {
-				print_syserror("Received invalid local address from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid local address from netlink");
 				return MNL_CB_ERROR;
 			}
 			break;
 		case IFA_LABEL:
 			if (mnl_attr_validate(nl_attr, MNL_TYPE_NUL_STRING) < 0) {
-				print_syserror("Received invalid address label from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid address label from netlink");
 				return MNL_CB_ERROR;
 			} else {
 				const char* label = mnl_attr_get_payload(nl_attr);
 				if_addr->label = (char*)malloc(strlen(label) + 1);
 				if (if_addr->label == NULL) {
-					print_syserror("Unable to allocate memory for an address label");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				strcpy(if_addr->label, label);
@@ -608,7 +609,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in_addr* bin_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 				if (addr == NULL) {
-					print_syserror("Unable to allocate memory for a socket address");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				memset(addr, 0, sizeof(struct sockaddr_in));
@@ -619,7 +620,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in6_addr* bin6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 				if (addr == NULL) {
-					print_syserror("Unable to allocate memory for a socket address");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				memset(addr, 0, sizeof(struct sockaddr_in6));
@@ -627,7 +628,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
 				if_addr->bcast = (struct sockaddr*)addr;
 			} else {
-				print_syserror("Received invalid broadcast address from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid broadcast address from netlink");
 				return MNL_CB_ERROR;
 			}
 			break;
@@ -636,7 +637,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in_addr* bin_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 				if (addr == NULL) {
-					print_syserror("Unable to allocate memory for a socket address");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				memset(addr, 0, sizeof(struct sockaddr_in));
@@ -647,7 +648,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in6_addr* bin6_addr = mnl_attr_get_payload(nl_attr);
 				struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
 				if (addr == NULL) {
-					print_syserror("Unable to allocate memory for a socket address");
+					syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 					exit(EX_OSERR);
 				}
 				memset(addr, 0, sizeof(struct sockaddr_in6));
@@ -655,7 +656,7 @@ static int get_if_addr_cb(const struct nlattr* nl_attr, void* cb_data)
 				memcpy(&(addr->sin6_addr.s6_addr), bin6_addr, sizeof(struct in6_addr));
 				if_addr->acast = (struct sockaddr*)addr;
 			} else {
-				print_syserror("Received invalid anycast address from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid anycast address from netlink");
 				return MNL_CB_ERROR;
 			}
 			break;
@@ -668,10 +669,10 @@ static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 {
 	print_neigh_cb_data_t* neigh_cb_data = (print_neigh_cb_data_t*)cb_data;
 	if (neigh_cb_data == NULL || neigh_cb_data->fd == NULL) {
-		print_error("Invalid argument received in print neighbour callback");
+		syslog(LOG_CRIT, "Internal error (invalid argument received in print neighbour callback)");
 		return MNL_CB_ERROR;
 	} else if (mnl_attr_type_valid(nl_attr, NDA_MAX) < 0) {
-		print_syserror("Received invalid netlink attribute type");
+		syslog_syserror(LOG_ALERT, "Received invalid netlink attribute type");
 		return MNL_CB_ERROR;
 	} else {
 		switch(mnl_attr_get_type(nl_attr)) {
@@ -680,7 +681,7 @@ static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in_addr* bin_addr = mnl_attr_get_payload(nl_attr);
 				char str_temp[BUFSIZ];
 				if (NULL == inet_ntop(AF_INET, bin_addr, str_temp, BUFSIZ)) {
-					print_syserror("Unable to print destination address");
+					syslog_syserror(LOG_CRIT, "Unable to print destination address");
 					return MNL_CB_ERROR;
 				}
 				fprintf(neigh_cb_data->fd, "\"ipaddress\":\"%s\",", str_temp);
@@ -688,25 +689,25 @@ static int print_neigh_cb(const struct nlattr* nl_attr, void* cb_data)
 				struct in6_addr* bin6_addr = mnl_attr_get_payload(nl_attr);
 				char str_temp[BUFSIZ];
 				if (NULL == inet_ntop(AF_INET6, bin6_addr, str_temp, BUFSIZ)) {
-					print_syserror("Unable to print destination address");
+					syslog_syserror(LOG_CRIT, "Unable to print destination address");
 					return MNL_CB_ERROR;
 				}
 				fprintf(neigh_cb_data->fd, "\"ip6\":\"%s\",", str_temp);
 			} else {
-				print_syserror("Received invalid destination address from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid destination address from netlink");
 				return MNL_CB_ERROR;
 			}
 			break;
 		case NDA_LLADDR:
 			if (mnl_attr_validate2(nl_attr, MNL_TYPE_BINARY, 6) < 0) {
-				print_syserror("Received invalid MAC address from netlink");
+				syslog_syserror(LOG_ALERT, "Received invalid MAC address from netlink");
 				return MNL_CB_ERROR;
 			} else {
 				const unsigned char* mac = mnl_attr_get_payload(nl_attr);
 				char str_temp[BUFSIZ];
 				char* hostname = NULL;
 				if (NULL == mac_ntop(mac, str_temp, 6)) {
-					print_error("Unable to print MAC address");
+					syslog(LOG_CRIT, "Unable to print MAC address");
 					return MNL_CB_ERROR;
 				}
 				fprintf(neigh_cb_data->fd, "\"macaddress\":\"%s\",", str_temp);
@@ -726,12 +727,12 @@ static int get_if_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
 	get_if_list_cb_data_t* list_cb_data = (get_if_list_cb_data_t*)cb_data;
 	if (list_cb_data == NULL || list_cb_data->compiled_regex == NULL) {
-		print_error("Invalid argument received in interface list callback");
+		syslog(LOG_CRIT, "Internal error (invalid argument received in interface list callback)");
 		return MNL_CB_ERROR;
 	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
 		char* errstring = get_nlmsg_error(nl_head);
 		if (errstring != NULL) {
-			print_error("Unable to retrieve interface list: Netlink error: %s", errstring);
+			syslog(LOG_ALERT, "Unable to retrieve interface list: Netlink error: %s", errstring);
 			return MNL_CB_ERROR;
 		} else {
 			return MNL_CB_OK;
@@ -765,12 +766,12 @@ static int get_if_addr_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
 	get_if_addr_list_cb_data_t* addr_list_cb_data = (get_if_addr_list_cb_data_t*)cb_data;
 	if (cb_data == NULL) {
-		print_error("Invalid argument received in interface address list callback");
+		syslog(LOG_CRIT, "Internal error (invalid argument received in interface address list callback)");
 		return MNL_CB_ERROR;
 	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
 		char* errstring = get_nlmsg_error(nl_head);
 		if (errstring != NULL) {
-			print_error("Unable to retrieve interface address list: Netlink error: %s", errstring);
+			syslog(LOG_ALERT, "Unable to retrieve interface address list: Netlink error: %s", errstring);
 			return MNL_CB_ERROR;
 		} else {
 			return MNL_CB_OK;
@@ -797,12 +798,12 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 {
 	print_neigh_list_cb_data_t* neigh_list_cb_data = (print_neigh_list_cb_data_t*)cb_data;
 	if (neigh_list_cb_data == NULL || neigh_list_cb_data->fd == NULL) {
-		print_error("Invalid argument received in neighbour list printing callback");
+		syslog(LOG_CRIT, "Internal error (invalid argument received in neighbour list printing callback)");
 		return MNL_CB_ERROR;
 	} else if (nl_head->nlmsg_type == NLMSG_ERROR) {
 		char* errstring = get_nlmsg_error(nl_head);
 		if (errstring != NULL) {
-			print_error("Unable to retrieve neighbour list: Netlink error: %s", errstring);
+			syslog(LOG_ALERT, "Unable to retrieve neighbour list: Netlink error: %s", errstring);
 			return MNL_CB_ERROR;
 		} else {
 			return MNL_CB_OK;
@@ -873,7 +874,7 @@ static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_
 	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
 	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
-		print_syserror("Unable to allocate memory for a netlink communication buffer");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 
@@ -887,7 +888,7 @@ static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_
 	portid = mnl_socket_get_portid(nl_sock);
 
 	if (mnl_socket_sendto(nl_sock, nl_head, nl_head->nlmsg_len) < 0) {
-		print_syserror("Unable to send interface list request to netlink");
+		syslog_syserror(LOG_CRIT, "Unable to send interface list request to netlink");
 		exit(EX_OSERR);
 	}
 
@@ -896,7 +897,7 @@ static void get_if_list(struct mnl_socket* nl_sock, regex_t* compiled_regex, if_
 	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_list_cb, &get_if_list_cb_data)) > MNL_CB_STOP);
 
 	if (errcode < -1) {
-		print_syserror("Unable to retrieve interface list from netlink");
+		syslog_syserror(LOG_CRIT, "Unable to retrieve interface list from netlink");
 		exit(EX_OSERR);
 	}
 
@@ -917,7 +918,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list, config_
 	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
 	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
-		print_syserror("Unable to allocate memory for a netlink communication buffer");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 
@@ -931,7 +932,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list, config_
 	portid = mnl_socket_get_portid(nl_sock);
 
 	if (mnl_socket_sendto(nl_sock, nl_head, nl_head->nlmsg_len) < 0) {
-		print_syserror("Unable to send interface address list request to netlink");
+		syslog_syserror(LOG_CRIT, "Unable to send interface address list request to netlink");
 		exit(EX_OSERR);
 	}
 
@@ -941,7 +942,7 @@ static void get_if_addrs(struct mnl_socket* nl_sock, if_list_t* if_list, config_
 	} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &get_if_addr_list_cb, &addr_list_cb_data)) > MNL_CB_STOP);
 
 	if (errcode < -1) {
-		print_syserror("Unable to retrieve interface address list from netlink %d", i);
+		syslog_syserror(LOG_CRIT, "Unable to retrieve interface address list from netlink");
 		exit(EX_OSERR);
 	}
 
@@ -961,7 +962,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
 	buf = (char*)malloc(bufsiz);
 	if (buf == NULL) {
-		print_syserror("Unable to allocate memory for a netlink communication buffer");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 
@@ -975,7 +976,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 	portid = mnl_socket_get_portid(nl_sock);
 
 	if (mnl_socket_sendto(nl_sock, nl_head, nl_head->nlmsg_len) < 0) {
-		print_syserror("Unable to send neighbour list request to netlink");
+		syslog_syserror(LOG_CRIT, "Unable to send neighbour list request to netlink");
 		exit(EX_OSERR);
 	}
 
@@ -985,7 +986,7 @@ static void print_neigh_list(struct mnl_socket* nl_sock, FILE* fd, if_list_t if_
 
 	if (errcode < -1) {
 		/* TODO: get upstream error message */
-		print_syserror("Unable to retrieve neighbour list from netlink");
+		syslog_syserror(LOG_CRIT, "Unable to retrieve neighbour list from netlink");
 		exit(EX_OSERR);
 	}
 	destroy_print_neigh_list_cb_data(&neigh_list_cb_data);
@@ -1056,7 +1057,7 @@ static void print_if_list(FILE* subnet_fd, FILE* devices_fd, if_list_t if_list, 
 				fprintf(subnet_fd, "\"iface\":\"%s\",", if_item->name);
 				fprintf(devices_fd, "\"iface\":\"%s\",", if_item->name);
 				if (NULL == mac_ntop(if_item->mac, str_temp, 6)) {
-					print_error("Unable to print MAC address for %s", if_item->name);
+					syslog(LOG_CRIT, "Unable to print MAC address for %s", if_item->name);
 					fprintf(devices_fd, "\"netbios\":\"\",");
 				} else {
 					char* hostname = NULL;
@@ -1068,7 +1069,7 @@ static void print_if_list(FILE* subnet_fd, FILE* devices_fd, if_list_t if_list, 
 					}
 				}
 				if (NULL == mac_ntop(if_item->bmac, str_temp, 6)) {
-					print_error("Unable to print broadcast MAC address for %s", if_item->name);
+					syslog(LOG_CRIT, "Unable to print broadcast MAC address for %s", if_item->name);
 				} else {
 					fprintf(devices_fd, "\"bmac\":\"%s\",", str_temp);
 				}
@@ -1088,66 +1089,66 @@ static void print_if_list(FILE* subnet_fd, FILE* devices_fd, if_list_t if_list, 
 				fprintf(devices_fd, "\"masklength\":%u,", if_addr->mask);
 				if (if_addr->family == AF_INET) {
 					if (if_addr->addr == NULL) {
-						/*print_error("No address to print for %s", if_item->name);*/
+						/*syslog(LOG_DEBUG, "No address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->addr))->sin_addr.s_addr), str_temp, BUFSIZ)) {
-						print_syserror("Unable to print an IP address for %s", if_item->name);
+						syslog_syserror(LOG_CRIT, "Unable to print an IP address for %s", if_item->name);
 					} else {
 						fprintf(subnet_fd, "\"iprange\":\"%s/%u\"", str_temp, if_addr->mask);
 						fprintf(devices_fd, "\"ipaddress\":\"%s\",", str_temp);
 					}
 					if (if_addr->local == NULL) {
-						/*print_error("No local address to print for %s", if_item->name);*/
+						/*syslog(LOG_DEBUG, "No local address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->local))->sin_addr.s_addr), str_temp, BUFSIZ)) {
-						print_syserror("Unable to print an internal IP address for %s", if_item->name);
+						syslog_syserror(LOG_CRIT, "Unable to print an internal IP address for %s", if_item->name);
 					} else {
 						fprintf(devices_fd, "\"internalip\":\"%s\",", str_temp);
 					}
 					if (if_addr->bcast == NULL) {
-						/*print_error("No broadcast address to print for %s", if_item->name);*/
+						/*syslog(LOG_DEBUG, "No broadcast address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->bcast))->sin_addr.s_addr), str_temp, BUFSIZ)) {
-						print_syserror("Unable to print a broadcast IP address for %s", if_item->name);
+						syslog_syserror(LOG_CRIT, "Unable to print a broadcast IP address for %s", if_item->name);
 					} else {
 						fprintf(devices_fd, "\"bcast\":\"%s\",", str_temp);
 					}
 					if (if_addr->acast == NULL) {
-						/*print_error("No anycast address to print for %s", if_item->name);*/
+						/*syslog(LOG_DEBUG, "No anycast address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET, &(((struct sockaddr_in*)(if_addr->acast))->sin_addr.s_addr), str_temp, BUFSIZ)) {
-						print_syserror("Unable to print an anycast IP address for %s", if_item->name);
+						syslog_syserror(LOG_CRIT, "Unable to print an anycast IP address for %s", if_item->name);
 					} else {
 						fprintf(devices_fd, "\"acast\":\"%s\",", str_temp);
 					}
 				} else if (if_addr->family == AF_INET6) {
 					if (if_addr->addr == NULL) {
-						/*print_error("No address to print for %s", if_item->name);*/
+						/*syslog(LOG_DEBUG, "No address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->addr))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
-						print_syserror("Unable to print an IP address for %s", if_item->name);
+						syslog_syserror(LOG_CRIT, "Unable to print an IP address for %s", if_item->name);
 					} else {
 						fprintf(subnet_fd, "\"ip6range\":\"%s/%u\"", str_temp, if_addr->mask);
 						fprintf(devices_fd, "\"ip6\":\"%s\",", str_temp);
 					}
 					if (if_addr->local == NULL) {
-						/*print_error("No local address to print for %s", if_item->name);*/
+						/*syslog(LOG_DEBUG, "No local address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->local))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
-						print_syserror("Unable to print an internal IP address for %s", if_item->name);
+						syslog_syserror(LOG_CRIT, "Unable to print an internal IP address for %s", if_item->name);
 					} else {
 						fprintf(devices_fd, "\"internalip\":\"%s\",", str_temp);
 					}
 					if (if_addr->bcast == NULL) {
-						/*print_error("No broadcast address to print for %s", if_item->name);*/
+						/* syslog(LOG_DEBUG, "No broadcast address to print for %s", if_item->name); */
 					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->bcast))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
-						print_syserror("Unable to print a broadcast IP address for %s", if_item->name);
+						syslog_syserror(LOG_CRIT, "Unable to print a broadcast IP address for %s", if_item->name);
 					} else {
 						fprintf(devices_fd, "\"bcast\":\"%s\",", str_temp);
 					}
 					if (if_addr->acast == NULL) {
-						/*print_error("No anycast address to print for %s", if_item->name);*/
+						/*syslog(LOG_DEBUG, "No anycast address to print for %s", if_item->name);*/
 					} else if (NULL == inet_ntop(AF_INET6, &(((struct sockaddr_in6*)(if_addr->acast))->sin6_addr.s6_addr), str_temp, BUFSIZ)) {
-						print_syserror("Unable to print an anycast IP address for %s", if_item->name);
+						syslog_syserror(LOG_CRIT, "Unable to print an anycast IP address for %s", if_item->name);
 					} else {
 						fprintf(devices_fd, "\"acast\":\"%s\",", str_temp);
 					}
 				} else {
-					print_error("Interface address was neither IPv4 nor IPv6");
+					syslog(LOG_CRIT, "Interface address was neither IPv4 nor IPv6");
 				}
 				fprintf(subnet_fd, "}");
 				fprintf(devices_fd, "\"isagent\":1}");
@@ -1167,12 +1168,12 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 	} else if (addr->sa_family == AF_INET6) {
 		remote_addr_size = sizeof(struct sockaddr_in6);
 	} else {
-		print_error("Unexpected address family for network scanning");
+		syslog(LOG_ERR, "Unexpected address family for network scanning");
 		return;
 	}
 	remote_addr = (struct sockaddr*)malloc(remote_addr_size);
 	if (remote_addr == NULL) {
-		print_syserror("Unable to allocate memory for network scanning");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 	memset(remote_addr, 0, remote_addr_size);
@@ -1186,7 +1187,7 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 		const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
 		buf = (char*)malloc(bufsiz);
 		if (buf == NULL) {
-			print_syserror("Unable to allocate memory for a netlink communication buffer");
+			syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 			exit(EX_OSERR);
 		}
 	
@@ -1202,16 +1203,16 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 	
 		if (remote_addr->sa_family == AF_INET) {
 			if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_DST, sizeof(struct in_addr), &(((struct sockaddr_in*)remote_addr)->sin_addr))) {
-				print_error("Unable to prepare netlink message with a placeholder neighbour");
+				syslog(LOG_CRIT, "Unable to prepare netlink message with a placeholder neighbour");
 				exit(EX_SOFTWARE);
 			}
 		} else if (remote_addr->sa_family == AF_INET6) {
 			if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_DST, sizeof(struct in6_addr), &(((struct sockaddr_in6*)remote_addr)->sin6_addr))) {
-				print_error("Unable to prepare netlink message with a placeholder neighbour");
+				syslog(LOG_CRIT, "Unable to prepare netlink message with a placeholder neighbour");
 				exit(EX_SOFTWARE);
 			}
 		} else {
-			print_error("Internal address iterator has an unexpected address family.");
+			syslog(LOG_CRIT, "Internal error (address iterator has an unexpected address family)");
 			exit(EX_SOFTWARE);
 		}
 	
@@ -1219,7 +1220,7 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 		portid = mnl_socket_get_portid(nl_sock);
 	
 		if (mnl_socket_sendto(nl_sock, nl_head, nl_head->nlmsg_len) < 0) {
-			print_syserror("Unable to send placeholder neighbour through netlink");
+			syslog_syserror(LOG_CRIT, "Unable to send placeholder neighbour through netlink");
 			exit(EX_OSERR);
 		}
 	
@@ -1228,7 +1229,7 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 		} while (errcode > 0 && (errcode = mnl_cb_run(buf, errcode, seq, portid, &print_nlmsg_error_cb, NULL)) > MNL_CB_STOP);
 	
 		if (errcode < -1) {
-			print_syserror("Unable to add placeholder neighbour via netlink");
+			syslog_syserror(LOG_CRIT, "Unable to add placeholder neighbour via netlink");
 			exit(EX_OSERR);
 		}
 	
@@ -1287,10 +1288,11 @@ void print_neighbours(config_t* config, FILE* subnet_fd, FILE* devices_fd)
 	host_lookup_table_t lookup_table;
 
 	if (config == NULL) {
-		print_error("Empty config received");
+		syslog(LOG_CRIT, "Internal error (empty config received inside print neighbours)");
 		exit(EX_SOFTWARE);
 	} else if ((subnet_fd == NULL) || (devices_fd == NULL)) {
-		print_error("Bad file descriptor received");
+		syslog(LOG_CRIT, "Bad file descriptor received");
+		exit(EX_SOFTWARE);
 	}
 
 	if (config->iface_blacklist_regex != NULL && strlen(config->iface_blacklist_regex) > 0) {
@@ -1306,17 +1308,18 @@ void print_neighbours(config_t* config, FILE* subnet_fd, FILE* devices_fd)
 	if (errcode != 0) {
 		char str_temp[BUFSIZ];
 		regerror(errcode, &compiled_regex, str_temp, BUFSIZ);
-		print_error("Unable to prepare the network interface regex: %s", str_temp);
+		syslog(LOG_CRIT, "Unable to prepare the network interface regex: %s", str_temp);
+		exit(EX_SOFTWARE);
 	}
 
 	nl_sock = mnl_socket_open(NETLINK_ROUTE);
 	if (nl_sock == NULL) {
-		print_syserror("Unable to open netlink socket");
+		syslog_syserror(LOG_CRIT, "Unable to open netlink socket");
 		exit(EX_OSERR);
 	}
 
 	if (mnl_socket_bind(nl_sock, 0, MNL_SOCKET_AUTOPID) < 0) {
-		print_syserror("Unable to bind netlink socket to port");
+		syslog_syserror(LOG_CRIT, "Unable to bind netlink socket to port");
 		exit(EX_OSERR);
 	}
 

@@ -47,7 +47,7 @@ AS_IF([test "0$uci" -eq 01],
 
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stddef.h stdint.h stdlib.h string.h sys/socket.h syslog.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -61,7 +61,7 @@ AC_TYPE_UINT8_T
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
 #AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strerror strnlen])
+AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strdup strerror strnlen])
 
 
 
@@ -183,6 +183,11 @@ AX_CONFIG_OPTION_STRING_NN([config_agent_url],
 	[URL of config_agent API],
 	[URL])
 
+AX_CONFIG_OPTION_STRING_NN([config_subnet_url],
+	[https://www.whoisonmywifi.net/api/v100/rest/config_subnet],
+	[URL of config_subnet API],
+	[URL])
+
 AX_CONFIG_OPTION_STRING_NN([sync_block_url],
 	[https://www.whoisonmywifi.net/api/v100/rest/sync_block],
 	[URL of sync_block API],
@@ -217,6 +222,14 @@ AX_CONFIG_OPTION_STRING_NN([ca_path],
 	[/PATH/TO/ca-bundle.crt],
 	,
 	[SYSCONFDIR/ssl/certs/CA_FILE])
+
+AX_CONFIG_OPTION_STRING_NN([syslog_ident],
+	[wiomw],
+	[syslog identity (prefix and logfile name)])
+
+AX_CONFIG_OPTION_BOOL([authpriv_level_syslog],
+	[no],
+	[logging with syslog level LOG_AUTHPRIV (same as SSH and other security services)])
 
 AC_CONFIG_FILES([Makefile
                  etc/Makefile

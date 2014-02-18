@@ -5,8 +5,8 @@ wiomw_agent_SOURCES = main.c \
 		       configuration.h \
 		       signal_handler.c \
 		       signal_handler.h \
-		       print_error.c \
-		       print_error.h \
+		       syslog_syserror.c \
+		       syslog_syserror.h \
 		       api.c \
 		       api.h \
 		       neighbours.c \
@@ -15,7 +15,7 @@ wiomw_agent_SOURCES = main.c \
 		       sockaddr_helpers.h \
 		       mac_ntop.c \
 		       mac_ntop.h \
-		       block.c \
+		       iptables_block.c \
 		       block.h \
 		       string_helpers.c \
 		       string_helpers.h \

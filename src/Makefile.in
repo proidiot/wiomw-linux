@@ -47,10 +47,10 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(sbindir)"
 PROGRAMS = $(sbin_PROGRAMS)
 am_wiomw_agent_OBJECTS = main.$(OBJEXT) configuration.$(OBJEXT) \
-	signal_handler.$(OBJEXT) print_error.$(OBJEXT) api.$(OBJEXT) \
-	neighbours.$(OBJEXT) sockaddr_helpers.$(OBJEXT) \
-	mac_ntop.$(OBJEXT) block.$(OBJEXT) string_helpers.$(OBJEXT) \
-	host_lookup.$(OBJEXT)
+	signal_handler.$(OBJEXT) syslog_syserror.$(OBJEXT) \
+	api.$(OBJEXT) neighbours.$(OBJEXT) sockaddr_helpers.$(OBJEXT) \
+	mac_ntop.$(OBJEXT) iptables_block.$(OBJEXT) \
+	string_helpers.$(OBJEXT) host_lookup.$(OBJEXT)
 wiomw_agent_OBJECTS = $(am_wiomw_agent_OBJECTS)
 am__DEPENDENCIES_1 =
 wiomw_agent_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -168,8 +168,8 @@ wiomw_agent_SOURCES = main.c \
 		       configuration.h \
 		       signal_handler.c \
 		       signal_handler.h \
-		       print_error.c \
-		       print_error.h \
+		       syslog_syserror.c \
+		       syslog_syserror.h \
 		       api.c \
 		       api.h \
 		       neighbours.c \
@@ -178,7 +178,7 @@ wiomw_agent_SOURCES = main.c \
 		       sockaddr_helpers.h \
 		       mac_ntop.c \
 		       mac_ntop.h \
-		       block.c \
+		       iptables_block.c \
 		       block.h \
 		       string_helpers.c \
 		       string_helpers.h \
@@ -269,16 +269,16 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/api.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/block.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/configuration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/host_lookup.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iptables_block.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac_ntop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/neighbours.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/print_error.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/signal_handler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockaddr_helpers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string_helpers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/syslog_syserror.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

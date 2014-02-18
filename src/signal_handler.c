@@ -1,6 +1,6 @@
 #include <config.h>
 #include "signal_handler.h"
-#include "print_error.h"
+#include <syslog.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +10,7 @@ volatile sig_atomic_t bool_stop_received;
 void signal_callback(int signal)
 {
 	if (signal != SIGALRM) {
-		print_error("Caught signal %d: %s", signal);
+		syslog(LOG_NOTICE, "Caught signal %d: %s", signal, strsignal(signal));
 		bool_stop_received = (1==1);
 	}
 }

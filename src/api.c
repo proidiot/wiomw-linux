@@ -1,5 +1,6 @@
 #include <config.h>
-#include "print_error.h"
+#include <syslog.h>
+#include "syslog_syserror.h"
 #include "api.h"
 #include "configuration.h"
 #include "neighbours.h"
@@ -27,7 +28,7 @@ size_t curl_cb_process_buffer(void* data_buffer, size_t unit_size, size_t unit_c
 	holder_t holder_t_data;
 
 	if (passed_holder_t_data == NULL) {
-		print_error("Unable to determine where to store the data from the server");
+		syslog(LOG_CRIT, "Internal error within cURL callback");
 		exit(EX_SOFTWARE);
 	}
 	holder_t_data = (holder_t)passed_holder_t_data;
@@ -40,7 +41,7 @@ size_t curl_cb_process_buffer(void* data_buffer, size_t unit_size, size_t unit_c
 				holder_t_data->size_offset + (unit_size * unit_count) + 1);
 	}
 	if (holder_t_data->str_data == NULL) {
-		print_syserror("Unable to allocate memory to store additional data from the server");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 
@@ -65,20 +66,21 @@ void wiomw_login(config_t* config)
 	long fd_size;
 
 	if (config == NULL) {
-		print_error("Unexpected empty configuration");
+		syslog(LOG_CRIT, "Internal error during login (empty config)");
 		exit(EX_SOFTWARE);
 	}
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));
 	if (holder_t_data == NULL) {
-		print_syserror("Unable to allocate memory to store the data from the server");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 	holder_t_data->size_offset = 0;
 	holder_t_data->str_data = NULL;
 
 	if ((fd = tmpfile()) == NULL) {
-		print_syserror("Unable to open the temproary file to store data to send to the server");
+		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
+		exit(EX_OSERR);
 	}
 
 	fprintf(fd, "{\"username\":\"%s\",\"password\":\"%s\",\"agentkey\":\"%s\"}", config->username, config->passhash, config->agentkey);
@@ -100,30 +102,30 @@ void wiomw_login(config_t* config)
 	if (curl_easy_perform(curl_handle) == 0) {
 		size_t size_data_length;
 		if (holder_t_data->size_offset == 0) {
-			print_error("Did not receive data from the server");
+			syslog(LOG_ALERT, "Server response to login was empty (potential security breach)");
 			exit(EX_PROTOCOL);
 		}
 		
 		size_data_length = strlen(holder_t_data->str_data);
 		if (size_data_length > CONFIG_OPTION_SESSION_ID_LENGTH) {
-			print_error("Session ID received was larger than %d bytes", CONFIG_OPTION_SESSION_ID_LENGTH);
+			syslog(LOG_CRIT, "Session ID sent by server is too big to store");
 			exit(EX_PROTOCOL);
 		} else {
 			int i = 0;
 			config->session_id = string_chomp_copy(holder_t_data->str_data);
 			for (i = 0; config->session_id[i] != '\0'; i++) {
 				if (!isalnum(config->session_id[i])) {
-					print_error("Invalid session ID");
+					syslog(LOG_ERR, "Received an invalid session ID (possibly bad username or password hash)");
 					exit(EX_DATAERR);
 				}
 			}
 			if (i != 40) {
-				print_error("Invalid session ID");
+				syslog(LOG_ERR, "Received an invalid session ID (possibly bad username or password hash)");
 				exit(EX_DATAERR);
 			}
 		}
 	} else {
-		print_error("Login failed: %s", str_error_buffer);
+		syslog(LOG_ERR, "Login failed: %s", str_error_buffer);
 		exit(EX_UNAVAILABLE);
 	}
 
@@ -141,20 +143,21 @@ void send_config(config_t* config)
 	long fd_size;
 
 	if (config == NULL) {
-		print_error("Unexpected empty configuration");
+		syslog(LOG_CRIT, "Internal error during version announcement (empty config)");
 		exit(EX_SOFTWARE);
 	}
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));
 	if (holder_t_data == NULL) {
-		print_syserror("Unable to allocate memory to store the data from the server");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 	holder_t_data->size_offset = 0;
 	holder_t_data->str_data = NULL;
 
 	if ((fd = tmpfile()) == NULL) {
-		print_syserror("Unable to open the temproary file to store data to send to the server");
+		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
+		exit(EX_OSERR);
 	}
 
 	fprintf(fd, "[%s, {\"frequency\":\"%d\",\"agent_version\":\"%s_%s_%s\",\"apiversion\":\"v100\",\"agentdetail\":\"%s, agent type %s, calling REST interface\", \"agenttime\":\"%ld\"}]", config->session_id, CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, CONFIG_OPTION_AGENT_TYPE, PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING, CONFIG_OPTION_AGENT_TYPE, time(NULL));
@@ -175,11 +178,11 @@ void send_config(config_t* config)
 
 	if (curl_easy_perform(curl_handle) == 0) {
 		if (holder_t_data->size_offset == 0) {
-			print_error("Did not receive data from the server");
+			syslog(LOG_ERR, "Server response to version announcement was empty");
 			exit(EX_PROTOCOL);
 		}
 	} else {
-		print_error("Send configuration failed: %s", str_error_buffer);
+		syslog(LOG_ERR, "Version announcement failed: %s", str_error_buffer);
 		exit(EX_UNAVAILABLE);
 	}
 
@@ -197,7 +200,7 @@ void sync_block(config_t* config)
 	long fd_size;
 
 	if (config == NULL) {
-		print_error("Unexpected empty configuration");
+		syslog(LOG_CRIT, "Internal error during device blocking setup (empty config)");
 		exit(EX_SOFTWARE);
 	} else if (!config->allow_blocking) {
 		return;
@@ -205,14 +208,15 @@ void sync_block(config_t* config)
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));
 	if (holder_t_data == NULL) {
-		print_syserror("Unable to allocate memory to store the data from the server");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 	holder_t_data->size_offset = 0;
 	holder_t_data->str_data = NULL;
 
 	if ((fd = tmpfile()) == NULL) {
-		print_syserror("Unable to open the temproary file to store data to send to the server");
+		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
+		exit(EX_OSERR);
 	}
 
 	fprintf(fd, "[\"%s\"]", config->session_id);
@@ -233,13 +237,13 @@ void sync_block(config_t* config)
 
 	if (curl_easy_perform(curl_handle) == 0) {
 		if (holder_t_data->size_offset == 0) {
-			print_error("Did not receive data from the server");
+			syslog(LOG_ALERT, "Server response to device blocking setup was empty (potential security breach)");
 			exit(EX_PROTOCOL);
 		}
 		
 		apply_blocks(holder_t_data->str_data);
 	} else {
-		print_error("Get updates failed: %s", str_error_buffer);
+		syslog(LOG_ERR, "Device blocking setup failed: %s", str_error_buffer);
 		exit(EX_UNAVAILABLE);
 	}
 
@@ -259,20 +263,20 @@ void send_subnet_and_devices(config_t* config)
 	long devices_fd_size;
 
 	if (config == NULL) {
-		print_error("Unexpected empty configuration");
+		syslog(LOG_CRIT, "Internal error during report (empty config)");
 		exit(EX_SOFTWARE);
 	}
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));
 	if (holder_t_data == NULL) {
-		print_syserror("Unable to allocate memory to store the data from the server");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 	holder_t_data->size_offset = 0;
 	holder_t_data->str_data = NULL;
 
 	if (((subnet_fd = tmpfile()) == NULL) || ((devices_fd = tmpfile()) == NULL)) {
-		print_syserror("Unable to open the temproary file to store data to send to the server");
+		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
 		exit(EX_OSERR);
 	}
 	print_neighbours(config, subnet_fd, devices_fd);
@@ -295,16 +299,15 @@ void send_subnet_and_devices(config_t* config)
 
 	if (curl_easy_perform(curl_handle) == 0) {
 		if (holder_t_data->size_offset == 0) {
-			print_error("Did not receive data from the server");
+			syslog(LOG_ERR, "Server response to network layout report was empty");
 			exit(EX_PROTOCOL);
 		}
 	} else {
-		print_error("Config subnet failed: %s", str_error_buffer);
+		syslog(LOG_ERR, "Network layout report failed: %s", str_error_buffer);
 		exit(EX_UNAVAILABLE);
 	}
 
 	curl_easy_cleanup(curl_handle);
-	free(holder_t_data->str_data);
 
 	memset(holder_t_data, 0, sizeof(struct holder_t_struct));
 
@@ -320,11 +323,11 @@ void send_subnet_and_devices(config_t* config)
 
 	if (curl_easy_perform(curl_handle) == 0) {
 		if (holder_t_data->size_offset == 0) {
-			print_error("Did not receive data from the server");
+			syslog(LOG_ALERT, "Server response to network device report was empty (potential security breach)");
 			exit(EX_PROTOCOL);
 		}
 	} else {
-		print_error("Send devices failed: %s", str_error_buffer);
+		syslog(LOG_ERR, "Network device report failed: %s", str_error_buffer);
 		exit(EX_UNAVAILABLE);
 	}
 

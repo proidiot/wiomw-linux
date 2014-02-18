@@ -9,6 +9,10 @@
 /* run time overriding of API URLs */
 #undef CONFIG_OPTION_API_URL_OVERRIDES
 
+/* logging with syslog level LOG_AUTHPRIV (same as SSH and other security
+   services) */
+#undef CONFIG_OPTION_AUTHPRIV_LEVEL_SYSLOG
+
 /* path to the certificate authority file */
 #undef CONFIG_OPTION_CA_PATH
 
@@ -20,6 +24,9 @@
 
 /* maximum allowable length of any line in the configuration file */
 #undef CONFIG_OPTION_CONFIG_LINE_LENGTH
+
+/* URL of config_subnet API */
+#undef CONFIG_OPTION_CONFIG_SUBNET_URL
 
 /* dnsmasq lease file location */
 #undef CONFIG_OPTION_DNSMASQ_LEASE_FILE
@@ -74,6 +81,9 @@
 
 /* URL of sync_block API */
 #undef CONFIG_OPTION_SYNC_BLOCK_URL
+
+/* syslog identity (prefix and logfile name) */
+#undef CONFIG_OPTION_SYSLOG_IDENT
 
 /* uci configuration storage */
 #undef CONFIG_OPTION_UCI
@@ -139,11 +149,17 @@
 /* Define to 1 if stdbool.h conforms to C99. */
 #undef HAVE_STDBOOL_H
 
+/* Define to 1 if you have the <stddef.h> header file. */
+#undef HAVE_STDDEF_H
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the `strdup' function. */
+#undef HAVE_STRDUP
 
 /* Define to 1 if you have the `strerror' function. */
 #undef HAVE_STRERROR
@@ -159,6 +175,9 @@
 
 /* Define to 1 if you have the `strnlen' function. */
 #undef HAVE_STRNLEN
+
+/* Define to 1 if you have the <syslog.h> header file. */
+#undef HAVE_SYSLOG_H
 
 /* Define to 1 if you have the <sys/socket.h> header file. */
 #undef HAVE_SYS_SOCKET_H

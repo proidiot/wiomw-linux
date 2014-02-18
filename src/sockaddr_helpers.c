@@ -1,6 +1,7 @@
 #include <config.h>
 #include "sockaddr_helpers.h"
-#include "print_error.h"
+#include "syslog_syserror.h"
+#include <syslog.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -18,7 +19,7 @@ void add_network(network_list_t* list, struct sockaddr* addr_base, uint8_t prefi
 
 	temp = (network_list_t)malloc(sizeof(struct _network_list_struct));
 	if (temp == NULL) {
-		print_syserror("Unable to allocate more memory for network list");
+		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
 
@@ -89,9 +90,9 @@ network_list_t address_range_network_list(struct sockaddr* first, struct sockadd
 		memcpy(temp, first, sizeof(struct sockaddr_in6));
 		add_network(&result, first, 128);
 	} else if (last == NULL || first == NULL) {
-		print_error("Unknown address family in range");
+		syslog(LOG_ERR, "Unknown address family in range");
 	} else if (first->sa_family != last->sa_family) {
-		print_error("Cannot create an address range between addresses of different types");
+		syslog(LOG_ERR, "Cannot create an address range between addresses of different types");
 	} else if (first->sa_family == AF_INET) {
 		unsigned long first_ip = ntohl(((struct sockaddr_in*)first)->sin_addr.s_addr);
 		unsigned long last_ip = ntohl(((struct sockaddr_in*)last)->sin_addr.s_addr);
@@ -142,7 +143,7 @@ network_list_t address_range_network_list(struct sockaddr* first, struct sockadd
 		current->sin6_addr.s6_addr[change_offset] += (0xFF >> partial_prefix);
 		add_network(&result, (struct sockaddr*)current, (8 * change_offset) + partial_prefix);
 	} else {
-		print_error("Unknown address family in range");
+		syslog(LOG_ERR, "Unknown address family in range");
 	}
 	return result;
 }
@@ -165,10 +166,10 @@ long increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr*
 	} else if (prefix == 128 && addr_base->sa_family == AF_INET6) {
 		return -9;
 	} else if (prefix == 0 && addr_base->sa_family == AF_INET) {
-		print_error("Full range IP enumeration is not allowed");
+		syslog(LOG_ERR, "Full range IP enumeration is not allowed");
 		return -999;
 	} else if (prefix == 0 && addr_base->sa_family == AF_INET6) {
-		print_error("Full range IP enumeration is not allowed");
+		syslog(LOG_ERR, "Full range IP enumeration is not allowed");
 		return -999;
 	} else if (addr_base->sa_family == AF_INET) {
 		struct sockaddr_in* base = (struct sockaddr_in*)addr_base;
@@ -263,7 +264,7 @@ long increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr*
 
 		return (remaining >= LONG_MAX)? LONG_MAX : remaining;
 	} else {
-		print_error("Unknown address family for base address");
+		syslog(LOG_ERR, "Unknown address family for base address");
 		return -999;
 	}
 }
@@ -331,10 +332,10 @@ int check_addr_range(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr
 				return (1==1);
 			}
 		}
-		print_error("Internal error while checking IP range");
+		syslog(LOG_ERR, "Internal error while checking IP range");
 		return -999;
 	} else {
-		print_error("Unknown address family for base address");
+		syslog(LOG_ERR, "Unknown address family for base address");
 		return -999;
 	}
 }
@@ -390,7 +391,7 @@ int check_autoscannable_range(struct sockaddr* addr, uint8_t prefix)
 
 		return (1==0);
 	} else {
-		print_error("Unable to check if address is within an acceptable range: Unknown address family");
+		syslog(LOG_ERR, "Unable to check if address is within an acceptable range: Unknown address family");
 		return -1;
 	}
 }
@@ -409,7 +410,7 @@ network_list_t get_overlapping_networks(struct sockaddr* addr_base, uint8_t pref
 	} else if (addr_base->sa_family == AF_INET6) {
 		min_public_prefix = CONFIG_OPTION_IPV6_PUBLIC_PREFIX;
 	} else {
-		print_error("Unexpected address family when checking for overlapping networks");
+		syslog(LOG_ERR, "Unexpected address family when checking for overlapping networks");
 		return NULL;
 	}
 
