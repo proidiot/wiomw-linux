@@ -1,3 +1,25 @@
+/**
+ * Copyright 2013, 2014 Who Is On My WiFi.
+ *
+ * This file is part of Who Is On My WiFi Linux.
+ *
+ * Who Is On My WiFi Linux is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * More information about Who Is On My WiFi Linux can be found at
+ * <http://www.whoisonmywifi.com/>.
+ */
+
 #include "host_lookup.h"
 #include <config.h>
 #include <stdlib.h>
@@ -38,14 +60,9 @@ host_lookup_table_t get_host_lookup_table(config_t* config)
 						syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 						exit(EX_OSERR);
 					}
-					(*temp)->hostname = (char*)malloc(hostname_length);
-					if ((*temp)->hostname == NULL) {
-						syslog_syserror(LOG_EMERG, "Unable to allocate memory");
-						exit(EX_OSERR);
-					}
 					strncpy((*temp)->mac_addr, line, 17);
 					(*temp)->mac_addr[17] = '\0';
-					strncpy((*temp)->hostname, line + 17, hostname_length);
+					(*temp)->hostname = string_chomp_copy(line + 17);
 					(*temp)->next = NULL;
 					temp = &((*temp)->next);
 				}
@@ -61,8 +78,10 @@ char* host_lookup(host_lookup_table_t table, char* mac_addr)
 {
 	host_lookup_table_t temp = table;
 	while (temp != NULL) {
-		if (strncmp(temp->mac_addr, mac_addr, 18) == 0) {
+		if (strncasecmp(temp->mac_addr, mac_addr, 18) == 0) {
 			return temp->hostname;
+		} else {
+			temp = temp->next;
 		}
 	}
 	return NULL;

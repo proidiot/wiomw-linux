@@ -1,9 +1,30 @@
+# Copyright 2013, 2014 Who Is On My WiFi.
+#
+# This file is part of Who Is On My WiFi Linux.
+#
+# Who Is On My WiFi Linux is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+#
+# Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+#
+# More information about Who Is On My WiFi Linux can be found at
+# <http://www.whoisonmywifi.com/>.
+#
+
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
 AC_INIT([wiomw],
-	[1.0],
-	[support@io3o.com],
+	[1.0.0],
+	[bugs at whoisonmywifi dot com],
 	[wiomw],
 	[http://www.whoisonmywifi.net])
 AC_CONFIG_MACRO_DIR[(m4])
@@ -60,7 +81,7 @@ AC_TYPE_UINT8_T
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
 #AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strdup strerror strnlen])
+AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strdup strerror strncasecmp strnlen])
 
 
 
@@ -193,7 +214,7 @@ AX_CONFIG_OPTION_STRING_NN([sync_block_url],
 	[URL])
 
 AX_CONFIG_OPTION_STRING_NN([send_devices_url],
-	[https://www.whoisonmywifi.net/api/v100/rest/senddeivce],
+	[https://www.whoisonmywifi.net/api/v100/rest/senddevice],
 	[URL of send devices API],
 	[URL])
 
@@ -230,9 +251,23 @@ AX_CONFIG_OPTION_BOOL([authpriv_level_syslog],
 	[no],
 	[logging with syslog level LOG_AUTHPRIV (same as SSH and other security services)])
 
+AX_CONFIG_OPTION_NUMBER_RANGE([scan_result_timeout],
+	30,
+	5,
+	60,
+	[maximum amount of time to wait for scan results to resolve],
+	[SECS])
+
+
+
+
+# Generated files
 AC_CONFIG_FILES([Makefile
                  etc/Makefile
                  etc/ssl/Makefile
                  etc/ssl/certs/Makefile
                  src/Makefile])
+
+
+
 AC_OUTPUT

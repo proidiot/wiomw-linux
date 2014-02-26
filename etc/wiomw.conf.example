@@ -1,122 +1,50 @@
+# Copyright 2013, 2014 Who Is On My WiFi.
 #
-# Example wiomw-plugin config file
+# This file is part of Who Is On My WiFi Linux.
 #
-
-
+# Who Is On My WiFi Linux is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 #
-# You must edit these:
+# Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
 #
-
-	# Your username for whoisonmywifi.net (presumably your email address)
-
-	 USERNAME = username@io3o.com
-
-
-	# The SHA1 of your password salted with the public salt
-	# (this can be retrieved from https://www.whoisonmywifi.net/path/to/passhash/page)
-
-	 PASSHASH = 1234567890ABCDEF1234567890ABCDEF
-
-
-
+# You should have received a copy of the GNU General Public License along with
+# Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Scanning options (these can probably be left alone):
+# More information about Who Is On My WiFi Linux can be found at
+# <http://www.whoisonmywifi.com/>.
 #
 
-	# Automatically scan all private networks that can be found (except through blacklisted interfaces).
-	# Default: TRUE
+###########################
+# Example wiomw.conf file #
+###########################
 
-	 #AUTOSCAN = TRUE
-	 #AUTOSCAN = FALSE
+# Required values
+##################
 
+# Your username for whoisonmywifi.net (presumably your email address)
+USERNAME = email@example.com
 
-	# Interfaces that match this regular expression will not be autoscanned.
-	# Default: (blank)
-
-	 #IFACE_BLACKLIST_REGEX = 
-	 IFACE_BLACKLIST_REGEX = ^vlan1$
-
-
-	# Networks in this list will be scanned if available.
-	# Default: (blank)
-
-	 #NETWORKS =
-	 #NETWORKS = 192.168.1.0/24, 10.12.0.0/16, 192.168.2.254, 8.8.8.8/0
+# These values must be obtained from the site.
+PASSHASH = 1234567890ABCDEF1234567890ABCDEF
+AGENTKEY = LINUX-PLACEHOLDER-12345
 
 
+# Optional values
+##################
 
+# Automatically scan all private networks that can be found
+# (except ones found through blacklisted interfaces, see below).
+# Default: TRUE
 
-#
-#
-# NOTHING BELOW THIS LINE WILL APPEAR IN THE EXAMPLE CONFIG FOR PRODUCTION
-#
-#
+#AUTOSCAN = FALSE
 
+# Interfaces that match this regular expression will not be autoscanned.
+# Default: (blank)
 
-
-#
-# These options could be useful to users in edge cases, so we'll deal with those on a case-by-case basis.
-#
-
-	# Do not send any information about blacklisted interfaces (including their own addresses).
-	# As a side effect, nothing else can be done with these interfaces.
-	# Default: yes
- 
-	 #COMPLETELY_IGNORE_BLACKLIST_IFACES = TRUE
-
-
-	# Send information about neighbours we remember but can no longer contact.
-	# Default: no
-
-	 #SEND_UNREACHABLE_NEIGHS = FALSE
-
-
-	# Send information about interfaces we know we have but are not currently up.
-	# Default: no
-
-	 #SEND_DOWN_IFACES = FALSE
-
-
-	# Send information about neighbours that we did not scan for but we are aware of anyway over a blacklisted interface.
-	# For example: Even if we aren't scanning over a blacklisted WAN port, we probably still have an entry for the gateway.
-	# COMPLETELY_IGNORE_BLACKLIST_IFACES set to TRUE stops this, but BLACKLIST_OVERRIDES_NETWORKS has no effect.
-	# Default: no
-
-	 #SEND_KNOWN_NEIGHS_BEHIND_BLACKLIST_IFACES = FALSE
-
-
-	# Send information about local interface addresses that are listed as "secondary".
-	# Maybe this could be useful for troubleshooting or in some edge case or something.
-	# Default: no
-
-	 #SEND_SECONDARY_IFACE_ADDRS = FALSE
-
-
-	# Do not scan for even the specified networks over blacklisted interfaces.
-	# To scan an address through an otherwise blacklisted interface, you must set this to FALSE,
-	# set COMPLETELY_IGNORE_BLACKLIST_IFACES to FALSE, and list the address in NETWORKS.
-	# Default: yes
-
-	 #BLACKLIST_OVERRIDES_NETWORKS = TRUE
-
-
-
-#
-# These won't be available in production:
-#
-
-	 LOGIN_URL = https://beta.whoisonmywifi.net/api/v100/rest/login
-	 SYNC_BLOCK_URL = https://beta.whoisonmywifi.net/api/v100/rest/sync_block
-	 SEND_DEVICES_URL = https://beta.whoisonmywifi.net/api/v100/rest/senddevice
-
-
-
-#
-# These are deprecated and I will be removing them:
-#
-
-	 #RUN_AS_USER_ID = 1000
-	 #RUN_AS_USER_NAME = myuser
-	 #RUN_AS_GROUP_ID = 1000
-	 #RUN_AS_GROUP_NAME = mygroup
+#IFACE_BLACKLIST_REGEX = ^vlan1$
 

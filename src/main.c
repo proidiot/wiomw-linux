@@ -1,3 +1,25 @@
+/**
+ * Copyright 2013, 2014 Who Is On My WiFi.
+ *
+ * This file is part of Who Is On My WiFi Linux.
+ *
+ * Who Is On My WiFi Linux is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * More information about Who Is On My WiFi Linux can be found at
+ * <http://www.whoisonmywifi.com/>.
+ */
+
 #include <config.h>
 #include <stdio.h>
 #include <sysexits.h>
@@ -47,9 +69,12 @@ int main(int argc, char** argv)
 				sync_block(&config);
 				syslog(LOG_INFO, "Device blocking updated");
 			}
-			if (time(NULL) < (last_session_request + CONFIG_OPTION_SESSION_LENGTH)) {
+			if (time(NULL) < (last_session_request + CONFIG_OPTION_SESSION_LENGTH + CONFIG_OPTION_SCAN_RESULT_TIMEOUT)) {
+				syslog(LOG_INFO, "Collecting network device details...");
 				send_subnet_and_devices(&config);
 				syslog(LOG_INFO, "Network device reports sent");
+			} else {
+				syslog(LOG_INFO, "Skipping scan because session is expiring");
 			}
 			next_session_request_wait = (last_session_request + CONFIG_OPTION_SESSION_LENGTH) - time(NULL);
 			if (next_session_request_wait > 0) {

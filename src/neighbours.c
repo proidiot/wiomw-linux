@@ -1,3 +1,25 @@
+/**
+ * Copyright 2013, 2014 Who Is On My WiFi.
+ *
+ * This file is part of Who Is On My WiFi Linux.
+ *
+ * Who Is On My WiFi Linux is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * More information about Who Is On My WiFi Linux can be found at
+ * <http://www.whoisonmywifi.com/>.
+ */
+
 #include <config.h>
 #include "neighbours.h"
 #include "syslog_syserror.h"
@@ -6,6 +28,7 @@
 #include "configuration.h"
 #include "mac_ntop.h"
 #include "host_lookup.h"
+#include "signal_handler.h"
 #include <stdio.h>
 #include <linux/version.h>
 #include <asm/types.h>
@@ -1330,22 +1353,25 @@ void print_neighbours(config_t* config, FILE* subnet_fd, FILE* devices_fd)
 
 	scan_networks(nl_sock, if_list, config);
 
-	sleep(30);
+	alarm(CONFIG_OPTION_SCAN_RESULT_TIMEOUT);
+	sleep_until_signalled();
 
-	fprintf(subnet_fd, "[\"%s\"", config->session_id);
-	fprintf(devices_fd, "[\"%s\"", config->session_id);
-
-	lookup_table = get_host_lookup_table(config);
-
-	print_if_list(subnet_fd, devices_fd, if_list, config, lookup_table);
-
-	fprintf(subnet_fd, "]");
-
-	print_neigh_list(nl_sock, devices_fd, if_list, config, lookup_table);
-
-	mnl_socket_close(nl_sock);
-
-	fprintf(devices_fd, "]");
+	if (!stop_signal_received()) {
+		fprintf(subnet_fd, "[\"%s\"", config->session_id);
+		fprintf(devices_fd, "[\"%s\"", config->session_id);
+	
+		lookup_table = get_host_lookup_table(config);
+	
+		print_if_list(subnet_fd, devices_fd, if_list, config, lookup_table);
+	
+		fprintf(subnet_fd, "]");
+	
+		print_neigh_list(nl_sock, devices_fd, if_list, config, lookup_table);
+	
+		mnl_socket_close(nl_sock);
+	
+		fprintf(devices_fd, "]");
+	}
 
 	destroy_host_lookup_table(&lookup_table);
 	destroy_if_list(&if_list);

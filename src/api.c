@@ -1,3 +1,25 @@
+/**
+ * Copyright 2013, 2014 Who Is On My WiFi.
+ *
+ * This file is part of Who Is On My WiFi Linux.
+ *
+ * Who Is On My WiFi Linux is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * More information about Who Is On My WiFi Linux can be found at
+ * <http://www.whoisonmywifi.com/>.
+ */
+
 #include <config.h>
 #include <syslog.h>
 #include "syslog_syserror.h"
@@ -256,7 +278,8 @@ void send_subnet_and_devices(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
-	CURL* curl_handle;
+	CURL* curl_handle1;
+	CURL* curl_handle2;
 	FILE* subnet_fd;
 	FILE* devices_fd;
 	long subnet_fd_size;
@@ -287,17 +310,17 @@ void send_subnet_and_devices(config_t* config)
 	devices_fd_size = ftell(devices_fd);
 	rewind(devices_fd);
 
-	curl_handle = curl_easy_init();
-	curl_easy_setopt(curl_handle, CURLOPT_URL, config->config_subnet_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
-	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
-	curl_easy_setopt(curl_handle, CURLOPT_READDATA, subnet_fd);
-	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, subnet_fd_size);
+	curl_handle1 = curl_easy_init();
+	curl_easy_setopt(curl_handle1, CURLOPT_URL, config->config_subnet_url);
+	curl_easy_setopt(curl_handle1, CURLOPT_CAINFO, config->capath);
+	curl_easy_setopt(curl_handle1, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+	curl_easy_setopt(curl_handle1, CURLOPT_WRITEDATA, holder_t_data);
+	curl_easy_setopt(curl_handle1, CURLOPT_ERRORBUFFER, str_error_buffer);
+	curl_easy_setopt(curl_handle1, CURLOPT_POST, 1);
+	curl_easy_setopt(curl_handle1, CURLOPT_READDATA, subnet_fd);
+	curl_easy_setopt(curl_handle1, CURLOPT_POSTFIELDSIZE, subnet_fd_size);
 
-	if (curl_easy_perform(curl_handle) == 0) {
+	if (curl_easy_perform(curl_handle1) == 0) {
 		if (holder_t_data->size_offset == 0) {
 			syslog(LOG_ERR, "Server response to network layout report was empty");
 			exit(EX_PROTOCOL);
@@ -307,21 +330,26 @@ void send_subnet_and_devices(config_t* config)
 		exit(EX_UNAVAILABLE);
 	}
 
-	curl_easy_cleanup(curl_handle);
+	curl_easy_cleanup(curl_handle1);
 
+	if (holder_t_data->str_data != NULL) {
+		free(holder_t_data->str_data);
+	}
+	holder_t_data->size_offset = 0;
+	holder_t_data->str_data = NULL;
 	memset(holder_t_data, 0, sizeof(struct holder_t_struct));
 
-	curl_handle = curl_easy_init();
-	curl_easy_setopt(curl_handle, CURLOPT_URL, config->send_devices_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
-	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
-	curl_easy_setopt(curl_handle, CURLOPT_READDATA, devices_fd);
-	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, devices_fd_size);
+	curl_handle2 = curl_easy_init();
+	curl_easy_setopt(curl_handle2, CURLOPT_URL, config->send_devices_url);
+	curl_easy_setopt(curl_handle2, CURLOPT_CAINFO, config->capath);
+	curl_easy_setopt(curl_handle2, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+	curl_easy_setopt(curl_handle2, CURLOPT_WRITEDATA, holder_t_data);
+	curl_easy_setopt(curl_handle2, CURLOPT_ERRORBUFFER, str_error_buffer);
+	curl_easy_setopt(curl_handle2, CURLOPT_POST, 1);
+	curl_easy_setopt(curl_handle2, CURLOPT_READDATA, devices_fd);
+	curl_easy_setopt(curl_handle2, CURLOPT_POSTFIELDSIZE, devices_fd_size);
 
-	if (curl_easy_perform(curl_handle) == 0) {
+	if (curl_easy_perform(curl_handle2) == 0) {
 		if (holder_t_data->size_offset == 0) {
 			syslog(LOG_ALERT, "Server response to network device report was empty (potential security breach)");
 			exit(EX_PROTOCOL);
@@ -331,7 +359,7 @@ void send_subnet_and_devices(config_t* config)
 		exit(EX_UNAVAILABLE);
 	}
 
-	curl_easy_cleanup(curl_handle);
+	curl_easy_cleanup(curl_handle2);
 	free(holder_t_data->str_data);
 	free(holder_t_data);
 }

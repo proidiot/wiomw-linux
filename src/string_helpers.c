@@ -1,9 +1,32 @@
+/**
+ * Copyright 2013, 2014 Who Is On My WiFi.
+ *
+ * This file is part of Who Is On My WiFi Linux.
+ *
+ * Who Is On My WiFi Linux is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * More information about Who Is On My WiFi Linux can be found at
+ * <http://www.whoisonmywifi.com/>.
+ */
+
 #include "string_helpers.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <syslog.h>
+#include <ctype.h>
 #include "syslog_syserror.h"
 
 char* string_chomp_copy(char* source)
@@ -251,6 +274,40 @@ size_t safe_string_length(const char* s, size_t maxlen)
 			}
 		}
 		return maxlen;
+	}
+}
+
+char* regex_escape_ifname(char* ifname)
+{
+	size_t periods = 0;
+	size_t i = 0;
+	char c = '\0';
+	while ((c = ifname[i++]) != '\0') {
+		if (c == '.') {
+			periods++;
+		} else if (!isalnum(c)) {
+			syslog(LOG_CRIT, "Non-alphanumeric characters other than period aren't supposed to be part of a network interface name");
+			exit(EX_CONFIG);
+		}
+	}
+	if (periods > 0) {
+		size_t j = 0;
+		char* result = (char*)malloc(i + periods + 1);
+		if (result == NULL) {
+			syslog_syserror(LOG_EMERG, "Unable to allocate memory");
+			exit(EX_OSERR);
+		}
+		i = 0;
+		while((c = ifname[i++]) != '\0') {
+			if (c == '.') {
+				result[j++] = '\\';
+			}
+			result[j++] = c;
+		}
+		result[j] = '\0';
+		return result;
+	} else {
+		return ifname;
 	}
 }
 

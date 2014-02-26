@@ -67,6 +67,9 @@
 /* permanent interface blacklist regular expression length */
 #undef CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH
 
+/* maximum amount of time to wait for scan results to resolve */
+#undef CONFIG_OPTION_SCAN_RESULT_TIMEOUT
+
 /* URL of send devices API */
 #undef CONFIG_OPTION_SEND_DEVICES_URL
 
@@ -172,6 +175,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strncasecmp' function. */
+#undef HAVE_STRNCASECMP
 
 /* Define to 1 if you have the `strnlen' function. */
 #undef HAVE_STRNLEN

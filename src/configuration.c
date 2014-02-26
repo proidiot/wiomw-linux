@@ -1,3 +1,25 @@
+/**
+ * Copyright 2013, 2014 Who Is On My WiFi.
+ *
+ * This file is part of Who Is On My WiFi Linux.
+ *
+ * Who Is On My WiFi Linux is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * More information about Who Is On My WiFi Linux can be found at
+ * <http://www.whoisonmywifi.com/>.
+ */
+
 #include <config.h>
 #include "configuration.h"
 #include <stdio.h>
@@ -193,9 +215,9 @@ config_t get_configuration(int argc, char** argv)
 			char* path = strdup(UCI_PATH ".username");
 			int status = uci_lookup_ptr(ctx, &ptr, path, true);
 			if (UCI_OK == status) {
-				if (0 < strlen(ptr.o->v.string)) {
+				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 					config_username_is_set = true;
-					config.username = ptr.o->v.string;
+					config.username = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
@@ -209,9 +231,9 @@ config_t get_configuration(int argc, char** argv)
 			char* path = strdup(UCI_PATH ".passhash");
 			int status = uci_lookup_ptr(ctx, &ptr, path, true);
 			if (UCI_OK == status) {
-				if (0 < strlen(ptr.o->v.string)) {
+				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 					config_passhash_is_set = true;
-					config.passhash = ptr.o->v.string;
+					config.passhash = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
@@ -225,14 +247,30 @@ config_t get_configuration(int argc, char** argv)
 			char* path = strdup(UCI_PATH ".agentkey");
 			int status = uci_lookup_ptr(ctx, &ptr, path, true);
 			if (UCI_OK == status) {
-				if (0 < strlen(ptr.o->v.string)) {
+				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 					config_agentkey_is_set = true;
-					config.agentkey = ptr.o->v.string;
+					config.agentkey = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
 				uci_get_errorstr(ctx, temp_str, "");
 				syslog(LOG_CRIT, "Unable to retrieve agentkey from UCI: %s", *temp_str);
+				exit(EX_CONFIG);
+			}
+		}
+		if (!config_iface_blacklist_regex_is_set) {
+			struct uci_ptr ptr;
+			char* path = strdup(UCI_PATH ".iface_blacklist_regex");
+			int status = uci_lookup_ptr(ctx, &ptr, path, true);
+			if (UCI_OK == status) {
+				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
+					config_iface_blacklist_regex_is_set = true;
+					config.iface_blacklist_regex = strdup(ptr.o->v.string);
+				}
+			} else if (UCI_ERR_NOTFOUND != status) {
+				char** temp_str = NULL;
+				uci_get_errorstr(ctx, temp_str, "");
+				syslog(LOG_CRIT, "Unable to retrieve iface_blacklist_regex from UCI: %s", *temp_str);
 				exit(EX_CONFIG);
 			}
 		}
@@ -266,7 +304,9 @@ config_t get_configuration(int argc, char** argv)
 	/* Time to get the file and read the data we want from it. */
 	config_file = fopen(config_file_location, "r");
 	if (config_file == NULL) {
-		syslog_syserror(LOG_ERR, "Unable to open the configuration file (%s)", config_file_location);
+		if (!config_username_is_set || !config_passhash_is_set || !config_agentkey_is_set) {
+			syslog_syserror(LOG_ERR, "Unable to open the configuration file (%s)", config_file_location);
+		}
 	} else {
 		while (fgets(raw_line, CONFIG_OPTION_CONFIG_LINE_LENGTH + 2, config_file) != NULL) {
 			char* value = NULL;
@@ -493,6 +533,66 @@ config_t get_configuration(int argc, char** argv)
 		/* We should have everything we need now, so let's give the kernel it's file handle back. */
 		fclose(config_file);
 	}
+
+#if CONFIG_OPTION_UCI == 1
+	{
+		struct uci_context* ctx = uci_alloc_context();
+		struct uci_ptr ptr1;
+		struct uci_ptr ptr2;
+		char* path1 = strdup("multiwan.@interface[0]");
+		char* path2 = strdup("network.wan.ifname");
+		int status1 = uci_lookup_ptr(ctx, &ptr1, path1, true);
+		int status2;
+		if (UCI_OK == status1) {
+			if (ptr1.flags & UCI_LOOKUP_COMPLETE) {
+				syslog(LOG_CRIT, "Multiwan network configuration is not yet supported");
+				exit(EX_CONFIG);
+			}
+		} else if (UCI_ERR_NOTFOUND != status1) {
+			char** temp_str = NULL;
+			uci_get_errorstr(ctx, temp_str, "");
+			syslog(LOG_CRIT, "Unable to determine multiwan status: Error %d: %s", status1, *temp_str);
+			exit(EX_CONFIG);
+		}
+		status2 = uci_lookup_ptr(ctx, &ptr2, path2, true);
+		if (UCI_OK == status2) {
+			if ((ptr2.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr2.o->v.string)) {
+				char* escaped_ifname = regex_escape_ifname(ptr2.o->v.string);
+				if (config_iface_blacklist_regex_is_set) {
+					size_t tlen = strlen(config.iface_blacklist_regex) + 2 + strlen(escaped_ifname) + 1;
+					char* temp = (char*)malloc(tlen + 1);
+					if (temp == NULL) {
+						syslog_syserror(LOG_EMERG, "Unable to allocate memory");
+						exit(EX_OSERR);
+					}
+					snprintf(temp, tlen, "%s|^%s$", config.iface_blacklist_regex, escaped_ifname);
+					free(config.iface_blacklist_regex);
+					free(escaped_ifname);
+					config.iface_blacklist_regex = temp;
+				} else {
+					char* temp = (char*)malloc(1 + strlen(escaped_ifname) + 2);
+					if (temp == NULL) {
+						syslog_syserror(LOG_EMERG, "Unable to allocate memory");
+						exit(EX_OSERR);
+					}
+					snprintf(temp, 1 + strlen(escaped_ifname) + 2, "^%s$", escaped_ifname);
+					free(escaped_ifname);
+					config_iface_blacklist_regex_is_set = true;
+					config.iface_blacklist_regex = temp;
+				}
+			} else {
+				syslog(LOG_CRIT, "Unable to retrieve 'ifname' property of 'wan' interface from uci network configuration");
+				exit(EX_CONFIG);
+			}
+		} else if (UCI_ERR_NOTFOUND != status2) {
+			char** temp_str = NULL;
+			uci_get_errorstr(ctx, temp_str, "");
+			syslog(LOG_CRIT,  "Unable to retrieve 'ifname' property of 'wan' interface from uci network configuration: %s", *temp_str);
+			exit(EX_CONFIG);
+		}
+		uci_free_context(ctx);
+	}
+#endif
 
 	if (config.username == NULL) {
 		syslog(LOG_ERR, USERNAME_CONFIG_PREFIX " was not specified");
