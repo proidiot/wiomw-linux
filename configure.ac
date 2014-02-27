@@ -223,7 +223,7 @@ AX_CONFIG_OPTION_STRING_NN([agent_type],
 	[agent type])
 
 AX_CONFIG_OPTION_STRING_NN([dnsmasq_lease_file],
-	[/var/lib/misc/dnsmasq.lease],
+	[/var/lib/misc/dnsmasq.leases],
 	[dnsmasq lease file location],
 	[/PATH/TO/dnsmasq.lease])
 

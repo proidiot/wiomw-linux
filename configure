@@ -1435,7 +1435,7 @@ Optional Features:
                           set custom agent type, default: linux
   --enable-custom-dnsmasq-lease-file=/PATH/TO/dnsmasq.lease
                           set custom dnsmasq lease file location, default:
-                          /var/lib/misc/dnsmasq.lease
+                          /var/lib/misc/dnsmasq.leases
   --enable-dnsmasq-lease-lookup
                           enable dnsmasq.lease-based hostname lookup, default:
                           no
@@ -6218,7 +6218,7 @@ _ACEOF
 if test "${enable_custom_dnsmasq_lease_file+set}" = set; then :
   enableval=$enable_custom_dnsmasq_lease_file; case ${enableval} in #(
   no) :
-    dnsmasq_lease_file=/var/lib/misc/dnsmasq.lease ;; #(
+    dnsmasq_lease_file=/var/lib/misc/dnsmasq.leases ;; #(
   yes) :
     as_fn_error $? "Custom dnsmasq lease file location not specified" "$LINENO" 5 ;; #(
   "") :
@@ -6227,7 +6227,7 @@ if test "${enable_custom_dnsmasq_lease_file+set}" = set; then :
     eval dnsmasq_lease_file=\${enableval} ;;
 esac
 else
-  dnsmasq_lease_file=/var/lib/misc/dnsmasq.lease
+  dnsmasq_lease_file=/var/lib/misc/dnsmasq.leases
 fi
 
 
