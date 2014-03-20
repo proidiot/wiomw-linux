@@ -23,11 +23,16 @@
 #ifndef _WIOMW_SIGNAL_HANDLER_H_
 #define _WIOMW_SIGNAL_HANDLER_H_
 
+#include <stdbool.h>
+#include <time.h>
+
 void set_signal_handlers();
 
 int stop_signal_received();
 
-void sleep_until_signalled();
+bool full_sleep(unsigned int length);
+bool any_nap(unsigned int nap_length, time_t nap_ceil);
+bool full_nap(unsigned int nap_length, time_t nap_ceil);
 
 #endif
 

@@ -1353,10 +1353,7 @@ void print_neighbours(config_t* config, FILE* subnet_fd, FILE* devices_fd)
 
 	scan_networks(nl_sock, if_list, config);
 
-	alarm(CONFIG_OPTION_SCAN_RESULT_TIMEOUT);
-	sleep_until_signalled();
-
-	if (!stop_signal_received()) {
+	if (full_sleep(CONFIG_OPTION_SCAN_RESULT_TIMEOUT)) {
 		fprintf(subnet_fd, "[\"%s\"", config->session_id);
 		fprintf(devices_fd, "[\"%s\"", config->session_id);
 	

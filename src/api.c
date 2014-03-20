@@ -83,9 +83,10 @@ void wiomw_login(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
-	CURL* curl_handle;
 	FILE* fd;
 	long fd_size;
+	bool retry = false;
+	unsigned int tries = 1;
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during login (empty config)");
@@ -97,8 +98,6 @@ void wiomw_login(config_t* config)
 		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
-	holder_t_data->size_offset = 0;
-	holder_t_data->str_data = NULL;
 
 	if ((fd = tmpfile()) == NULL) {
 		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
@@ -109,50 +108,62 @@ void wiomw_login(config_t* config)
 
 	fseek(fd, 0, SEEK_END);
 	fd_size = ftell(fd);
-	rewind(fd);
 
-	curl_handle = curl_easy_init();
-	curl_easy_setopt(curl_handle, CURLOPT_URL, config->login_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
-	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
-	curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
-	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
+	do {
+		CURL* curl_handle = curl_easy_init();
 
-	if (curl_easy_perform(curl_handle) == 0) {
-		size_t size_data_length;
-		if (holder_t_data->size_offset == 0) {
-			syslog(LOG_ALERT, "Server response to login was empty (potential security breach)");
-			exit(EX_PROTOCOL);
-		}
-		
-		size_data_length = strlen(holder_t_data->str_data);
-		if (size_data_length > CONFIG_OPTION_SESSION_ID_LENGTH) {
-			syslog(LOG_CRIT, "Session ID sent by server is too big to store");
-			exit(EX_PROTOCOL);
-		} else {
-			int i = 0;
-			config->session_id = string_chomp_copy(holder_t_data->str_data);
-			for (i = 0; config->session_id[i] != '\0'; i++) {
-				if (!isalnum(config->session_id[i])) {
+		retry = false;
+
+		rewind(fd);
+
+		memset(holder_t_data, 0, sizeof(struct holder_t_struct));
+	
+		curl_easy_setopt(curl_handle, CURLOPT_URL, config->login_url);
+		curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
+		curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
+		curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
+		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
+	
+		if (curl_easy_perform(curl_handle) == 0) {
+			size_t size_data_length;
+			if (holder_t_data->size_offset == 0) {
+				syslog(LOG_ALERT, "Server response to login was empty (potential security breach)");
+				exit(EX_PROTOCOL);
+			}
+			
+			size_data_length = strlen(holder_t_data->str_data);
+			if (size_data_length > CONFIG_OPTION_SESSION_ID_LENGTH) {
+				syslog(LOG_CRIT, "Session ID sent by server is too big to store");
+				exit(EX_PROTOCOL);
+			} else {
+				int i = 0;
+				config->session_id = string_chomp_copy(holder_t_data->str_data);
+				for (i = 0; config->session_id[i] != '\0'; i++) {
+					if (!isalnum(config->session_id[i])) {
+						syslog(LOG_ERR, "Received an invalid session ID (possibly bad username or password hash)");
+						exit(EX_DATAERR);
+					}
+				}
+				if (i != 40) {
 					syslog(LOG_ERR, "Received an invalid session ID (possibly bad username or password hash)");
 					exit(EX_DATAERR);
 				}
+				config->next_session_request = time(NULL) + CONFIG_OPTION_SESSION_LENGTH;
 			}
-			if (i != 40) {
-				syslog(LOG_ERR, "Received an invalid session ID (possibly bad username or password hash)");
-				exit(EX_DATAERR);
-			}
+		} else {
+			syslog(LOG_ERR, "Login attempt %u failed: %s", tries, str_error_buffer);
+			retry = true;
 		}
-	} else {
-		syslog(LOG_ERR, "Login failed: %s", str_error_buffer);
-		exit(EX_UNAVAILABLE);
-	}
+	
+		curl_easy_cleanup(curl_handle);
+		if (holder_t_data->str_data != NULL) {
+			free(holder_t_data->str_data);
+		}
+	} while (retry && full_sleep(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING)));
 
-	curl_easy_cleanup(curl_handle);
-	free(holder_t_data->str_data);
 	free(holder_t_data);
 }
 
@@ -160,9 +171,10 @@ void send_config(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
-	CURL* curl_handle;
 	FILE* fd;
 	long fd_size;
+	bool retry = false;
+	unsigned int tries = 1;
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during version announcement (empty config)");
@@ -174,8 +186,6 @@ void send_config(config_t* config)
 		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
-	holder_t_data->size_offset = 0;
-	holder_t_data->str_data = NULL;
 
 	if ((fd = tmpfile()) == NULL) {
 		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
@@ -186,30 +196,41 @@ void send_config(config_t* config)
 
 	fseek(fd, 0, SEEK_END);
 	fd_size = ftell(fd);
-	rewind(fd);
 
-	curl_handle = curl_easy_init();
-	curl_easy_setopt(curl_handle, CURLOPT_URL, config->config_agent_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
-	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
-	curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
-	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
+	do {
+		CURL* curl_handle = curl_easy_init();
 
-	if (curl_easy_perform(curl_handle) == 0) {
-		if (holder_t_data->size_offset == 0) {
-			syslog(LOG_ERR, "Server response to version announcement was empty");
-			exit(EX_PROTOCOL);
+		retry = false;
+
+		rewind(fd);
+	
+		memset(holder_t_data, 0, sizeof(struct holder_t_struct));
+
+		curl_easy_setopt(curl_handle, CURLOPT_URL, config->config_agent_url);
+		curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
+		curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
+		curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
+		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
+	
+		if (curl_easy_perform(curl_handle) == 0) {
+			if (holder_t_data->size_offset == 0) {
+				syslog(LOG_ERR, "Server response to version announcement was empty");
+				exit(EX_PROTOCOL);
+			}
+		} else {
+			syslog(LOG_ERR, "Version announcement attempt %u failed: %s", tries, str_error_buffer);
+			retry = true;
 		}
-	} else {
-		syslog(LOG_ERR, "Version announcement failed: %s", str_error_buffer);
-		exit(EX_UNAVAILABLE);
-	}
+	
+		curl_easy_cleanup(curl_handle);
+		if (holder_t_data->str_data != NULL) {
+			free(holder_t_data->str_data);
+		}
+	} while (retry && full_nap(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING), config->next_session_request));
 
-	curl_easy_cleanup(curl_handle);
-	free(holder_t_data->str_data);
 	free(holder_t_data);
 }
 
@@ -217,9 +238,10 @@ void sync_block(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
-	CURL* curl_handle;
 	FILE* fd;
 	long fd_size;
+	bool retry = false;
+	unsigned int tries = 1;
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during device blocking setup (empty config)");
@@ -233,8 +255,6 @@ void sync_block(config_t* config)
 		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
-	holder_t_data->size_offset = 0;
-	holder_t_data->str_data = NULL;
 
 	if ((fd = tmpfile()) == NULL) {
 		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
@@ -245,32 +265,43 @@ void sync_block(config_t* config)
 
 	fseek(fd, 0, SEEK_END);
 	fd_size = ftell(fd);
-	rewind(fd);
 
-	curl_handle = curl_easy_init();
-	curl_easy_setopt(curl_handle, CURLOPT_URL, config->sync_block_url);
-	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
-	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
-	curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
-	curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
-	curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
-
-	if (curl_easy_perform(curl_handle) == 0) {
-		if (holder_t_data->size_offset == 0) {
-			syslog(LOG_ALERT, "Server response to device blocking setup was empty (potential security breach)");
-			exit(EX_PROTOCOL);
+	do {
+		CURL* curl_handle = curl_easy_init();
+	
+		retry = false;
+	
+		rewind(fd);
+	
+		memset(holder_t_data, 0, sizeof(struct holder_t_struct));
+	
+		curl_easy_setopt(curl_handle, CURLOPT_URL, config->sync_block_url);
+		curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
+		curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
+		curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
+		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
+	
+		if (curl_easy_perform(curl_handle) == 0) {
+			if (holder_t_data->size_offset == 0) {
+				syslog(LOG_ALERT, "Server response to device blocking setup was empty (potential security breach)");
+				exit(EX_PROTOCOL);
+			}
+			
+			apply_blocks(holder_t_data->str_data);
+		} else {
+			syslog(LOG_ERR, "Device blocking setup attempt %u failed: %s", tries, str_error_buffer);
+			retry = true;
 		}
-		
-		apply_blocks(holder_t_data->str_data);
-	} else {
-		syslog(LOG_ERR, "Device blocking setup failed: %s", str_error_buffer);
-		exit(EX_UNAVAILABLE);
-	}
+	
+		curl_easy_cleanup(curl_handle);
+		if (holder_t_data->str_data != NULL) {
+			free(holder_t_data->str_data);
+		}
+	} while (retry && full_nap(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING), config->next_session_request));
 
-	curl_easy_cleanup(curl_handle);
-	free(holder_t_data->str_data);
 	free(holder_t_data);
 }
 
@@ -278,12 +309,12 @@ void send_subnet_and_devices(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
-	CURL* curl_handle1;
-	CURL* curl_handle2;
 	FILE* subnet_fd;
 	FILE* devices_fd;
 	long subnet_fd_size;
 	long devices_fd_size;
+	bool retry = false;
+	unsigned int tries = 1;
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during report (empty config)");
@@ -295,8 +326,6 @@ void send_subnet_and_devices(config_t* config)
 		syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 		exit(EX_OSERR);
 	}
-	holder_t_data->size_offset = 0;
-	holder_t_data->str_data = NULL;
 
 	if (((subnet_fd = tmpfile()) == NULL) || ((devices_fd = tmpfile()) == NULL)) {
 		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
@@ -305,62 +334,87 @@ void send_subnet_and_devices(config_t* config)
 	print_neighbours(config, subnet_fd, devices_fd);
 	fseek(subnet_fd, 0, SEEK_END);
 	subnet_fd_size = ftell(subnet_fd);
-	rewind(subnet_fd);
 	fseek(devices_fd, 0, SEEK_END);
 	devices_fd_size = ftell(devices_fd);
-	rewind(devices_fd);
 
-	curl_handle1 = curl_easy_init();
-	curl_easy_setopt(curl_handle1, CURLOPT_URL, config->config_subnet_url);
-	curl_easy_setopt(curl_handle1, CURLOPT_CAINFO, config->capath);
-	curl_easy_setopt(curl_handle1, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
-	curl_easy_setopt(curl_handle1, CURLOPT_WRITEDATA, holder_t_data);
-	curl_easy_setopt(curl_handle1, CURLOPT_ERRORBUFFER, str_error_buffer);
-	curl_easy_setopt(curl_handle1, CURLOPT_POST, 1);
-	curl_easy_setopt(curl_handle1, CURLOPT_READDATA, subnet_fd);
-	curl_easy_setopt(curl_handle1, CURLOPT_POSTFIELDSIZE, subnet_fd_size);
-
-	if (curl_easy_perform(curl_handle1) == 0) {
-		if (holder_t_data->size_offset == 0) {
-			syslog(LOG_ERR, "Server response to network layout report was empty");
-			exit(EX_PROTOCOL);
+	do {
+		CURL* curl_handle;
+	
+		retry = false;
+	
+		rewind(subnet_fd);
+	
+		memset(holder_t_data, 0, sizeof(struct holder_t_struct));
+	
+		curl_handle = curl_easy_init();
+		curl_easy_setopt(curl_handle, CURLOPT_URL, config->config_subnet_url);
+		curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
+		curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
+		curl_easy_setopt(curl_handle, CURLOPT_READDATA, subnet_fd);
+		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, subnet_fd_size);
+	
+		if (curl_easy_perform(curl_handle) == 0) {
+			if (holder_t_data->size_offset == 0) {
+				syslog(LOG_ERR, "Server response to network layout report was empty");
+				exit(EX_PROTOCOL);
+			}
+		} else {
+			syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, str_error_buffer);
+			retry = true;
 		}
-	} else {
-		syslog(LOG_ERR, "Network layout report failed: %s", str_error_buffer);
-		exit(EX_UNAVAILABLE);
-	}
-
-	curl_easy_cleanup(curl_handle1);
-
-	if (holder_t_data->str_data != NULL) {
-		free(holder_t_data->str_data);
-	}
-	holder_t_data->size_offset = 0;
-	holder_t_data->str_data = NULL;
-	memset(holder_t_data, 0, sizeof(struct holder_t_struct));
-
-	curl_handle2 = curl_easy_init();
-	curl_easy_setopt(curl_handle2, CURLOPT_URL, config->send_devices_url);
-	curl_easy_setopt(curl_handle2, CURLOPT_CAINFO, config->capath);
-	curl_easy_setopt(curl_handle2, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
-	curl_easy_setopt(curl_handle2, CURLOPT_WRITEDATA, holder_t_data);
-	curl_easy_setopt(curl_handle2, CURLOPT_ERRORBUFFER, str_error_buffer);
-	curl_easy_setopt(curl_handle2, CURLOPT_POST, 1);
-	curl_easy_setopt(curl_handle2, CURLOPT_READDATA, devices_fd);
-	curl_easy_setopt(curl_handle2, CURLOPT_POSTFIELDSIZE, devices_fd_size);
-
-	if (curl_easy_perform(curl_handle2) == 0) {
-		if (holder_t_data->size_offset == 0) {
-			syslog(LOG_ALERT, "Server response to network device report was empty (potential security breach)");
-			exit(EX_PROTOCOL);
+	
+		curl_easy_cleanup(curl_handle);
+		if (holder_t_data->str_data != NULL) {
+			free(holder_t_data->str_data);
 		}
-	} else {
-		syslog(LOG_ERR, "Network device report failed: %s", str_error_buffer);
-		exit(EX_UNAVAILABLE);
+	} while (retry && full_nap(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING), config->next_session_request));
+
+	if (stop_signal_received() || session_has_expired(*config)) {
+		free(holder_t_data);
+		return;
 	}
 
-	curl_easy_cleanup(curl_handle2);
-	free(holder_t_data->str_data);
+	tries = 1;
+	retry = false;
+
+	do {
+		CURL* curl_handle;
+	
+		retry = false;
+	
+		rewind(devices_fd);
+
+		memset(holder_t_data, 0, sizeof(struct holder_t_struct));
+	
+		curl_handle = curl_easy_init();
+		curl_easy_setopt(curl_handle, CURLOPT_URL, config->send_devices_url);
+		curl_easy_setopt(curl_handle, CURLOPT_CAINFO, config->capath);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &curl_cb_process_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, holder_t_data);
+		curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, str_error_buffer);
+		curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
+		curl_easy_setopt(curl_handle, CURLOPT_READDATA, devices_fd);
+		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, devices_fd_size);
+	
+		if (curl_easy_perform(curl_handle) == 0) {
+			if (holder_t_data->size_offset == 0) {
+				syslog(LOG_ALERT, "Server response to network device report was empty (potential security breach)");
+				exit(EX_PROTOCOL);
+			}
+		} else {
+			syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, str_error_buffer);
+			retry = true;
+		}
+		
+		curl_easy_cleanup(curl_handle);
+		if (holder_t_data->str_data != NULL) {
+			free(holder_t_data->str_data);
+		}
+	} while (retry && full_nap(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING), config->next_session_request));
+
 	free(holder_t_data);
 }
 

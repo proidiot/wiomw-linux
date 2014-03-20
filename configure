@@ -732,6 +732,7 @@ enable_custom_ca_path
 enable_custom_syslog_ident
 enable_authpriv_level_syslog
 enable_custom_scan_result_timeout
+enable_custom_backoff_ceiling
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1454,6 +1455,10 @@ Optional Features:
   --enable-custom-scan-result-timeout=SECS
                           set custom maximum amount of time to wait for scan
                           results to resolve, default: 30, min: 5, max: 60
+  --enable-custom-backoff-ceiling=SECS
+                          set custom maximum amount of time to wait between
+                          retries of API calls, default: 900, min: 300, max:
+                          28800
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6387,6 +6392,33 @@ fi
 
 cat >>confdefs.h <<_ACEOF
 #define CONFIG_OPTION_SCAN_RESULT_TIMEOUT ${scan_result_timeout}
+_ACEOF
+
+
+
+  # Check whether --enable-custom_backoff_ceiling was given.
+if test "${enable_custom_backoff_ceiling+set}" = set; then :
+  enableval=$enable_custom_backoff_ceiling; case ${enableval} in #(
+  no) :
+    backoff_ceiling=900 ;; #(
+  yes) :
+    as_fn_error $? "Custom maximum amount of time to wait between retries of API calls not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom maximum amount of time to wait between retries of API calls not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 300 && test "0${enableval}" -le 28800; then :
+  eval backoff_ceiling=\${enableval}
+else
+  as_fn_error $? "Custom maximum amount of time to wait between retries of API calls must be between 300 and 28800 " "$LINENO" 5
+fi ;;
+esac
+else
+  backoff_ceiling=900
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define CONFIG_OPTION_BACKOFF_CEILING ${backoff_ceiling}
 _ACEOF
 
 

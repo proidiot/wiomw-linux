@@ -71,7 +71,8 @@ am_wiomw_agent_OBJECTS = main.$(OBJEXT) configuration.$(OBJEXT) \
 	signal_handler.$(OBJEXT) syslog_syserror.$(OBJEXT) \
 	api.$(OBJEXT) neighbours.$(OBJEXT) sockaddr_helpers.$(OBJEXT) \
 	mac_ntop.$(OBJEXT) iptables_block.$(OBJEXT) \
-	string_helpers.$(OBJEXT) host_lookup.$(OBJEXT)
+	string_helpers.$(OBJEXT) host_lookup.$(OBJEXT) \
+	exp_backoff.$(OBJEXT)
 wiomw_agent_OBJECTS = $(am_wiomw_agent_OBJECTS)
 am__DEPENDENCIES_1 =
 wiomw_agent_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -204,7 +205,9 @@ wiomw_agent_SOURCES = main.c \
 		       string_helpers.c \
 		       string_helpers.h \
 		       host_lookup.c \
-		       host_lookup.h
+		       host_lookup.h \
+		       exp_backoff.c \
+		       exp_backoff.h
 
 AM_CFLAGS = ${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
 wiomw_agent_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
@@ -291,6 +294,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/api.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/configuration.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exp_backoff.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/host_lookup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iptables_block.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac_ntop.Po@am__quote@

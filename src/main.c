@@ -43,7 +43,6 @@
 
 int main(int argc, char** argv)
 {
-	time_t last_session_request = 0;
 	config_t config;
 	/* TODO: Any additional declarations go here. */
 	
@@ -59,30 +58,30 @@ int main(int argc, char** argv)
 		wiomw_login(&config);
 		syslog(LOG_INFO, "Logged in successfully");
 
-		last_session_request = time(NULL);
 		send_config(&config);
 		syslog(LOG_INFO, "Version announced");
 
-		while (!stop_signal_received() && time(NULL) < (last_session_request + CONFIG_OPTION_SESSION_LENGTH)) {
-			time_t next_session_request_wait = 0;
+		do {
 			if (config.allow_blocking) {
 				sync_block(&config);
-				syslog(LOG_INFO, "Device blocking updated");
+				if (!stop_signal_received() && !session_has_expired(config)) {
+					syslog(LOG_INFO, "Device blocking updated");
+				} else {
+					syslog(LOG_WARNING, "Skipping block");
+				}
 			}
-			if (time(NULL) < (last_session_request + CONFIG_OPTION_SESSION_LENGTH + CONFIG_OPTION_SCAN_RESULT_TIMEOUT)) {
-				syslog(LOG_INFO, "Collecting network device details...");
-				send_subnet_and_devices(&config);
+			syslog(LOG_INFO, "Collecting network device details...");
+			send_subnet_and_devices(&config);
+			if (!stop_signal_received() && !session_has_expired(config)) {
 				syslog(LOG_INFO, "Network device reports sent");
 			} else {
-				syslog(LOG_INFO, "Skipping scan because session is expiring");
+				syslog(LOG_INFO, "Skipping scan");
 			}
-			next_session_request_wait = (last_session_request + CONFIG_OPTION_SESSION_LENGTH) - time(NULL);
-			if (next_session_request_wait > 0) {
-				alarm(MINIMUM(CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, next_session_request_wait));
-				sleep_until_signalled();
-			}
+		} while (any_nap(CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, config.next_session_request));
+
+		if (session_has_expired(config)) {
+			syslog(LOG_INFO, "Previous session has expired");
 		}
-		syslog(LOG_INFO, "Previous session has expired");
 	} while (!stop_signal_received());
 
 

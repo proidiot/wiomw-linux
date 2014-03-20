@@ -13,6 +13,9 @@
    services) */
 #undef CONFIG_OPTION_AUTHPRIV_LEVEL_SYSLOG
 
+/* maximum amount of time to wait between retries of API calls */
+#undef CONFIG_OPTION_BACKOFF_CEILING
+
 /* path to the certificate authority file */
 #undef CONFIG_OPTION_CA_PATH
 

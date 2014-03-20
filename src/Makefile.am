@@ -41,7 +41,9 @@ wiomw_agent_SOURCES = main.c \
 		       string_helpers.c \
 		       string_helpers.h \
 		       host_lookup.c \
-		       host_lookup.h
+		       host_lookup.h \
+		       exp_backoff.c \
+		       exp_backoff.h
 AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
 wiomw_agent_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 

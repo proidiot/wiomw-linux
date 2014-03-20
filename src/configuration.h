@@ -27,6 +27,7 @@
 #include <stdbool.h>
 
 typedef struct {
+	time_t next_session_request;
 	char* username;
 	char* passhash;
 	char* agentkey;
@@ -51,5 +52,7 @@ typedef struct {
 } config_t;
 
 config_t get_configuration(int argc, char** argv);
+
+bool session_has_expired(const config_t config);
 
 #endif
