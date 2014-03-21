@@ -34,6 +34,8 @@
 #include <sysexits.h>
 #include <ctype.h>
 
+#define HTTP_503_PAUSE 10
+
 typedef struct holder_t_struct {
 	size_t size_offset;
 	char* str_data;
@@ -111,6 +113,7 @@ void wiomw_login(config_t* config)
 
 	do {
 		CURL* curl_handle = curl_easy_init();
+		long http_code = 0;
 
 		retry = false;
 
@@ -127,15 +130,17 @@ void wiomw_login(config_t* config)
 		curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
 		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
 	
-		if (curl_easy_perform(curl_handle) == 0) {
+		if (curl_easy_perform(curl_handle) == 0 && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code) == 0) {
 			size_t size_data_length;
-			if (holder_t_data->size_offset == 0) {
+			if (http_code == 503) {
+				const char* msg = "Service unavailable (perhaps the server is temporarily overloaded)";
+				syslog(LOG_ERR, "Login attempt %u failed: %s", tries, msg);
+				full_sleep(HTTP_503_PAUSE);
+				retry = true;
+			} else if (holder_t_data->size_offset == 0) {
 				syslog(LOG_ALERT, "Server response to login was empty (potential security breach)");
 				exit(EX_PROTOCOL);
-			}
-			
-			size_data_length = strlen(holder_t_data->str_data);
-			if (size_data_length > CONFIG_OPTION_SESSION_ID_LENGTH) {
+			} else if ((size_data_length = strlen(holder_t_data->str_data)) > CONFIG_OPTION_SESSION_ID_LENGTH) {
 				syslog(LOG_CRIT, "Session ID sent by server is too big to store");
 				exit(EX_PROTOCOL);
 			} else {
@@ -201,6 +206,7 @@ void send_config(config_t* config)
 
 	do {
 		CURL* curl_handle = curl_easy_init();
+		long http_code = 0;
 
 		retry = false;
 
@@ -217,8 +223,15 @@ void send_config(config_t* config)
 		curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
 		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
 	
-		if (curl_easy_perform(curl_handle) == 0) {
-			if (holder_t_data->size_offset == 0) {
+		if (curl_easy_perform(curl_handle) == 0 && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code) == 0) {
+			if (http_code == 503) {
+				const char* msg = "Service unavailable (perhaps the server is temporarily overloaded)";
+				syslog(LOG_ERR, "Version announcement attempt %u failed: %s", tries, msg);
+				if ((total_nap += (current_nap = HTTP_503_PAUSE)) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH) {
+					retry = true;
+					full_nap(current_nap, config->next_session_request);
+				}
+			} else if (holder_t_data->size_offset == 0) {
 				const char* msg = "Server response to version announcement was empty";
 				syslog(LOG_ERR, "Version announcement attempt %u failed: %s", tries, msg);
 				retry = true;
@@ -275,6 +288,7 @@ void sync_block(config_t* config)
 
 	do {
 		CURL* curl_handle = curl_easy_init();
+		long http_code = 0;
 	
 		retry = false;
 	
@@ -291,8 +305,15 @@ void sync_block(config_t* config)
 		curl_easy_setopt(curl_handle, CURLOPT_READDATA, fd);
 		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, fd_size);
 	
-		if (curl_easy_perform(curl_handle) == 0) {
-			if (holder_t_data->size_offset == 0) {
+		if (curl_easy_perform(curl_handle) == 0 && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code) == 0) {
+			if (http_code == 503) {
+				const char* msg = "Service unavailable (perhaps the server is temporarily overloaded)";
+				syslog(LOG_ERR, "Device blocking setup attempt %u failed: %s", tries, msg);
+				if ((total_nap += (current_nap = HTTP_503_PAUSE)) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH) {
+					retry = true;
+					full_nap(current_nap, config->next_session_request);
+				}
+			} else if (holder_t_data->size_offset == 0) {
 				const char* msg = "Server response to device blocking setup was empty";
 				syslog(LOG_ERR, "Device blocking setup attempt %u failed: %s", tries, msg);
 				retry = true;
@@ -351,6 +372,7 @@ void send_subnet_and_devices(config_t* config)
 
 	do {
 		CURL* curl_handle;
+		long http_code = 0;
 	
 		retry = false;
 	
@@ -368,8 +390,15 @@ void send_subnet_and_devices(config_t* config)
 		curl_easy_setopt(curl_handle, CURLOPT_READDATA, subnet_fd);
 		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, subnet_fd_size);
 	
-		if (curl_easy_perform(curl_handle) == 0) {
-			if (holder_t_data->size_offset == 0) {
+		if (curl_easy_perform(curl_handle) == 0 && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code) == 0) {
+			if (http_code == 503) {
+				const char* msg = "Service unavailable (perhaps the server is temporarily overloaded)";
+				syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, msg);
+				if ((total_nap += (current_nap = HTTP_503_PAUSE)) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH) {
+					retry = true;
+					full_nap(current_nap, config->next_session_request);
+				}
+			} else if (holder_t_data->size_offset == 0) {
 				const char* msg = "Server response to network layout report was empty";
 				syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, msg);
 				retry = true;
@@ -399,6 +428,7 @@ void send_subnet_and_devices(config_t* config)
 
 	do {
 		CURL* curl_handle;
+		long http_code = 0;
 	
 		retry = false;
 	
@@ -416,8 +446,15 @@ void send_subnet_and_devices(config_t* config)
 		curl_easy_setopt(curl_handle, CURLOPT_READDATA, devices_fd);
 		curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, devices_fd_size);
 	
-		if (curl_easy_perform(curl_handle) == 0) {
-			if (holder_t_data->size_offset == 0) {
+		if (curl_easy_perform(curl_handle) == 0 && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code) == 0) {
+			if (http_code == 503) {
+				const char* msg = "Service unavailable (perhaps the server is temporarily overloaded)";
+				syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, msg);
+				if ((total_nap += (current_nap = HTTP_503_PAUSE)) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH) {
+					retry = true;
+					full_nap(current_nap, config->next_session_request);
+				}
+			} else if (holder_t_data->size_offset == 0) {
 				const char* msg = "Server response to network device report was empty";
 				syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, msg);
 				retry = true;
