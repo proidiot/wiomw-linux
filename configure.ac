@@ -265,6 +265,12 @@ AX_CONFIG_OPTION_NUMBER_RANGE([backoff_ceiling],
 	[maximum amount of time to wait between retries of API calls],
 	[SECS])
 
+AX_CONFIG_OPTION_NUMBER_RANGE([api_call_retry_length],
+	300,
+	30,
+	28800,
+	[maximum amount of time to spend retrying a single non-login API call],
+	[SECS])
 
 
 

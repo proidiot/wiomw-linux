@@ -175,6 +175,8 @@ void send_config(config_t* config)
 	long fd_size;
 	bool retry = false;
 	unsigned int tries = 1;
+	unsigned long current_nap = 0;
+	unsigned long total_nap = 0;
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during version announcement (empty config)");
@@ -217,8 +219,9 @@ void send_config(config_t* config)
 	
 		if (curl_easy_perform(curl_handle) == 0) {
 			if (holder_t_data->size_offset == 0) {
-				syslog(LOG_ERR, "Server response to version announcement was empty");
-				exit(EX_PROTOCOL);
+				const char* msg = "Server response to version announcement was empty";
+				syslog(LOG_ERR, "Version announcement attempt %u failed: %s", tries, msg);
+				retry = true;
 			}
 		} else {
 			syslog(LOG_ERR, "Version announcement attempt %u failed: %s", tries, str_error_buffer);
@@ -229,7 +232,9 @@ void send_config(config_t* config)
 		if (holder_t_data->str_data != NULL) {
 			free(holder_t_data->str_data);
 		}
-	} while (retry && full_nap(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING), config->next_session_request));
+	} while (retry
+		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
+		&& full_nap(current_nap, config->next_session_request));
 
 	free(holder_t_data);
 }
@@ -242,6 +247,8 @@ void sync_block(config_t* config)
 	long fd_size;
 	bool retry = false;
 	unsigned int tries = 1;
+	unsigned long current_nap = 0;
+	unsigned long total_nap = 0;
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during device blocking setup (empty config)");
@@ -286,11 +293,12 @@ void sync_block(config_t* config)
 	
 		if (curl_easy_perform(curl_handle) == 0) {
 			if (holder_t_data->size_offset == 0) {
-				syslog(LOG_ALERT, "Server response to device blocking setup was empty (potential security breach)");
-				exit(EX_PROTOCOL);
+				const char* msg = "Server response to device blocking setup was empty";
+				syslog(LOG_ERR, "Device blocking setup attempt %u failed: %s", tries, msg);
+				retry = true;
+			} else {
+				apply_blocks(holder_t_data->str_data);
 			}
-			
-			apply_blocks(holder_t_data->str_data);
 		} else {
 			syslog(LOG_ERR, "Device blocking setup attempt %u failed: %s", tries, str_error_buffer);
 			retry = true;
@@ -300,7 +308,9 @@ void sync_block(config_t* config)
 		if (holder_t_data->str_data != NULL) {
 			free(holder_t_data->str_data);
 		}
-	} while (retry && full_nap(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING), config->next_session_request));
+	} while (retry
+		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
+		&& full_nap(current_nap, config->next_session_request));
 
 	free(holder_t_data);
 }
@@ -315,6 +325,8 @@ void send_subnet_and_devices(config_t* config)
 	long devices_fd_size;
 	bool retry = false;
 	unsigned int tries = 1;
+	unsigned long current_nap = 0;
+	unsigned long total_nap = 0;
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during report (empty config)");
@@ -358,8 +370,9 @@ void send_subnet_and_devices(config_t* config)
 	
 		if (curl_easy_perform(curl_handle) == 0) {
 			if (holder_t_data->size_offset == 0) {
-				syslog(LOG_ERR, "Server response to network layout report was empty");
-				exit(EX_PROTOCOL);
+				const char* msg = "Server response to network layout report was empty";
+				syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, msg);
+				retry = true;
 			}
 		} else {
 			syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, str_error_buffer);
@@ -370,7 +383,9 @@ void send_subnet_and_devices(config_t* config)
 		if (holder_t_data->str_data != NULL) {
 			free(holder_t_data->str_data);
 		}
-	} while (retry && full_nap(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING), config->next_session_request));
+	} while (retry
+		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
+		&& full_nap(current_nap, config->next_session_request));
 
 	if (stop_signal_received() || session_has_expired(*config)) {
 		free(holder_t_data);
@@ -379,6 +394,8 @@ void send_subnet_and_devices(config_t* config)
 
 	tries = 1;
 	retry = false;
+	current_nap = 0;
+	total_nap = 0;
 
 	do {
 		CURL* curl_handle;
@@ -401,8 +418,9 @@ void send_subnet_and_devices(config_t* config)
 	
 		if (curl_easy_perform(curl_handle) == 0) {
 			if (holder_t_data->size_offset == 0) {
-				syslog(LOG_ALERT, "Server response to network device report was empty (potential security breach)");
-				exit(EX_PROTOCOL);
+				const char* msg = "Server response to network device report was empty";
+				syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, msg);
+				retry = true;
 			}
 		} else {
 			syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, str_error_buffer);
@@ -413,7 +431,9 @@ void send_subnet_and_devices(config_t* config)
 		if (holder_t_data->str_data != NULL) {
 			free(holder_t_data->str_data);
 		}
-	} while (retry && full_nap(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING), config->next_session_request));
+	} while (retry
+		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
+		&& full_nap(current_nap, config->next_session_request));
 
 	free(holder_t_data);
 }
