@@ -733,6 +733,7 @@ enable_custom_syslog_ident
 enable_authpriv_level_syslog
 enable_custom_scan_result_timeout
 enable_custom_backoff_ceiling
+enable_custom_api_call_retry_length
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1459,6 +1460,10 @@ Optional Features:
                           set custom maximum amount of time to wait between
                           retries of API calls, default: 900, min: 300, max:
                           28800
+  --enable-custom-api-call-retry-length=SECS
+                          set custom maximum amount of time to spend retrying
+                          a single non-login API call, default: 300, min: 30,
+                          max: 28800
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6421,6 +6426,32 @@ cat >>confdefs.h <<_ACEOF
 #define CONFIG_OPTION_BACKOFF_CEILING ${backoff_ceiling}
 _ACEOF
 
+
+
+  # Check whether --enable-custom_api_call_retry_length was given.
+if test "${enable_custom_api_call_retry_length+set}" = set; then :
+  enableval=$enable_custom_api_call_retry_length; case ${enableval} in #(
+  no) :
+    api_call_retry_length=300 ;; #(
+  yes) :
+    as_fn_error $? "Custom maximum amount of time to spend retrying a single non-login API call not specified" "$LINENO" 5 ;; #(
+  "") :
+    as_fn_error $? "Custom maximum amount of time to spend retrying a single non-login API call not specified" "$LINENO" 5 ;; #(
+  *) :
+    if test "0${enableval}" -ge 30 && test "0${enableval}" -le 28800; then :
+  eval api_call_retry_length=\${enableval}
+else
+  as_fn_error $? "Custom maximum amount of time to spend retrying a single non-login API call must be between 30 and 28800 " "$LINENO" 5
+fi ;;
+esac
+else
+  api_call_retry_length=300
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define CONFIG_OPTION_API_CALL_RETRY_LENGTH ${api_call_retry_length}
+_ACEOF
 
 
 

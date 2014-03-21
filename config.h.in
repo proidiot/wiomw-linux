@@ -3,6 +3,9 @@
 /* agent type */
 #undef CONFIG_OPTION_AGENT_TYPE
 
+/* maximum amount of time to spend retrying a single non-login API call */
+#undef CONFIG_OPTION_API_CALL_RETRY_LENGTH
+
 /* maximum allowable length of an API URL defined at runtime */
 #undef CONFIG_OPTION_API_URL_LENGTH
 
