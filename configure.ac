@@ -258,6 +258,19 @@ AX_CONFIG_OPTION_NUMBER_RANGE([scan_result_timeout],
 	[maximum amount of time to wait for scan results to resolve],
 	[SECS])
 
+AX_CONFIG_OPTION_NUMBER_RANGE([backoff_ceiling],
+	900,
+	300,
+	28800,
+	[maximum amount of time to wait between retries of API calls],
+	[SECS])
+
+AX_CONFIG_OPTION_NUMBER_RANGE([api_call_retry_length],
+	300,
+	30,
+	28800,
+	[maximum amount of time to spend retrying a single non-login API call],
+	[SECS])
 
 
 

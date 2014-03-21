@@ -41,6 +41,11 @@
 #include <uci.h>
 #endif
 
+bool session_has_expired(const config_t config)
+{
+	return config.agentkey == NULL || time(NULL) >= config.next_session_request;
+}
+
 #if CONFIG_OPTION_NVRAM_CONFIG == 1
 #ifndef HAVE_NVRAM_GET
 char* nvram_get(char* name)
@@ -154,6 +159,7 @@ config_t get_configuration(int argc, char** argv)
 
 	/* Default config values
 	 * (If a value must be specified, set bad values here and check if they match after the file is closed.) */
+	config.next_session_request = 0;
 	config.username = NULL;
 	config.passhash = NULL;
 	config.agentkey = NULL;

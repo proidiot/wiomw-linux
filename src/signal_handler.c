@@ -68,11 +68,34 @@ int stop_signal_received()
 	return bool_stop_received == (1==1);
 }
 
-void sleep_until_signalled()
+bool full_sleep(unsigned int length)
 {
+	alarm(length);
 	sigset_t sigset_emptyset;
 	sigemptyset(&sigset_emptyset);
 	sigsuspend(&sigset_emptyset);
+	return !stop_signal_received();
 }
 
+bool any_nap(unsigned int nap_length, time_t nap_ceil) {
+	time_t now = time(NULL);
+	if (now >= nap_ceil) {
+		return false;
+	} else if (nap_ceil - now < nap_length) {
+		return full_sleep(nap_ceil - now);
+	} else {
+		return full_sleep(nap_length);
+	}
+}
+
+bool full_nap(unsigned int nap_length, time_t nap_ceil) {
+	time_t now = time(NULL);
+	if (now >= nap_ceil) {
+		return false;
+	} else if (nap_ceil - now < nap_length) {
+		return false;
+	} else {
+		return full_sleep(nap_length);
+	}
+}
 
