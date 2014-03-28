@@ -478,6 +478,6 @@ bool send_subnet_and_devices(config_t* config)
 
 	free(holder_t_data);
 
-	return !retry1 && !retry2;
+	return !retry2;
 }
 
