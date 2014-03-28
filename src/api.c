@@ -172,7 +172,7 @@ void wiomw_login(config_t* config)
 	free(holder_t_data);
 }
 
-void send_config(config_t* config)
+bool send_config(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
@@ -250,9 +250,11 @@ void send_config(config_t* config)
 		&& full_nap(current_nap, config->next_session_request));
 
 	free(holder_t_data);
+
+	return !retry;
 }
 
-void sync_block(config_t* config)
+bool sync_block(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
@@ -334,9 +336,11 @@ void sync_block(config_t* config)
 		&& full_nap(current_nap, config->next_session_request));
 
 	free(holder_t_data);
+
+	return !retry;
 }
 
-void send_subnet_and_devices(config_t* config)
+bool send_subnet_and_devices(config_t* config)
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
@@ -344,7 +348,8 @@ void send_subnet_and_devices(config_t* config)
 	FILE* devices_fd;
 	long subnet_fd_size;
 	long devices_fd_size;
-	bool retry = false;
+	bool retry1 = false;
+	bool retry2 = false;
 	unsigned int tries = 1;
 	unsigned long current_nap = 0;
 	unsigned long total_nap = 0;
@@ -374,7 +379,7 @@ void send_subnet_and_devices(config_t* config)
 		CURL* curl_handle;
 		long http_code = 0;
 	
-		retry = false;
+		retry1 = false;
 	
 		rewind(subnet_fd);
 	
@@ -395,34 +400,33 @@ void send_subnet_and_devices(config_t* config)
 				const char* msg = "Service unavailable (perhaps the server is temporarily overloaded)";
 				syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, msg);
 				if ((total_nap += (current_nap = HTTP_503_PAUSE)) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH) {
-					retry = true;
+					retry1 = true;
 					full_nap(current_nap, config->next_session_request);
 				}
 			} else if (holder_t_data->size_offset == 0) {
 				const char* msg = "Server response to network layout report was empty";
 				syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, msg);
-				retry = true;
+				retry1 = true;
 			}
 		} else {
 			syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, str_error_buffer);
-			retry = true;
+			retry1 = true;
 		}
 	
 		curl_easy_cleanup(curl_handle);
 		if (holder_t_data->str_data != NULL) {
 			free(holder_t_data->str_data);
 		}
-	} while (retry
+	} while (retry1
 		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
 		&& full_nap(current_nap, config->next_session_request));
 
 	if (stop_signal_received() || session_has_expired(*config)) {
 		free(holder_t_data);
-		return;
+		return !retry1;
 	}
 
 	tries = 1;
-	retry = false;
 	current_nap = 0;
 	total_nap = 0;
 
@@ -430,7 +434,7 @@ void send_subnet_and_devices(config_t* config)
 		CURL* curl_handle;
 		long http_code = 0;
 	
-		retry = false;
+		retry2 = false;
 	
 		rewind(devices_fd);
 
@@ -451,27 +455,29 @@ void send_subnet_and_devices(config_t* config)
 				const char* msg = "Service unavailable (perhaps the server is temporarily overloaded)";
 				syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, msg);
 				if ((total_nap += (current_nap = HTTP_503_PAUSE)) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH) {
-					retry = true;
+					retry2 = true;
 					full_nap(current_nap, config->next_session_request);
 				}
 			} else if (holder_t_data->size_offset == 0) {
 				const char* msg = "Server response to network device report was empty";
 				syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, msg);
-				retry = true;
+				retry2 = true;
 			}
 		} else {
 			syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, str_error_buffer);
-			retry = true;
+			retry2 = true;
 		}
 		
 		curl_easy_cleanup(curl_handle);
 		if (holder_t_data->str_data != NULL) {
 			free(holder_t_data->str_data);
 		}
-	} while (retry
+	} while (retry2
 		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
 		&& full_nap(current_nap, config->next_session_request));
 
 	free(holder_t_data);
+
+	return !retry1 && !retry2;
 }
 

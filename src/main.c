@@ -58,21 +58,22 @@ int main(int argc, char** argv)
 		wiomw_login(&config);
 		syslog(LOG_INFO, "Logged in successfully");
 
-		send_config(&config);
-		syslog(LOG_INFO, "Version announced");
+		if (send_config(&config) && !stop_signal_received() && !session_has_expired(config)) {
+			syslog(LOG_INFO, "Version announced");
+		} else {
+			syslog(LOG_WARNING, "Skipping version announcement");
+		}
 
 		do {
 			if (config.allow_blocking) {
-				sync_block(&config);
-				if (!stop_signal_received() && !session_has_expired(config)) {
+				if (sync_block(&config) && !stop_signal_received() && !session_has_expired(config)) {
 					syslog(LOG_INFO, "Device blocking updated");
 				} else {
 					syslog(LOG_WARNING, "Skipping block");
 				}
 			}
 			syslog(LOG_INFO, "Collecting network device details...");
-			send_subnet_and_devices(&config);
-			if (!stop_signal_received() && !session_has_expired(config)) {
+			if (send_subnet_and_devices(&config) && !stop_signal_received() && !session_has_expired(config)) {
 				syslog(LOG_INFO, "Network device reports sent");
 			} else {
 				syslog(LOG_INFO, "Skipping scan");
