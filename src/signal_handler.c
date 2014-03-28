@@ -70,10 +70,12 @@ int stop_signal_received()
 
 bool full_sleep(unsigned int length)
 {
-	alarm(length);
-	sigset_t sigset_emptyset;
-	sigemptyset(&sigset_emptyset);
-	sigsuspend(&sigset_emptyset);
+	if (length != 0) {
+		alarm(length);
+		sigset_t sigset_emptyset;
+		sigemptyset(&sigset_emptyset);
+		sigsuspend(&sigset_emptyset);
+	}
 	return !stop_signal_received();
 }
 
