@@ -68,6 +68,7 @@ host_lookup_table_t get_host_lookup_table(config_t* config)
 				}
 			}
 		}
+		pclose(output);
 		return lookup_table;
 	} else {
 		return NULL;
