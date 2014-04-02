@@ -112,7 +112,7 @@ void apply_blocks(const char* block_json)
 				int errcode = 0;
 				char command[BUFSIZ];
 				char tempfile[] = "/tmp/wiomw-iptables-error-XXXXXX";
-				if (mktemp(tempfile) == NULL || tempfile[0] != '/') {
+				if (mkstemp(tempfile) == -1) {
 					syslog(LOG_EMERG, "Unable to create temporary file");
 					exit(EX_OSERR);
 				}
@@ -139,12 +139,16 @@ void apply_blocks(const char* block_json)
 						}
 					}
 				} while (errcode == 0);
+				if (remove(tempfile) == -1) {
+					syslog(LOG_EMERG, "Unable to remove temporary file");
+					exit(EX_OSERR);
+				}
 			} else {
 				int errcode = 0;
 				char command[BUFSIZ];
 				FILE* output;
 				char tempfile[] = "/tmp/wiomw-iptables-error-XXXXXX";
-				if (mktemp(tempfile) == NULL || tempfile[0] != '/') {
+				if (mkstemp(tempfile) == -1) {
 					syslog(LOG_EMERG, "Unable to create temporary file");
 					exit(EX_OSERR);
 				}
@@ -187,6 +191,10 @@ void apply_blocks(const char* block_json)
 							syslog_syserror(LOG_CRIT, "Unable to communicate with shell during device blocking");
 						}
 					}
+				}
+				if (remove(tempfile) == -1) {
+					syslog(LOG_EMERG, "Unable to remove temporary file");
+					exit(EX_OSERR);
 				}
 			}
 		} else if (errcode == REG_NOMATCH) {
