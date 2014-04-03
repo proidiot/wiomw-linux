@@ -169,6 +169,11 @@ void wiomw_login(config_t* config)
 		}
 	} while (retry && full_sleep(trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING)));
 
+	if (fclose(fd) == EOF) {
+		syslog_syserror(LOG_EMERG, "Unable to remove temproary file");
+		exit(EX_OSERR);
+	}
+
 	free(holder_t_data);
 }
 
@@ -248,6 +253,11 @@ bool send_config(config_t* config)
 	} while (retry
 		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
 		&& full_nap(current_nap, config->next_session_request));
+
+	if (fclose(fd) == EOF) {
+		syslog_syserror(LOG_EMERG, "Unable to remove temproary file");
+		exit(EX_OSERR);
+	}
 
 	free(holder_t_data);
 
@@ -334,6 +344,11 @@ bool sync_block(config_t* config)
 	} while (retry
 		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
 		&& full_nap(current_nap, config->next_session_request));
+
+	if (fclose(fd) == EOF) {
+		syslog_syserror(LOG_EMERG, "Unable to remove temproary file");
+		exit(EX_OSERR);
+	}
 
 	free(holder_t_data);
 
@@ -475,6 +490,11 @@ bool send_subnet_and_devices(config_t* config)
 	} while (retry2
 		&& (total_nap += (current_nap = trunc_exp_backoff(tries++, CONFIG_OPTION_BACKOFF_CEILING))) <= CONFIG_OPTION_API_CALL_RETRY_LENGTH
 		&& full_nap(current_nap, config->next_session_request));
+
+	if ((fclose(subnet_fd) == EOF) || (fclose(devices_fd) == EOF)) {
+		syslog_syserror(LOG_EMERG, "Unable to remove temproary files");
+		exit(EX_OSERR);
+	}
 
 	free(holder_t_data);
 
