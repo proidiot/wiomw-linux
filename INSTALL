@@ -34,7 +34,7 @@ like any other OpenWRT package feed. For more information on how to use OpenWRT
 package feeds, visit <http://wiki.openwrt.org/doc/devel/feeds>. To use our
 feed, add the following line to your feeds.conf:
 
-	src-hg wiomw https://s3.amazonaws.com/www.whoisonmywifi.com/downloads/openwrt/feeds/wiomw.hg
+	src-hg wiomw static-http://s3.amazonaws.com/www.whoisonmywifi.com/downloads/openwrt/feeds/wiomw.hg
 
 For routers running 12.09 (Attitude Adjustment) with more limited flash space,
 we have also provided another feed which contains a backported version (from
@@ -44,7 +44,7 @@ libcurl package for 12.09 which has OpenSSL as a dependency (OpenSSL alone is
 space). To use this feed as well, also add the following line to your
 feeds.conf:
 
-	src-hg backport_curl_polarssl https://s3.amazonaws.com/www.whoisonmywifi.com/downloads/openwrt/feeds/backport_curl_polarssl.hg
+	src-hg backport_curl_polarssl static-http://s3.amazonaws.com/www.whoisonmywifi.com/downloads/openwrt/feeds/backport_curl_polarssl.hg
 
 ================================================================================
 
