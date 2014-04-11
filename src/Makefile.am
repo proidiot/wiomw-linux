@@ -44,8 +44,12 @@ wiomw_agent_SOURCES = main.c \
 		       host_lookup.h \
 		       exp_backoff.c \
 		       exp_backoff.h
+
+AM_CPPFLAGS= -I$(top_builddir)/gnulib_src -I$(top_srcdir)/gnulib_src
+\
 AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
 wiomw_agent_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
+LDADD=gnulib_src/libgnu.a
 
 #install-exec-hook:
 #	chown root $(sbindir)/wiomw-plugin
