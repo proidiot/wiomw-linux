@@ -81,7 +81,7 @@ AC_TYPE_UINT8_T
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
 #AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strdup strerror strncasecmp strnlen])
+AC_CHECK_FUNCS([alarm getpagesize gmtime_r malloc memset realloc regcomp socket strdup strerror strncasecmp strnlen tmpfile])
 
 
 
