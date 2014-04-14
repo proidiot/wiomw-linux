@@ -37,6 +37,8 @@
 
 #ifndef HAVE_TMPFILE
 
+#include <errno.h>
+
 FILE* tmpfile()
 {
 	char filename[] = "/tmp/tmpfile_XXXXXX";
