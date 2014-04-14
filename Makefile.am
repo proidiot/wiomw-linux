@@ -19,8 +19,7 @@
 # <http://www.whoisonmywifi.com/>.
 #
 
-ACLOCAL_AMFLAGS = -I m4 -I gnulib_m4
-EXTRA_DIST = gnulib_m4/gnulib-cache.m4
+ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=src etc gnulib_src
+SUBDIRS=src etc
 

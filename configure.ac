@@ -35,7 +35,6 @@ AM_INIT_AUTOMAKE([-Wall -Werror])
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
-gl_EARLY
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [rint], ,AC_MSG_ERROR([libm was not found]))
@@ -70,7 +69,6 @@ AS_IF([test "0$uci" -eq 01],
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stddef.h stdint.h stdlib.h string.h sys/socket.h syslog.h unistd.h])
-gl_INIT
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -281,7 +279,6 @@ AC_CONFIG_FILES([Makefile
                  etc/Makefile
                  etc/ssl/Makefile
                  etc/ssl/certs/Makefile
-		 gnulib_src/Makefile
                  src/Makefile])
 
 
