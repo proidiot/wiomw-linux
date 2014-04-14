@@ -39,7 +39,7 @@
 
 FILE* tmpfile()
 {
-	char[] filename = "/tmp/tmpfile_XXXXXX";
+	char filename[] = "/tmp/tmpfile_XXXXXX";
 	int descriptor = -1;
 	FILE* stream = NULL;
 	if ((descriptor = mkstemp(filename)) == -1) {
