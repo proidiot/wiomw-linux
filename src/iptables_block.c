@@ -35,6 +35,32 @@
 #include "syslog_syserror.h"
 #include "string_helpers.h"
 
+#ifndef HAVE_TMPFILE
+
+FILE* tmpfile()
+{
+	char[] filename = "/tmp/tmpfile_XXXXXX";
+	int descriptor = -1;
+	FILE* stream = NULL;
+	if ((descriptor = mkstemp(filename)) == -1) {
+		return NULL;
+	} else if ((stream = fdopen(descriptor, "r+")) == NULL) {
+		int terrno = errno;
+		close(descriptor);
+		errno = terrno;
+		return NULL;
+	} else if (unlink(filename) == -1) {
+		int terrno = errno;
+		fclose(stream);
+		errno = terrno;
+		return NULL;
+	} else {
+		return stream;
+	}
+}
+
+#endif
+
 #define JSON_ERROR_BUFFER_LEN 1024
 #define IPTABLES_COMMAND_STUB "export TEMPERR='%s'; "\
 	"%s -%c FORWARD -m mac --mac-source %s -j DROP 2>$TEMPERR;" \

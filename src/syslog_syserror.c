@@ -30,6 +30,37 @@
 
 #define MAX_ERROR_STRING_LENGTH BUFSIZ
 
+#ifndef HAVE_STRERROR
+
+char* sterror(int errnum)
+{
+	char error_buffer[MAX_ERROR_STRING_LENGTH];
+	char num_prep[MAX_ERROR_STRING_LENGTH];
+	long terrnum = errnum;
+	const char[] base_error = "Unknown error ";
+	int err_len = 0;
+	int num_len = 0;
+	while (base_error[err_len] != '\0') {
+		error_buffer[err_len] = base_error[err_len];
+		err_len++;
+	}
+	if (terrnum < 0) {
+		error_buffer[err_len++] = '-';
+		terrnum *= -1;
+	}
+	while(terrnum != 0) {
+		num_prep[num_len++] = '0' + (terrnum % 10);
+		terrnum /= 10;
+	}
+	while (num_len > 0) {
+		error_buffer[err_len++] = num_prep[num_len--];
+	}
+	error_buffer[err_len] = '\0';
+	return error_buffer;
+}
+
+#endif
+
 void syslog_syserror(int priority, const char* format, ...)
 {
 	const int local_errno_copy = errno;
