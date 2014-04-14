@@ -5668,7 +5668,7 @@ $as_echo "#define STRERROR_R_CHAR_P 1" >>confdefs.h
 fi
 
 #AC_FUNC_STRNLEN
-for ac_func in alarm getpagesize gmtime_r malloc memset realloc regcomp socket strdup strerror strncasecmp strnlen tmpfile
+for ac_func in alarm getpagesize malloc memset realloc regcomp socket strdup strerror strncasecmp strnlen tmpfile
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
