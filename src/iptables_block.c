@@ -112,8 +112,9 @@ void apply_blocks(const char* block_json)
 				int errcode = 0;
 				char command[BUFSIZ];
 				char tempfile[] = "/tmp/wiomw-iptables-error-XXXXXX";
-				if (mkstemp(tempfile) == -1) {
-					syslog(LOG_EMERG, "Unable to create temporary file");
+				int tfd = -1;
+				if ((tfd = mkstemp(tempfile)) == -1) {
+					syslog_syserror(LOG_EMERG, "Unable to create temporary file");
 					exit(EX_OSERR);
 				}
 				snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, tempfile, CONFIG_OPTION_IPTABLES_PATH, IPTABLES_DELETE_MODIFIER, YAJL_GET_STRING(mac_node));
@@ -139,8 +140,8 @@ void apply_blocks(const char* block_json)
 						}
 					}
 				} while (errcode == 0);
-				if (remove(tempfile) == -1) {
-					syslog(LOG_EMERG, "Unable to remove temporary file");
+				if (close(tfd) == -1 || (remove(tempfile) == -1 && errno != ENOENT)) {
+					syslog_syserror(LOG_EMERG, "Unable to remove temporary file");
 					exit(EX_OSERR);
 				}
 			} else {
@@ -148,8 +149,9 @@ void apply_blocks(const char* block_json)
 				char command[BUFSIZ];
 				FILE* output;
 				char tempfile[] = "/tmp/wiomw-iptables-error-XXXXXX";
-				if (mkstemp(tempfile) == -1) {
-					syslog(LOG_EMERG, "Unable to create temporary file");
+				int tfd = NULL;
+				if ((tfd = mkstemp(tempfile)) == -1) {
+					syslog_syserror(LOG_EMERG, "Unable to create temporary file");
 					exit(EX_OSERR);
 				}
 				snprintf(command, BUFSIZ, IPTABLES_COMMAND_STUB, tempfile, CONFIG_OPTION_IPTABLES_PATH, IPTABLES_CHECK_MODIFIER, YAJL_GET_STRING(mac_node));
@@ -192,8 +194,8 @@ void apply_blocks(const char* block_json)
 						}
 					}
 				}
-				if (remove(tempfile) == -1) {
-					syslog(LOG_EMERG, "Unable to remove temporary file");
+				if (close(tfd) == -1 || (remove(tempfile) == -1 && errno != ENOENT)) {
+					syslog_syserror(LOG_EMERG, "Unable to remove temporary file");
 					exit(EX_OSERR);
 				}
 			}
