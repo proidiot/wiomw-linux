@@ -23,7 +23,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_INIT([wiomw],
-	[1.0.0],
+	[1.0.2],
 	[bugs at whoisonmywifi dot com],
 	[wiomw],
 	[http://www.whoisonmywifi.net])
@@ -81,7 +81,7 @@ AC_TYPE_UINT8_T
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
 #AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strdup strerror strncasecmp strnlen])
+AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strdup strerror strncasecmp strnlen tmpfile])
 
 
 
