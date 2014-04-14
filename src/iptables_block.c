@@ -140,7 +140,7 @@ void apply_blocks(const char* block_json)
 						}
 					}
 				} while (errcode == 0);
-				if (close(tfd) == EOF || (remove(tempfile) == -1 && errno != ENOENT)) {
+				if (close(tfd) == -1 || (remove(tempfile) == -1 && errno != ENOENT)) {
 					syslog_syserror(LOG_EMERG, "Unable to remove temporary file");
 					exit(EX_OSERR);
 				}
@@ -194,7 +194,7 @@ void apply_blocks(const char* block_json)
 						}
 					}
 				}
-				if (close(tfd) == EOF || (remove(tempfile) == -1 && errno != ENOENT)) {
+				if (close(tfd) == -1 || (remove(tempfile) == -1 && errno != ENOENT)) {
 					syslog_syserror(LOG_EMERG, "Unable to remove temporary file");
 					exit(EX_OSERR);
 				}
