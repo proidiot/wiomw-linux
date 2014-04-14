@@ -34,6 +34,35 @@
 #include <sysexits.h>
 #include <ctype.h>
 
+#ifndef HAVE_TMPFILE
+
+#include <errno.h>
+
+FILE* tmpfile()
+{
+	char filename[] = "/tmp/tmpfile_XXXXXX";
+	int descriptor = -1;
+	FILE* stream = NULL;
+	if ((descriptor = mkstemp(filename)) == -1) {
+		return NULL;
+	} else if ((stream = fdopen(descriptor, "r+")) == NULL) {
+		int terrno = errno;
+		close(descriptor);
+		errno = terrno;
+		return NULL;
+	} else if (unlink(filename) == -1) {
+		int terrno = errno;
+		fclose(stream);
+		errno = terrno;
+		return NULL;
+	} else {
+		return stream;
+	}
+}
+
+#endif
+
+
 #define HTTP_503_PAUSE 10
 
 typedef struct holder_t_struct {
