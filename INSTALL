@@ -27,6 +27,18 @@ To build for Tomato, once the toolchain and build environment are set up
 	make
 	make install
 
+For practical reasons, it may be desirable to statically link libmnl, libyajl,
+libcurl, and whichever SSL library libcurl was compiled to be used with.  If
+you do intend to statically link yajl, don't forget to add --with-static-yajl
+to the above configure command.
+
+Unfortunately, yajl does not currently build as expected out-of-the-box since
+both __isnan and __isinf are required but neither can be found in the libc and
+libm that come with Tomato.  However, if a version of libm with the missing
+functions is statically linked to yajl before everything else is statically
+linked together, the resulting binary should still be able to dynamically link
+to libc despite using that statically linked libm.
+
 ================================================================================
 
 To build for OpenWRT, we have provided a wiomw package feed which can be used
