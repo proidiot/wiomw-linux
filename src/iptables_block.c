@@ -34,6 +34,7 @@
 #include <syslog.h>
 #include "syslog_syserror.h"
 #include "string_helpers.h"
+#include <errno.h>
 
 #define JSON_ERROR_BUFFER_LEN 1024
 #define IPTABLES_COMMAND_STUB "export TEMPERR='%s'; "\
