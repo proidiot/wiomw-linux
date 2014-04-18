@@ -1365,10 +1365,10 @@ void print_neighbours(config_t* config, FILE* subnet_fd, FILE* devices_fd)
 	
 		print_neigh_list(nl_sock, devices_fd, if_list, config, lookup_table);
 	
-		mnl_socket_close(nl_sock);
-	
 		fprintf(devices_fd, "]");
 	}
+
+	mnl_socket_close(nl_sock);
 
 	destroy_host_lookup_table(&lookup_table);
 	destroy_if_list(&if_list);
