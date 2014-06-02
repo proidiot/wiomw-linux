@@ -233,7 +233,7 @@ bool send_config(config_t* config)
 		exit(EX_OSERR);
 	}
 
-	fprintf(fd, "[%s, {\"frequency\":\"%d\",\"agentversion\":\"%s_%s_%s\",\"apiversion\":\"v100\",\"agentdetail\":\"%s, agent type %s, calling REST interface\", \"agenttime\":\"%ld\", \"agentblock\":\"1\", \"agentblockmax\":\"255\"}]", config->session_id, CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, CONFIG_OPTION_AGENT_TYPE, PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING, CONFIG_OPTION_AGENT_TYPE, time(NULL));
+	fprintf(fd, "[\"%s\", {\"frequency\":\"%d\",\"agentversion\":\"%s_%s_%s\",\"apiversion\":\"v100\",\"agentdetail\":\"%s, agent type %s, calling REST interface\", \"agenttime\":\"%ld\", \"agentblock\":\"1\", \"agentblockmax\":\"255\"}]", config->session_id, CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, CONFIG_OPTION_AGENT_TYPE, PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING, CONFIG_OPTION_AGENT_TYPE, time(NULL));
 
 	fseek(fd, 0, SEEK_END);
 	fd_size = ftell(fd);
