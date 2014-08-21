@@ -38,6 +38,7 @@ AM_PROG_CC_C_O
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [rint], ,AC_MSG_ERROR([libm was not found]))
+AC_CHECK_LIB([Judy], [JudySLGet])
 PKG_CHECK_MODULES([CURL], [libcurl])
 LIBCURL_CHECK_CONFIG
 AS_IF([test "x$libcurl_protocol_HTTPS" != xyes || test "x$libcurl_feature_SSL" != xyes],
@@ -73,15 +74,17 @@ AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stddef.h stdint.h stdl
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_TYPE_SIZE_T
+AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
+AC_CHECK_MEMBERS([struct net_device_stats.tx_packets],,,[#include <linux/netdevice.h>])
 
 # Checks for library functions.
 #AC_FUNC_MALLOC
 #AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
 #AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp socket strdup strerror strncasecmp strnlen tmpfile])
+AC_CHECK_FUNCS([alarm getpagesize malloc memset realloc regcomp snprintf socket stpnprintf strdup strerror strncasecmp strnlen tmpfile vsnprintf])
 
 
 
@@ -272,6 +275,17 @@ AX_CONFIG_OPTION_NUMBER_RANGE([api_call_retry_length],
 	[maximum amount of time to spend retrying a single non-login API call],
 	[SECS])
 
+AX_CONFIG_OPTION_NUMBER_RANGE([history_depth],
+	1024,
+	1,
+	32768,
+	[maximum number of changes to record in the history of a single device],
+	[ENTRIES])
+
+AX_CONFIG_OPTION_BOOL([defer_delete],
+	[yes],
+	[deferred deletion of historic data for the duration of one additional scan])
+
 
 
 # Generated files
@@ -279,8 +293,9 @@ AC_CONFIG_FILES([Makefile
                  etc/Makefile
                  etc/ssl/Makefile
                  etc/ssl/certs/Makefile
-                 src/Makefile])
-
+                 src/Makefile
+                 test/Makefile
+                 test/src/Makefile])
 
 
 AC_OUTPUT

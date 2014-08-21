@@ -36,4 +36,12 @@ size_t safe_string_length(const char* s, size_t maxlen);
 
 char* regex_escape_ifname(char* ifname);
 
+#ifndef HAVE_STPNPRINTF
+
+char* stpnprintf(char* str, size_t size, const char* format, ...);
+
+#endif
+
+void astpnprintf(char** str, size_t* size, const char* format, ...);
+
 #endif

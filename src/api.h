@@ -25,14 +25,12 @@
 
 #include <stdbool.h>
 
-#include "configuration.h"
+void wiomw_login();
 
-void wiomw_login(config_t* config);
+bool send_config();
 
-bool send_config(config_t* config);
+bool sync_block();
 
-bool sync_block(config_t* config);
-
-bool send_subnet_and_devices(config_t* config);
+bool send_subnet_and_devices();
 
 #endif

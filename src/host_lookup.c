@@ -38,13 +38,14 @@ struct _host_lookup_table_struct {
 	char* hostname;
 };
 
-host_lookup_table_t get_host_lookup_table(config_t* config)
+host_lookup_table_t get_host_lookup_table()
 {
-	if (CONFIG_OPTION_DNSMASQ_LEASE_LOOKUP && config != NULL) {
+	if (CONFIG_OPTION_DNSMASQ_LEASE_LOOKUP) {
 		host_lookup_table_t lookup_table = NULL;
 		host_lookup_table_t* temp = &lookup_table;
 		char command[BUFSIZ];
 		FILE* output;
+		config_t config = get_configuration();
 		snprintf(command, BUFSIZ, DNSMASQ_DUMP_COMMAND, config->dnsmasq_lease_file);
 		output = popen(command, "r");
 		if (output == NULL) {

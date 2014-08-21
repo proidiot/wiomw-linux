@@ -21,5 +21,5 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=src etc
+SUBDIRS=src test etc
 

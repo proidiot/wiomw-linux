@@ -30,12 +30,24 @@ wiomw_agent_SOURCES = main.c \
 		       syslog_syserror.h \
 		       api.c \
 		       api.h \
-		       neighbours.c \
-		       neighbours.h \
+		       iface.c \
+		       iface.h \
+		       ifaddr.c \
+		       ifaddr.h \
+		       neighbour.c \
+		       neighbour.h \
+		       data_tracker.c \
+		       data_tracker.h \
+		       ip.c \
+		       ip.h \
+		       mnl_helpers.c \
+		       mnl_helpers.h \
 		       sockaddr_helpers.c \
 		       sockaddr_helpers.h \
 		       mac_ntop.c \
 		       mac_ntop.h \
+		       nl_listener.h \
+		       nl_listener.c \
 		       iptables_block.c \
 		       block.h \
 		       string_helpers.c \
@@ -44,7 +56,7 @@ wiomw_agent_SOURCES = main.c \
 		       host_lookup.h \
 		       exp_backoff.c \
 		       exp_backoff.h
-AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CFLAGS=${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\" --coverage
 wiomw_agent_LDADD=${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 
 #install-exec-hook:

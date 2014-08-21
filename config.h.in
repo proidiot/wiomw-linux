@@ -34,11 +34,18 @@
 /* URL of config_subnet API */
 #undef CONFIG_OPTION_CONFIG_SUBNET_URL
 
+/* deferred deletion of historic data for the duration of one additional scan
+   */
+#undef CONFIG_OPTION_DEFER_DELETE
+
 /* dnsmasq lease file location */
 #undef CONFIG_OPTION_DNSMASQ_LEASE_FILE
 
 /* dnsmasq.lease-based hostname lookup */
 #undef CONFIG_OPTION_DNSMASQ_LEASE_LOOKUP
+
+/* maximum number of changes to record in the history of a single device */
+#undef CONFIG_OPTION_HISTORY_DEPTH
 
 /* maximum allowable length of an interface blacklist regular expression
    defined at runtime */
@@ -122,6 +129,9 @@
 /* Define to 1 if you have a functional curl library. */
 #undef HAVE_LIBCURL
 
+/* Define to 1 if you have the `Judy' library (-lJudy). */
+#undef HAVE_LIBJUDY
+
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
@@ -152,6 +162,9 @@
 /* Define to 1 if you have the `regcomp' function. */
 #undef HAVE_REGCOMP
 
+/* Define to 1 if you have the `snprintf' function. */
+#undef HAVE_SNPRINTF
+
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
 
@@ -166,6 +179,9 @@
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the `stpnprintf' function. */
+#undef HAVE_STPNPRINTF
 
 /* Define to 1 if you have the `strdup' function. */
 #undef HAVE_STRDUP
@@ -188,6 +204,9 @@
 /* Define to 1 if you have the `strnlen' function. */
 #undef HAVE_STRNLEN
 
+/* Define to 1 if `tx_packets' is a member of `struct net_device_stats'. */
+#undef HAVE_STRUCT_NET_DEVICE_STATS_TX_PACKETS
+
 /* Define to 1 if you have the <syslog.h> header file. */
 #undef HAVE_SYSLOG_H
 
@@ -205,6 +224,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `vsnprintf' function. */
+#undef HAVE_VSNPRINTF
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
@@ -320,6 +342,10 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
+
+/* Define to the type of an unsigned integer type of width exactly 16 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint16_t
 
 /* Define to the type of an unsigned integer type of width exactly 32 bits if
    such a type exists and the standard includes do not define it. */

@@ -34,6 +34,8 @@
 #include <grp.h>
 #include <limits.h>
 #include <syslog.h>
+#include <regex.h>
+#include <time.h>
 #include "syslog_syserror.h"
 #include "string_helpers.h"
 
@@ -41,9 +43,11 @@
 #include <uci.h>
 #endif
 
-bool session_has_expired(const config_t config)
+static struct _config_struct global_config;
+
+bool session_has_expired()
 {
-	return config.agentkey == NULL || time(NULL) >= config.next_session_request;
+	return global_config.agentkey == NULL || time(NULL) >= global_config.next_session_request;
 }
 
 #if CONFIG_OPTION_NVRAM_CONFIG == 1
@@ -128,11 +132,10 @@ char* find_config_value(char* source, const char* prefix)
 	}
 }
 
-config_t get_configuration(int argc, char** argv)
+config_t set_configuration(int argc, char** argv)
 {
 	FILE* config_file;
 	char raw_line[CONFIG_OPTION_CONFIG_LINE_LENGTH + 2];
-	config_t config;
 	char* config_file_location = CONFIG_OPTION_CONFIG_FILE;
 	bool config_username_is_set = false;
 	bool config_passhash_is_set = false;
@@ -159,43 +162,44 @@ config_t get_configuration(int argc, char** argv)
 
 	/* Default config values
 	 * (If a value must be specified, set bad values here and check if they match after the file is closed.) */
-	config.next_session_request = 0;
-	config.username = NULL;
-	config.passhash = NULL;
-	config.agentkey = NULL;
-	config.iface_blacklist_regex = NULL;
-	config.capath = string_chomp_copy(CONFIG_OPTION_CA_PATH);
-	config.login_url = string_chomp_copy(CONFIG_OPTION_LOGIN_URL);
-	config.config_agent_url = string_chomp_copy(CONFIG_OPTION_CONFIG_AGENT_URL);
-	config.config_subnet_url = string_chomp_copy(CONFIG_OPTION_CONFIG_SUBNET_URL);
-	config.sync_block_url = string_chomp_copy(CONFIG_OPTION_SYNC_BLOCK_URL);
-	config.send_devices_url = string_chomp_copy(CONFIG_OPTION_SEND_DEVICES_URL);
-	config.networks = NULL;
-	config.ignore_blacklist_iface = true;
-	config.show_unreachable_neighs = false;
-	config.show_known_blacklist_iface_neighs = false;
-	config.show_down_iface = false;
-	config.show_secondary_iface_addr = false;
-	config.blacklist_overrides_networks = true;
-	config.autoscan = true;
-	config.allow_blocking = true;
-	config.dnsmasq_lease_file = CONFIG_OPTION_DNSMASQ_LEASE_FILE;
-	config.session_id = NULL;
+	global_config.next_session_request = 0;
+	global_config.username = NULL;
+	global_config.passhash = NULL;
+	global_config.agentkey = NULL;
+	global_config.iface_blacklist_regex = NULL;
+	/*global_config.compiled_iface_blacklist_regex = NULL;*/
+	global_config.capath = string_chomp_copy(CONFIG_OPTION_CA_PATH);
+	global_config.login_url = string_chomp_copy(CONFIG_OPTION_LOGIN_URL);
+	global_config.config_agent_url = string_chomp_copy(CONFIG_OPTION_CONFIG_AGENT_URL);
+	global_config.config_subnet_url = string_chomp_copy(CONFIG_OPTION_CONFIG_SUBNET_URL);
+	global_config.sync_block_url = string_chomp_copy(CONFIG_OPTION_SYNC_BLOCK_URL);
+	global_config.send_devices_url = string_chomp_copy(CONFIG_OPTION_SEND_DEVICES_URL);
+	global_config.networks = NULL;
+	global_config.ignore_blacklist_iface = true;
+	global_config.show_unreachable_neighs = false;
+	global_config.show_known_blacklist_iface_neighs = false;
+	global_config.show_down_iface = false;
+	global_config.show_secondary_iface_addr = false;
+	global_config.blacklist_overrides_networks = true;
+	global_config.autoscan = true;
+	global_config.allow_blocking = true;
+	global_config.dnsmasq_lease_file = CONFIG_OPTION_DNSMASQ_LEASE_FILE;
+	global_config.session_id = NULL;
 
 	if (argc > 1) {
 		char c = '\0';
 		while (-1 != (c = getopt(argc, argv, "u:p:a:c:"))) {
 			switch (c) {
 			case 'u':
-				config.username = optarg;
+				global_config.username = optarg;
 				config_username_is_set = true;
 				break;
 			case 'p':
-				config.passhash = optarg;
+				global_config.passhash = optarg;
 				config_passhash_is_set = true;
 				break;
 			case 'a':
-				config.agentkey = optarg;
+				global_config.agentkey = optarg;
 				config_agentkey_is_set = true;
 				break;
 			case 'c':
@@ -223,7 +227,7 @@ config_t get_configuration(int argc, char** argv)
 			if (UCI_OK == status) {
 				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 					config_username_is_set = true;
-					config.username = strdup(ptr.o->v.string);
+					global_config.username = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
@@ -239,7 +243,7 @@ config_t get_configuration(int argc, char** argv)
 			if (UCI_OK == status) {
 				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 					config_passhash_is_set = true;
-					config.passhash = strdup(ptr.o->v.string);
+					global_config.passhash = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
@@ -255,7 +259,7 @@ config_t get_configuration(int argc, char** argv)
 			if (UCI_OK == status) {
 				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 					config_agentkey_is_set = true;
-					config.agentkey = strdup(ptr.o->v.string);
+					global_config.agentkey = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
@@ -271,7 +275,7 @@ config_t get_configuration(int argc, char** argv)
 			if (UCI_OK == status) {
 				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 					config_iface_blacklist_regex_is_set = true;
-					config.iface_blacklist_regex = strdup(ptr.o->v.string);
+					global_config.iface_blacklist_regex = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
@@ -290,15 +294,15 @@ config_t get_configuration(int argc, char** argv)
 
 		if (!config_username_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_username")) && 0 < strlen(nvram_value)) {
 			config_username_is_set = true;
-			config.username = nvram_value;
+			global_config.username = nvram_value;
 		}
 		if (!config_passhash_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_passhash")) && 0 < strlen(nvram_value)) {
 			config_passhash_is_set = true;
-			config.passhash = nvram_value;
+			global_config.passhash = nvram_value;
 		}
 		if (!config_agentkey_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_agentkey")) && 0 < strlen(nvram_value)) {
 			config_agentkey_is_set = true;
-			config.agentkey = nvram_value;
+			global_config.agentkey = nvram_value;
 		}
 		if (!config_file_location_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_config_path")) && 0 < strlen(nvram_value)) {
 			config_file_location_is_set = true;
@@ -332,7 +336,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, USERNAME_CONFIG_PREFIX)) != NULL) {
 				if (!config_username_is_set) {
 					config_username_is_set = true;
-					if ((config.username = string_chomp_copy(value)) == NULL) {
+					if ((global_config.username = string_chomp_copy(value)) == NULL) {
 						syslog(LOG_ERR, USERNAME_CONFIG_PREFIX " must not be empty");
 						exit(EX_CONFIG);
 					}
@@ -340,7 +344,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, PASSHASH_CONFIG_PREFIX)) != NULL) {
 				if (!config_passhash_is_set) {
 					config_passhash_is_set = true;
-					if ((config.passhash = string_chomp_copy(value)) == NULL) {
+					if ((global_config.passhash = string_chomp_copy(value)) == NULL) {
 						syslog(LOG_ERR, PASSHASH_CONFIG_PREFIX " must not be empty");
 						exit(EX_CONFIG);
 					}
@@ -348,7 +352,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, AGENTKEY_CONFIG_PREFIX)) != NULL) {
 				if (!config_agentkey_is_set) {
 					config_agentkey_is_set = true;
-					if ((config.agentkey = string_chomp_copy(value)) == NULL) {
+					if ((global_config.agentkey = string_chomp_copy(value)) == NULL) {
 						syslog(LOG_ERR, AGENTKEY_CONFIG_PREFIX " must not be empty");
 						exit(EX_CONFIG);
 					}
@@ -356,7 +360,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, CAPATH_CONFIG_PREFIX)) != NULL) {
 				if (!config_capath_is_set) {
 					config_capath_is_set = true;
-					if ((config.capath = string_chomp_copy(value)) == NULL) {
+					if ((global_config.capath = string_chomp_copy(value)) == NULL) {
 						syslog(LOG_ERR, CAPATH_CONFIG_PREFIX " must not be empty");
 						exit(EX_CONFIG);
 					}
@@ -364,7 +368,7 @@ config_t get_configuration(int argc, char** argv)
 			} else if ((value = find_config_value(current_line, IFACE_BLACKLIST_REGEX_CONFIG_PREFIX)) != NULL) {
 				if (!config_iface_blacklist_regex_is_set) {
 					config_iface_blacklist_regex_is_set = true;
-					config.iface_blacklist_regex = string_chomp_copy(value);
+					global_config.iface_blacklist_regex = string_chomp_copy(value);
 				}
 			} else if ((value = find_config_value(current_line, NETWORKS_CONFIG_PREFIX)) != NULL) {
 				if (!config_networks_is_set) {
@@ -377,8 +381,8 @@ config_t get_configuration(int argc, char** argv)
 					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
-							free(config.login_url);
-							config.login_url = new_url;
+							free(global_config.login_url);
+							global_config.login_url = new_url;
 						}
 					} else {
 						syslog(LOG_ERR, LOGIN_URL_CONFIG_PREFIX " cannot be overriden at this time");
@@ -391,8 +395,8 @@ config_t get_configuration(int argc, char** argv)
 					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
-							free(config.config_agent_url);
-							config.config_agent_url = new_url;
+							free(global_config.config_agent_url);
+							global_config.config_agent_url = new_url;
 						}
 					} else {
 						syslog(LOG_ERR, CONFIG_AGENT_URL_CONFIG_PREFIX " cannot be overriden at this time");
@@ -405,8 +409,8 @@ config_t get_configuration(int argc, char** argv)
 					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
-							free(config.config_subnet_url);
-							config.config_subnet_url = new_url;
+							free(global_config.config_subnet_url);
+							global_config.config_subnet_url = new_url;
 						}
 					} else {
 						syslog(LOG_ERR, CONFIG_SUBNET_URL_CONFIG_PREFIX " cannot be overriden at this time");
@@ -419,8 +423,8 @@ config_t get_configuration(int argc, char** argv)
 					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
-							free(config.sync_block_url);
-							config.sync_block_url = new_url;
+							free(global_config.sync_block_url);
+							global_config.sync_block_url = new_url;
 						}
 					} else {
 						syslog(LOG_ERR, SYNC_BLOCK_URL_CONFIG_PREFIX " cannot be overriden at this time");
@@ -433,8 +437,8 @@ config_t get_configuration(int argc, char** argv)
 					if (CONFIG_OPTION_API_URL_OVERRIDES) {
 						char* new_url = string_chomp_copy(value);
 						if (new_url != NULL) {
-							free(config.send_devices_url);
-							config.send_devices_url = new_url;
+							free(global_config.send_devices_url);
+							global_config.send_devices_url = new_url;
 						}
 					} else {
 						syslog(LOG_ERR, SEND_URL_CONFIG_PREFIX " cannot be overriden at this time");
@@ -449,7 +453,7 @@ config_t get_configuration(int argc, char** argv)
 						syslog_syserror(LOG_ERR, "Unable to read a boolean value for " IGNORE_BLACKLIST_IFACE_CONFIG_PREFIX);
 						exit(EX_CONFIG);
 					} else {
-						config.ignore_blacklist_iface = (result == 0)? false : true;
+						global_config.ignore_blacklist_iface = (result == 0)? false : true;
 					}
 				}
 			} else if ((value = find_config_value(current_line, SHOW_UNREACHABLE_NEIGHS_CONFIG_PREFIX)) != NULL) {
@@ -460,7 +464,7 @@ config_t get_configuration(int argc, char** argv)
 						syslog_syserror(LOG_ERR, "Unable to read a boolean value for " SHOW_UNREACHABLE_NEIGHS_CONFIG_PREFIX);
 						exit(EX_CONFIG);
 					} else {
-						config.show_unreachable_neighs = (result == 0)? false : true;
+						global_config.show_unreachable_neighs = (result == 0)? false : true;
 					}
 				}
 			} else if ((value = find_config_value(current_line, SHOW_KNOWN_BLACKLIST_IFACE_NEIGHS_CONFIG_PREFIX)) != NULL) {
@@ -471,7 +475,7 @@ config_t get_configuration(int argc, char** argv)
 						syslog_syserror(LOG_ERR, "Unable to read a boolean value for " SHOW_KNOWN_BLACKLIST_IFACE_NEIGHS_CONFIG_PREFIX);
 						exit(EX_CONFIG);
 					} else {
-						config.show_known_blacklist_iface_neighs = (result == 0)? false : true;
+						global_config.show_known_blacklist_iface_neighs = (result == 0)? false : true;
 					}
 				}
 			} else if ((value = find_config_value(current_line, SHOW_DOWN_IFACE_CONFIG_PREFIX)) != NULL) {
@@ -482,7 +486,7 @@ config_t get_configuration(int argc, char** argv)
 						syslog_syserror(LOG_ERR, "Unable to read a boolean value for " SHOW_DOWN_IFACE_CONFIG_PREFIX);
 						exit(EX_CONFIG);
 					} else {
-						config.show_down_iface = (result == 0)? false : true;
+						global_config.show_down_iface = (result == 0)? false : true;
 					}
 				}
 			} else if ((value = find_config_value(current_line, SHOW_SECONDARY_IFACE_ADDR_CONFIG_PREFIX)) != NULL) {
@@ -493,7 +497,7 @@ config_t get_configuration(int argc, char** argv)
 						syslog_syserror(LOG_ERR, "Unable to read a boolean value for " SHOW_SECONDARY_IFACE_ADDR_CONFIG_PREFIX);
 						exit(EX_CONFIG);
 					} else {
-						config.show_secondary_iface_addr = (result == 0)? false : true;
+						global_config.show_secondary_iface_addr = (result == 0)? false : true;
 					}
 				}
 			} else if ((value = find_config_value(current_line, BLACKLIST_OVERRIDES_NETWORKS_CONFIG_PREFIX)) != NULL) {
@@ -504,7 +508,7 @@ config_t get_configuration(int argc, char** argv)
 						syslog_syserror(LOG_ERR, "Unable to read a boolean value for " BLACKLIST_OVERRIDES_NETWORKS_CONFIG_PREFIX);
 						exit(EX_CONFIG);
 					} else {
-						config.blacklist_overrides_networks = (result == 0)? false : true;
+						global_config.blacklist_overrides_networks = (result == 0)? false : true;
 					}
 				}
 			} else if ((value = find_config_value(current_line, AUTOSCAN_CONFIG_PREFIX)) != NULL) {
@@ -515,7 +519,7 @@ config_t get_configuration(int argc, char** argv)
 						syslog_syserror(LOG_ERR, "Unable to read a boolean value for " AUTOSCAN_CONFIG_PREFIX);
 						exit(EX_CONFIG);
 					} else {
-						config.autoscan = (result == 0)? false : true;
+						global_config.autoscan = (result == 0)? false : true;
 					}
 				}
 			} else if ((value = find_config_value(current_line, ALLOW_BLOCKING_CONFIG_PREFIX)) != NULL) {
@@ -526,7 +530,7 @@ config_t get_configuration(int argc, char** argv)
 						syslog_syserror(LOG_ERR, "Unable to read a boolean value for " ALLOW_BLOCKING_CONFIG_PREFIX);
 						exit(EX_CONFIG);
 					} else {
-						config.allow_blocking = (result == 0)? false : true;
+						global_config.allow_blocking = (result == 0)? false : true;
 					}
 				}
 			} /* TODO: Any future configuration checks go here. */
@@ -565,16 +569,16 @@ config_t get_configuration(int argc, char** argv)
 			if ((ptr2.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr2.o->v.string)) {
 				char* escaped_ifname = regex_escape_ifname(ptr2.o->v.string);
 				if (config_iface_blacklist_regex_is_set) {
-					size_t tlen = strlen(config.iface_blacklist_regex) + 2 + strlen(escaped_ifname) + 1;
+					size_t tlen = strlen(global_config.iface_blacklist_regex) + 2 + strlen(escaped_ifname) + 1;
 					char* temp = (char*)malloc(tlen + 1);
 					if (temp == NULL) {
 						syslog_syserror(LOG_EMERG, "Unable to allocate memory");
 						exit(EX_OSERR);
 					}
-					snprintf(temp, tlen, "%s|^%s$", config.iface_blacklist_regex, escaped_ifname);
-					free(config.iface_blacklist_regex);
+					snprintf(temp, tlen, "%s|^%s$", global_config.iface_blacklist_regex, escaped_ifname);
+					free(global_config.iface_blacklist_regex);
 					free(escaped_ifname);
-					config.iface_blacklist_regex = temp;
+					global_config.iface_blacklist_regex = temp;
 				} else {
 					char* temp = (char*)malloc(1 + strlen(escaped_ifname) + 2);
 					if (temp == NULL) {
@@ -584,7 +588,7 @@ config_t get_configuration(int argc, char** argv)
 					snprintf(temp, 1 + strlen(escaped_ifname) + 2, "^%s$", escaped_ifname);
 					free(escaped_ifname);
 					config_iface_blacklist_regex_is_set = true;
-					config.iface_blacklist_regex = temp;
+					global_config.iface_blacklist_regex = temp;
 				}
 			} else {
 				syslog(LOG_CRIT, "Unable to retrieve 'ifname' property of 'wan' interface from uci network configuration");
@@ -600,19 +604,42 @@ config_t get_configuration(int argc, char** argv)
 	}
 #endif
 
-	if (config.username == NULL) {
+	if (config_iface_blacklist_regex_is_set) {
+		char* temp = global_config.iface_blacklist_regex;
+		global_config.iface_blacklist_regex = (char*)malloc(strlen(temp) + 1 + CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX_LENGTH);
+		if (global_config.iface_blacklist_regex == NULL) {
+			syslog(LOG_EMERG, "Unable to allocate memory");
+			exit(EX_OSERR);
+		}
+		sprintf(global_config.iface_blacklist_regex, "%s|%s", temp, CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX);
+		free(temp);
+	} else {
+		global_config.iface_blacklist_regex = strdup(CONFIG_OPTION_PERMANENT_IFACE_BLACKLIST_REGEX);
+	}
+
+	if (regcomp(&(global_config.compiled_iface_blacklist_regex), global_config.iface_blacklist_regex, REG_EXTENDED | REG_ICASE) != 0) {
+		syslog(LOG_ERR, IFACE_BLACKLIST_REGEX_CONFIG_PREFIX " could not be compiled into a regular expression");
+		exit(EX_CONFIG);
+	}
+
+	if (global_config.username == NULL) {
 		syslog(LOG_ERR, USERNAME_CONFIG_PREFIX " was not specified");
 		exit(EX_CONFIG);
 	}
-	if (config.passhash == NULL) {
+	if (global_config.passhash == NULL) {
 		syslog(LOG_ERR, PASSHASH_CONFIG_PREFIX " was not specified");
 		exit(EX_CONFIG);
 	}
-	if (config.agentkey == NULL) {
+	if (global_config.agentkey == NULL) {
 		syslog(LOG_ERR, AGENTKEY_CONFIG_PREFIX " was not specified");
 		exit(EX_CONFIG);
 	}
 
-	return config;
+	return &global_config;
+}
+
+config_t get_configuration()
+{
+	return &global_config;
 }
 

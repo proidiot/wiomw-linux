@@ -25,14 +25,17 @@
 
 #include "sockaddr_helpers.h"
 #include <stdbool.h>
+#include <sys/types.h>
+#include <regex.h>
 
-typedef struct {
+typedef struct _config_struct {
 	time_t next_session_request;
 	char* username;
 	char* passhash;
 	char* agentkey;
 	char* session_id;
 	char* iface_blacklist_regex;
+	regex_t compiled_iface_blacklist_regex;
 	char* capath;
 	char* login_url;
 	char* config_agent_url;
@@ -49,10 +52,12 @@ typedef struct {
 	bool blacklist_overrides_networks;
 	bool autoscan;
 	bool allow_blocking;
-} config_t;
+} * config_t;
 
-config_t get_configuration(int argc, char** argv);
+config_t set_configuration(int argc, char** argv);
 
-bool session_has_expired(const config_t config);
+config_t get_configuration();
+
+bool session_has_expired();
 
 #endif

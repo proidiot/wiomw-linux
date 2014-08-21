@@ -27,7 +27,7 @@
 
 typedef struct _host_lookup_table_struct* host_lookup_table_t;
 
-host_lookup_table_t get_host_lookup_table(config_t* config);
+host_lookup_table_t get_host_lookup_table();
 
 char* host_lookup(host_lookup_table_t table, char* mac_addr);
 

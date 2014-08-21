@@ -27,6 +27,8 @@
 #include <sysexits.h>
 #include <syslog.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include "syslog_syserror.h"
 
 char* string_chomp_copy(char* source)
@@ -309,5 +311,26 @@ char* regex_escape_ifname(char* ifname)
 	} else {
 		return ifname;
 	}
+}
+
+char* stpnprintf(char* str, size_t size, const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(str, size, fmt, args);
+	va_end(args);
+	return str + strnlen(str, size);
+}
+
+void astpnprintf(char** str, size_t* size, const char* fmt, ...)
+{
+	va_list args;
+	size_t newsiz = 0;
+	va_start(args, fmt);
+	vsnprintf(*str, *size, fmt, args);
+	va_end(args);
+	newsiz = strnlen(*str, *size);
+	*str += newsiz;
+	*size -= newsiz;
 }
 

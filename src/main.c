@@ -28,10 +28,14 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <syslog.h>
+#include <pthread.h>
+#include <sysexits.h>
 #include "configuration.h"
 #include "signal_handler.h"
+#include "syslog_syserror.h"
 #include "api.h"
 #include "neighbours.h"
+#include "nl_listener.h"
 
 #define MINIMUM(a,b) (((a)>(b))?(b):(a))
 
@@ -45,6 +49,8 @@ int main(int argc, char** argv)
 {
 	config_t config;
 	/* TODO: Any additional declarations go here. */
+	pthread_attr_t attr;
+	pthread_t thread;
 	
 	openlog(CONFIG_OPTION_SYSLOG_IDENT, LOG_CONS | LOG_PERROR, WIOMW_SYSLOG_LEVEL);
 
@@ -52,7 +58,17 @@ int main(int argc, char** argv)
 
 	set_signal_handlers();
 
-	config = get_configuration(argc, argv);
+	config = set_configuration(argc, argv);
+
+	if (pthread_attr_init(&attr) != 0) {
+		syslog_syserror(LOG_CRIT, "Unable to initialize thread metadata");
+		exit(EX_OSERR);
+	}
+
+	if (pthread_create(&thread, &attr, &nl_listener, NULL) != 0) {
+		syslog_syserror(LOG_CRIT, "Unable to start network device listener");
+		exit(EX_OSERR);
+	}
 
 	do {
 		wiomw_login(&config);
@@ -65,7 +81,7 @@ int main(int argc, char** argv)
 		}
 
 		do {
-			if (config.allow_blocking) {
+			if (config->allow_blocking) {
 				if (sync_block(&config) && !stop_signal_received() && !session_has_expired(config)) {
 					syslog(LOG_INFO, "Device blocking updated");
 				} else {
@@ -78,15 +94,20 @@ int main(int argc, char** argv)
 			} else {
 				syslog(LOG_INFO, "Skipping scan");
 			}
-		} while (any_nap(CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, config.next_session_request));
+		} while (any_nap(CONFIG_OPTION_SYNC_BLOCK_FREQUENCY, config->next_session_request));
 
 		if (session_has_expired(config)) {
 			syslog(LOG_INFO, "Previous session has expired");
 		}
 	} while (!stop_signal_received());
 
+	if (pthread_cancel(thread) != 0) {
+		syslog_syserror(LOG_CRIT, "Unable to stop network device listener");
+	}
 
-
+	if (pthread_attr_destroy(&attr) != 0) {
+		syslog_syserror(LOG_CRIT, "Unable to clean up thread metadata");
+	}
 
 	/* TODO: Any remaining cleanup goes here. */
 	closelog();

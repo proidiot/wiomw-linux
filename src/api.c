@@ -25,7 +25,8 @@
 #include "syslog_syserror.h"
 #include "api.h"
 #include "configuration.h"
-#include "neighbours.h"
+#include "neighbour.h"
+#include "ifaddr.h"
 #include "block.h"
 #include "string_helpers.h"
 #include <curl/curl.h>
@@ -33,6 +34,8 @@
 #include <string.h>
 #include <sysexits.h>
 #include <ctype.h>
+#include "signal_handler.h"
+#include "exp_backoff.h"
 
 #ifndef HAVE_TMPFILE
 
@@ -110,7 +113,7 @@ size_t curl_cb_process_buffer(void* data_buffer, size_t unit_size, size_t unit_c
 	return buffer_count * unit_size;
 }
 
-void wiomw_login(config_t* config)
+void wiomw_login()
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
@@ -118,6 +121,7 @@ void wiomw_login(config_t* config)
 	long fd_size;
 	bool retry = false;
 	unsigned int tries = 1;
+	config_t config = get_configuration();
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during login (empty config)");
@@ -206,7 +210,7 @@ void wiomw_login(config_t* config)
 	free(holder_t_data);
 }
 
-bool send_config(config_t* config)
+bool send_config()
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
@@ -216,11 +220,7 @@ bool send_config(config_t* config)
 	unsigned int tries = 1;
 	unsigned long current_nap = 0;
 	unsigned long total_nap = 0;
-
-	if (config == NULL) {
-		syslog(LOG_CRIT, "Internal error during version announcement (empty config)");
-		exit(EX_SOFTWARE);
-	}
+	config_t config = get_configuration();
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));
 	if (holder_t_data == NULL) {
@@ -293,7 +293,7 @@ bool send_config(config_t* config)
 	return !retry;
 }
 
-bool sync_block(config_t* config)
+bool sync_block()
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
@@ -303,12 +303,13 @@ bool sync_block(config_t* config)
 	unsigned int tries = 1;
 	unsigned long current_nap = 0;
 	unsigned long total_nap = 0;
+	config_t config = get_configuration();
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during device blocking setup (empty config)");
 		exit(EX_SOFTWARE);
 	} else if (!config->allow_blocking) {
-		return;
+		return false;
 	}
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));
@@ -384,7 +385,7 @@ bool sync_block(config_t* config)
 	return !retry;
 }
 
-bool send_subnet_and_devices(config_t* config)
+bool send_subnet_and_devices()
 {
 	char str_error_buffer[CURL_ERROR_SIZE];
 	holder_t holder_t_data;
@@ -397,6 +398,7 @@ bool send_subnet_and_devices(config_t* config)
 	unsigned int tries = 1;
 	unsigned long current_nap = 0;
 	unsigned long total_nap = 0;
+	config_t config = get_configuration();
 
 	if (config == NULL) {
 		syslog(LOG_CRIT, "Internal error during report (empty config)");
@@ -413,9 +415,10 @@ bool send_subnet_and_devices(config_t* config)
 		syslog_syserror(LOG_EMERG, "Unable to create temproary file");
 		exit(EX_OSERR);
 	}
-	print_neighbours(config, subnet_fd, devices_fd);
+	print_ifaddrs(subnet_fd);
 	fseek(subnet_fd, 0, SEEK_END);
 	subnet_fd_size = ftell(subnet_fd);
+	print_neighbours(devices_fd);
 	fseek(devices_fd, 0, SEEK_END);
 	devices_fd_size = ftell(devices_fd);
 
@@ -451,6 +454,8 @@ bool send_subnet_and_devices(config_t* config)
 				const char* msg = "Server response to network layout report was empty";
 				syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, msg);
 				retry1 = true;
+			} else {
+				clean_ifaddr_table();
 			}
 		} else {
 			syslog(LOG_ERR, "Network layout report attempt %u failed: %s", tries, str_error_buffer);
@@ -506,6 +511,8 @@ bool send_subnet_and_devices(config_t* config)
 				const char* msg = "Server response to network device report was empty";
 				syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, msg);
 				retry2 = true;
+			} else {
+				clean_neighbour_table();
 			}
 		} else {
 			syslog(LOG_ERR, "Network device report attempt %u failed: %s", tries, str_error_buffer);

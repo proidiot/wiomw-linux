@@ -35,6 +35,7 @@
 #include "syslog_syserror.h"
 #include "string_helpers.h"
 #include <errno.h>
+#include <unistd.h>
 
 #define JSON_ERROR_BUFFER_LEN 1024
 #define IPTABLES_COMMAND_STUB "export TEMPERR='%s'; "\
@@ -150,7 +151,7 @@ void apply_blocks(const char* block_json)
 				char command[BUFSIZ];
 				FILE* output;
 				char tempfile[] = "/tmp/wiomw-iptables-error-XXXXXX";
-				int tfd = NULL;
+				int tfd = 0;
 				if ((tfd = mkstemp(tempfile)) == -1) {
 					syslog_syserror(LOG_EMERG, "Unable to create temporary file");
 					exit(EX_OSERR);

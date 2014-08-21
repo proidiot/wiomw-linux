@@ -2,21 +2,30 @@
 #include "nl_listener.h"
 
 #include "configuration.h"
-
-struct _nl_listener_closure_struct {
-	config_t* config;
-	/* TODO: sem-locked files */
-};
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+#include <libmnl/libmnl.h>
+#include <syslog.h>
+#include <sysexits.h>
+#include <stdlib.h>
+#include "syslog_syserror.h"
+#include "ifaddr.h"
+#include "iface.h"
+#include "neighbour.h"
 
 static int nl_cb(const struct nlmsghdr* nlh, void* closure)
 {
 	switch (nlh->nlmsg_type) {
 	case RTM_NEWLINK: return rtm_newlink_cb(nlh, closure);
 	case RTM_DELLINK: return rtm_dellink_cb(nlh, closure);
+	case RTM_GETLINK: return rtm_getlink_cb(nlh, closure);
 	case RTM_NEWADDR: return rtm_newaddr_cb(nlh, closure);
 	case RTM_DELADDR: return rtm_deladdr_cb(nlh, closure);
+	case RTM_GETADDR: return rtm_getaddr_cb(nlh, closure);
 	case RTM_NEWNEIGH: return rtm_newneigh_cb(nlh, closure);
 	case RTM_DELNEIGH: return rtm_delneigh_cb(nlh, closure);
+	case RTM_GETNEIGH: return rtm_getneigh_cb(nlh, closure);
+	default: return MNL_CB_OK;
 	}
 }
 
@@ -24,7 +33,7 @@ void* nl_listener(void* closure)
 {
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct mnl_socket* nl_sock;
-	int ret;
+	ssize_t ret;
 
 	if ((nl_sock = mnl_socket_open(NETLINK_ROUTE)) == NULL) {
 		syslog_syserror(LOG_CRIT, "Unable to open netlink socket");
@@ -35,7 +44,7 @@ void* nl_listener(void* closure)
 	}
 
 	while ((ret = mnl_socket_recvfrom(nl_sock, buf, MNL_SOCKET_BUFFER_SIZE)) > 0) {
-		if (mnl_cb_run(buf, ret, seq, portid, callback, callback_closure) < -1) {
+		if (mnl_cb_run(buf, ret, 0, 0, &nl_cb, closure) < -1) {
 			syslog_syserror(LOG_CRIT, "Error during parse of netlink data");
 			exit(EX_SOFTWARE);
 		}
@@ -47,5 +56,7 @@ void* nl_listener(void* closure)
 	}
 
 	mnl_socket_close(nl_sock);
+
+	return NULL;
 }
 

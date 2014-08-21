@@ -23,6 +23,10 @@
 #ifndef _WIOMW_SYSLOG_SYSERROR_H_
 #define _WIOMW_SYSLOG_SYSERROR_H_
 
+#include <stddef.h>
+
 void syslog_syserror(int priority, const char* format, ...);
+
+void* checked_malloc(size_t len);
 
 #endif
