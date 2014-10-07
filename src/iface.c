@@ -826,18 +826,18 @@ static void print_iface(FILE* stream, const struct tracked_data data)
 	fprintf(stream, "\""JSON_IFLA_STATS_TX_COMPRESSED_STRING"\":%lu,", iface->stats.tx_compressed);
 }
 
-static const char* gen_iface_index(char* index, const int ifindex)
+static const char* iface_index(char* index, const int ifindex)
 {
 	snprintf(index, IFACE_INDEX_LENGTH, "%X", ifindex);
 	index[IFACE_INDEX_LENGTH - 1] = '\0';
 	return index;
 }
 
-static const char* get_iface_index(char* index, const struct tracked_data data)
+static const char* gen_iface_index(char* index, const struct tracked_data data)
 {
 	const struct iface_nohistory_data* const iface = (const struct iface_nohistory_data*)data.nohistory_data;
 
-	return gen_iface_index(index, iface->ifi_index);
+	return iface_index(index, iface->ifi_index);
 }
 
 static bool iface_changed(const struct tracked_data old_data, const struct tracked_data new_data)
@@ -944,7 +944,7 @@ static void save_iface_name(void* closure, const struct tracked_data data)
 void get_iface_name(char* name, const int ifindex)
 {
 	char index[IFACE_INDEX_LENGTH];
-	gen_iface_index(index, ifindex);
+	iface_index(index, ifindex);
 
 	process_data_from_table(&save_iface_name, name, &iface_table, &iface_mutex, index);
 }
@@ -959,7 +959,7 @@ static void save_iface_blacklisted(void* closure, const struct tracked_data data
 void get_iface_blacklisted(bool* blacklisted, const int ifindex)
 {
 	char index[IFACE_INDEX_LENGTH];
-	gen_iface_index(index, ifindex);
+	iface_index(index, ifindex);
 
 	process_data_from_table(&save_iface_blacklisted, &blacklisted, &iface_table, &iface_mutex, index);
 }
@@ -973,7 +973,7 @@ static void save_iface_mac(void* closure, const struct tracked_data data)
 void get_iface_mac(unsigned char* mac, const int ifindex)
 {
 	char index[IFACE_INDEX_LENGTH];
-	gen_iface_index(index, ifindex);
+	iface_index(index, ifindex);
 
 	process_data_from_table(&save_iface_mac, mac, &iface_table, &iface_mutex, index);
 }
@@ -986,7 +986,7 @@ static void print_iface_wrapper(void* closure, const struct tracked_data data)
 void print_iface_by_index(FILE* stream, int ifindex)
 {
 	char index[IFACE_INDEX_LENGTH];
-	gen_iface_index(index, ifindex);
+	iface_index(index, ifindex);
 
 	process_data_from_table(&print_iface_wrapper, stream, &iface_table, &iface_mutex, index);
 }
@@ -1000,7 +1000,7 @@ int rtm_newlink_cb(const struct nlmsghdr* nl_header, void* closure)
 {
 	char index[IFACE_INDEX_LENGTH];
 	struct data_tracker* const tracker = prepare_data_tracker(iface_data_size, nl_header, &get_iface_header_cb, &get_iface_attr_cb);
-	get_data_index(index, tracker, &get_iface_index);
+	get_data_index(index, tracker, &gen_iface_index);
 	if (save_data_tracker(&iface_table, &iface_mutex, index, tracker, &iface_changed)) {
 		return MNL_CB_OK;
 	} else {
@@ -1013,7 +1013,7 @@ int rtm_dellink_cb(const struct nlmsghdr* nl_header, void* closure)
 	char index[IFACE_INDEX_LENGTH];
 	struct data_tracker* const tracker = prepare_data_tracker(iface_data_size, nl_header, &get_iface_header_cb, &get_iface_attr_cb);
 	set_deleted_data(tracker);
-	get_data_index(index, tracker, &get_iface_index);
+	get_data_index(index, tracker, &gen_iface_index);
 	if (save_data_tracker(&iface_table, &iface_mutex, index, tracker, &iface_changed)) {
 		return MNL_CB_OK;
 	} else {

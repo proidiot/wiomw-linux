@@ -426,6 +426,47 @@ void test_print_iface_data_tracker()
 	}
 }
 
+void test_gen_iface_index()
+{
+	note("running test_gen_iface_index");
+
+	const struct iface_history_data hdata =
+	{
+		.ifi_family = AF_UNSPEC,
+		.ifi_type = ARPHRD_ETHER,
+		.ifi_flags = IFF_UP | IFF_RUNNING | IFF_DYNAMIC,
+		.mac = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB},
+		.bmac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+		.mtu = 1500,
+		.link = 1,
+		.blacklisted = false,
+		.qdsp = "pfifo_fast",
+		.name = "eth0"
+	};
+	const struct iface_nohistory_data nhdata =
+	{
+		.ifi_index = 1
+	};
+	const struct tracked_data data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&hdata
+	};
+
+	const char* expected = "1";
+	char actual[BUFSIZ];
+
+	gen_iface_index(actual, data);
+
+	if (strncmp(expected, actual, BUFSIZ) != 0) {
+		fail("gen_iface_index did not match");
+		note("expected: %s", expected);
+		note("actual: %s", actual);
+	} else {
+		pass("gen_iface_index matched");
+	}
+}
+
 int main()
 {
 	set_configuration(0, NULL);
@@ -439,6 +480,8 @@ int main()
 	test_print_iface_diff();
 
 	test_print_iface_data_tracker();
+
+	test_gen_iface_index();
 
 	return 0;
 }
