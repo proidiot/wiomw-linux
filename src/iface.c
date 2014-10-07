@@ -770,7 +770,6 @@ static void print_iface(FILE* stream, const struct tracked_data data)
 {
 	const struct iface_nohistory_data* const iface = (const struct iface_nohistory_data*)data.nohistory_data;
 	const struct iface_history_data* const current = (const struct iface_history_data*)data.history_data;
-	char link_name[IFNAMSIZ];
 	fprintf(stream, "\""JSON_IFI_FAMILY_STRING"\":\"%s\",", get_af_family(current->ifi_family));
 	fprintf(stream, "\""JSON_IFI_TYPE_STRING"\":\"%s\",", get_arp_hw_type(current->ifi_type));
 	print_ifi_flag_diff(stream, current->ifi_flags, 0);
@@ -791,8 +790,13 @@ static void print_iface(FILE* stream, const struct tracked_data data)
 		current->bmac[4],
 		current->bmac[5]);
 	fprintf(stream, "\""JSON_IFLA_MTU_STRING"\":%d,", current->mtu);
-	get_iface_name(link_name, current->link);
-	fprintf(stream, "\""JSON_IFLA_LINK_STRING"\":\"%s\",", link_name);
+	if (current->link != iface->ifi_index) {
+		char link_name[IFNAMSIZ];
+		get_iface_name(link_name, current->link);
+		fprintf(stream, "\""JSON_IFLA_LINK_STRING"\":\"%s\",", link_name);
+	} else {
+		fprintf(stream, "\""JSON_IFLA_LINK_STRING"\":\"%s\",", current->name);
+	}
 	fprintf(stream, "\""JSON_IFLA_QDISC_STRING"\":\"%s\",", current->qdsp);
 	fprintf(stream, "\""JSON_IFLA_IFNAME_STRING"\":\"%s\",", current->name);
 	fprintf(stream, "\""JSON_BLACKLISTED_STRING"\":%d,", current->blacklisted);

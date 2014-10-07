@@ -194,6 +194,70 @@ void test_iface_prepare_data_tracker()
 	abort_data_tracker(tracker);
 }
 
+void test_print_iface()
+{
+	note("running test_print_iface");
+
+	const struct iface_history_data hdata =
+	{
+		.ifi_family = AF_UNSPEC,
+		.ifi_type = ARPHRD_ETHER,
+		.ifi_flags = IFF_UP | IFF_RUNNING | IFF_DYNAMIC,
+		.mac = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB},
+		.bmac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+		.mtu = 1500,
+		.link = 1,
+		.blacklisted = false,
+		.qdsp = "pfifo_fast",
+		.name = "eth0"
+	};
+	const struct iface_nohistory_data nhdata =
+	{
+		.ifi_index = 1
+	};
+	const struct tracked_data data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&hdata
+	};
+	FILE* stream = tmpfile();
+
+	const char* expected = "\"family\":\"AF_UNSPEC\",\"type\":"
+		"\"ARPHRD_ETHER\",\"up\":1,\"running\":1,\"dynamic\":1,"
+		"\"volatile\":1,\"mac\":\"01:23:45:67:89:AB\",\"bcast_mac\":"
+		"\"FF:FF:FF:FF:FF:FF\",\"mtu\":1500,\"real_iface\":\"eth0\","
+		"\"qdsp\":\"pfifo_fast\",\"name\":\"eth0\",\"blacklisted\":0,"
+		"\"rx_packets\":0,\"tx_packets\":0,\"rx_bytes\":0,"
+		"\"tx_bytes\":0,\"rx_errors\":0,\"tx_errors\":0,"
+		"\"rx_dropped\":0,\"tx_dropped\":0,\"multicast\":0,"
+		"\"collisions\":0,\"rx_length_errors\":0,\"rx_over_errors\":0,"
+		"\"rx_crc_errors\":0,\"rx_frame_errors\":0,"
+		"\"rx_fifo_errors\":0,\"rx_missed_errors\":0,"
+		"\"tx_aborted_errors\":0,\"tx_carrier_errors\":0,"
+		"\"tx_fifo_errors\":0,\"tx_heartbeat_errors\":0,"
+		"\"tx_window_errors\":0,\"rx_compressed\":0,"
+		"\"tx_compressed\":0,";
+	char actual[BUFSIZ];
+
+	print_iface(stream, data);
+
+	rewind(stream);
+
+	if (fgets(actual, BUFSIZ, stream) == NULL) {
+		fail("unable to fgets");
+	}
+
+	fclose(stream);
+
+	if (strncmp(expected, actual, BUFSIZ) != 0) {
+		fail("print_iface did not match");
+		note("expected: %s", expected);
+		note("actual: %s", actual);
+	} else {
+		pass("print_iface matched");
+	}
+}
+
 int main()
 {
 	set_configuration(0, NULL);
@@ -201,6 +265,8 @@ int main()
 	test_iface_header_cb();
 
 	test_iface_prepare_data_tracker();
+
+	test_print_iface();
 
 	return 0;
 }
