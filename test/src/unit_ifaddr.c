@@ -180,6 +180,56 @@ void test_ifaddr_prepare_data_tracker()
 	}
 }
 
+void test_print_ifaddr()
+{
+	note("running test_print_ifaddr");
+
+	const struct ifaddr_history_data hdata =
+	{
+		.local = {.ip4 = htonl(0x7F000001)},
+		.bcast = {.ip4 = htonl(0xC0A800FF)},
+		.acast = {.ip4 = htonl(0xC0A80000)},
+		.blacklisted = false,
+		.ifa_prefixlen = 24,
+		.ifa_flags = 0,
+		.ifa_scope = 0x02,
+		.label = "eth0:1"
+	};
+	const struct ifaddr_nohistory_data nhdata =
+	{
+		.addr = {.ip4 = htonl(0xC0A80001)},
+		.ifa_index = 1,
+		.ifa_family = AF_INET
+	};
+	const struct tracked_data data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&hdata
+	};
+	FILE* stream = tmpfile();
+
+	const char* expected = "\"family\":\"AF_INET\",\"prefixlen\":24,\"scope\":2,\"ipaddress\":\"192.168.0.1\",\"local\":\"127.0.0.1\",\"bcast\":\"192.168.0.255\",\"acast\":\"192.168.0.0\",\"label\":\"eth0:1\",\"blacklisted\":0,\"preferred\":0,\"valid\":0,\"cstamp\":0,\"tstamp\":0,\"parent\":{\"iface_status\":\"fake\",\"test_data\":1,\"index\":\"eth1\"},";
+	char actual[BUFSIZ];
+
+	print_ifaddr(stream, data);
+
+	rewind(stream);
+
+	if (fgets(actual, BUFSIZ, stream) == NULL) {
+		fail("unable to fgets");
+	}
+
+	fclose(stream);
+
+	if (strncmp(expected, actual, BUFSIZ) != 0) {
+		fail("print_ifaddr did no match");
+		note("expected: %s", expected);
+		note("actual: %s", actual);
+	} else {
+		pass("print_ifaddr matched");
+	}
+}
+
 int main()
 {
 	set_configuration(0, NULL);
@@ -187,6 +237,8 @@ int main()
 	test_ifaddr_header_cb();
 
 	test_ifaddr_prepare_data_tracker();
+
+	test_print_ifaddr();
 
 	return 0;
 }
