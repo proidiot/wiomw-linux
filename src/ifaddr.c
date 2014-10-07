@@ -87,10 +87,10 @@ static void print_ifaddr_ifa_flags(FILE* stream, const unsigned char target, con
 	const unsigned char tflags = target ^ reference;
 
 	if (tflags & IFA_F_PERMANENT) {
-		fprintf(stream, "\""JSON_IFA_FLAG_PERMANENT_STRING"\":%d,", (target & IFA_F_PERMANENT) == 0);
+		fprintf(stream, "\""JSON_IFA_FLAG_PERMANENT_STRING"\":%d,", (target & IFA_F_PERMANENT) != 0);
 	}
 	if (tflags & IFA_F_SECONDARY) {
-		fprintf(stream, "\""JSON_IFA_FLAG_SECONDARY_STRING"\":%d,", (target & IFA_F_SECONDARY) == 0);
+		fprintf(stream, "\""JSON_IFA_FLAG_SECONDARY_STRING"\":%d,", (target & IFA_F_SECONDARY) != 0);
 	}
 }
 
@@ -238,7 +238,7 @@ static bool ifaddr_attr_cb(const struct nlattr* nl_attr, const struct tracked_da
 		}
 		break;
 	case IFA_ANYCAST:
-		if (mnl_attr_copy_binary(&(current->acast.ip4), nl_attr, ifaddr->ifa_family) < 0) {
+		if (mnl_attr_copy_union_ip(&(current->acast), nl_attr, ifaddr->ifa_family) < 0) {
 			syslog_syserror(LOG_ALERT, "Received invalid anycast IP address for local network interface");
 			return false;
 		}

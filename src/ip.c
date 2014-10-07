@@ -17,7 +17,7 @@ char* stpnprint_ip_dump(char* const buffer, const size_t buflen, const union ip 
 	return stpnprintf(
 			buffer,
 			buflen,
-			"%2X%2X%2X%2X%2X%2X%2X%2X%2X%2X%2X%2X%2X%2X%2X%2X",
+			"%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
 			((unsigned char*)&addr)[0],
 			((unsigned char*)&addr)[1],
 			((unsigned char*)&addr)[2],

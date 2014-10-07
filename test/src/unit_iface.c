@@ -8,11 +8,12 @@
 
 #include "bindiff.h"
 
+#include "../../src/data_tracker.c"
 #include "../../src/iface.c"
 
 void test_iface_header_cb()
 {
-	note("running test_iface_prepare_data_tracker");
+	note("running test_iface_header_cb");
 
 	struct iface_history_data actual_hdata;
 	struct iface_nohistory_data actual_nhdata;
@@ -34,13 +35,7 @@ void test_iface_header_cb()
 	const char* qdsp = "pfifo_fast";
 	const char* name = "eth0";
 	const uint32_t mtu = 1500;
-	unsigned char mac[6];
-	mac[0] = 0x01;
-	mac[1] = 0x23;
-	mac[2] = 0x45;
-	mac[3] = 0x67;
-	mac[4] = 0x89;
-	mac[5] = 0xAB;
+	const unsigned char mac[6] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB};
 	srandom(time(NULL));
 	for (i = 0; i < MNL_SOCKET_BUFFER_SIZE; i++) {
 		buf[i] = (unsigned char)(((unsigned long int)random()) % 8);
@@ -118,20 +113,8 @@ void test_iface_prepare_data_tracker()
 	const char* name = "eth0";
 	const uint32_t mtu = 1500;
 	const int link = ifindex;
-	unsigned char mac[6];
-	unsigned char bmac[6];
-	mac[0] = 0x01;
-	mac[1] = 0x23;
-	mac[2] = 0x45;
-	mac[3] = 0x67;
-	mac[4] = 0x89;
-	mac[5] = 0xAB;
-	bmac[0] = 0xFF;
-	bmac[1] = 0xFF;
-	bmac[2] = 0xFF;
-	bmac[3] = 0xFF;
-	bmac[4] = 0xFF;
-	bmac[5] = 0xFF;
+	const unsigned char mac[6] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB};
+	const unsigned char bmac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	srandom(time(NULL));
 	for (i = 0; i < MNL_SOCKET_BUFFER_SIZE; i++) {
 		buf[i] = (unsigned char)(((unsigned long int)random()) % 8);
@@ -200,13 +183,15 @@ void test_iface_prepare_data_tracker()
 	}
 
 	if (memcmp(actual_hdata, &expected_hdata, sizeof(struct iface_history_data)) != 0) {
-		char* diff = bindiff((unsigned char*)&expected_hdata, (unsigned char*)&actual_hdata, sizeof(struct iface_history_data), 0);
+		char* diff = bindiff((unsigned char*)&expected_hdata, (unsigned char*)actual_hdata, sizeof(struct iface_history_data), 0);
 		fail("history_data did not match");
 		note("\n%s", diff);
 		free(diff);
 	} else {
 		pass("history_data matches");
 	}
+
+	abort_data_tracker(tracker);
 }
 
 int main()

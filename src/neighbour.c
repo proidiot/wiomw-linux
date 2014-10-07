@@ -77,28 +77,28 @@ static void print_neighbour_ndm_state(FILE* stream, const uint16_t target, const
 		return;
 	}
 	if (tstate & NUD_INCOMPLETE) {
-		fprintf(stream, "\""JSON_NUD_INCOMPLETE_STRING"\":%d,", (target & NUD_INCOMPLETE) == 0);
+		fprintf(stream, "\""JSON_NUD_INCOMPLETE_STRING"\":%d,", (target & NUD_INCOMPLETE) != 0);
 	}
 	if (tstate & NUD_REACHABLE) {
-		fprintf(stream, "\""JSON_NUD_REACHABLE_STRING"\":%d,", (target & NUD_REACHABLE) == 0);
+		fprintf(stream, "\""JSON_NUD_REACHABLE_STRING"\":%d,", (target & NUD_REACHABLE) != 0);
 	}
 	if (tstate & NUD_STALE) {
-		fprintf(stream, "\""JSON_NUD_STALE_STRING"\":%d,", (target & NUD_STALE) == 0);
+		fprintf(stream, "\""JSON_NUD_STALE_STRING"\":%d,", (target & NUD_STALE) != 0);
 	}
 	if (tstate & NUD_DELAY) {
-		fprintf(stream, "\""JSON_NUD_DELAY_STRING"\":%d,", (target & NUD_DELAY) == 0);
+		fprintf(stream, "\""JSON_NUD_DELAY_STRING"\":%d,", (target & NUD_DELAY) != 0);
 	}
 	if (tstate & NUD_PROBE) {
-		fprintf(stream, "\""JSON_NUD_PROBE_STRING"\":%d,", (target & NUD_PROBE) == 0);
+		fprintf(stream, "\""JSON_NUD_PROBE_STRING"\":%d,", (target & NUD_PROBE) != 0);
 	}
 	if (tstate & NUD_FAILED) {
-		fprintf(stream, "\""JSON_NUD_FAILED_STRING"\":%d,", (target & NUD_FAILED) == 0);
+		fprintf(stream, "\""JSON_NUD_FAILED_STRING"\":%d,", (target & NUD_FAILED) != 0);
 	}
 	if (tstate & NUD_NOARP) {
-		fprintf(stream, "\""JSON_NUD_NOARP_STRING"\":%d,", (target & NUD_NOARP) == 0);
+		fprintf(stream, "\""JSON_NUD_NOARP_STRING"\":%d,", (target & NUD_NOARP) != 0);
 	}
 	if (tstate & NUD_PERMANENT) {
-		fprintf(stream, "\""JSON_NUD_PERMANENT_STRING"\":%d,", (target & NUD_PERMANENT) == 0);
+		fprintf(stream, "\""JSON_NUD_PERMANENT_STRING"\":%d,", (target & NUD_PERMANENT) != 0);
 	}
 }
 
@@ -109,10 +109,10 @@ static void print_neighbour_ndm_flags(FILE* stream, const uint8_t target, const 
 		return;
 	}
 	if (tflags & NTF_PROXY) {
-		fprintf(stream, "\""JSON_NTF_PROXY_STRING"\":%d,", (target & NTF_PROXY) == 0);
+		fprintf(stream, "\""JSON_NTF_PROXY_STRING"\":%d,", (target & NTF_PROXY) != 0);
 	}
 	if (tflags & NTF_ROUTER) {
-		fprintf(stream, "\""JSON_NTF_ROUTER_STRING"\":%d,", (target & NTF_ROUTER) == 0);
+		fprintf(stream, "\""JSON_NTF_ROUTER_STRING"\":%d,", (target & NTF_ROUTER) != 0);
 	}
 }
 
@@ -123,7 +123,7 @@ static void print_neighbour_diff(FILE* stream, const struct tracked_data old_dat
 	print_neighbour_ndm_state(stream, old->ndm_state, new->ndm_state);
 	print_neighbour_ndm_flags(stream, old->ndm_flags, new->ndm_flags);
 	if (old->ndm_type != new->ndm_type) {
-		fprintf(stream, "\""JSON_NDM_TYPE_STRING"\":\"%2X\",", old->ndm_type);
+		fprintf(stream, "\""JSON_NDM_TYPE_STRING"\":\"0x%02X\",", old->ndm_type);
 	}
 	if (old->local != new->local) {
 		syslog(LOG_ERR, "Address is showing up as both local and a neighbour");
@@ -147,11 +147,11 @@ static void print_neighbour(FILE* stream, const struct tracked_data data)
 	fprintf(stream, "\""JSON_IFACE_NAME_STRING"\":\"%s\",", temp);
 	print_neighbour_ndm_state(stream, current->ndm_state, 0);
 	print_neighbour_ndm_flags(stream, current->ndm_flags, 0);
-	fprintf(stream, "\""JSON_NDM_TYPE_STRING"\":\"%2X\",", current->ndm_type);
+	fprintf(stream, "\""JSON_NDM_TYPE_STRING"\":\"0x%02X\",", current->ndm_type);
 	snprint_ip(temp, BUFSIZ, neighbour->ndm_family, neighbour->addr);
 	fprintf(stream, JSON_ADDR_STRING(neighbour->ndm_family, NDA_DST), temp);
 	fprintf(stream,
-		"\""JSON_NDA_LLADDR_STRING"\":\"%2X:%2X:%2X:%2X:%2X:%2X\",",
+		"\""JSON_NDA_LLADDR_STRING"\":\"%02X:%02X:%02X:%02X:%02X:%02X\",",
 		neighbour->mac[0],
 		neighbour->mac[1],
 		neighbour->mac[2],
@@ -170,7 +170,7 @@ static const char* get_neighbour_index(char* index, const struct tracked_data da
 
 	snprintf(index,
 		 NEIGHBOUR_INDEX_LENGTH,
-		 "%X_%2X%2X%2X%2X%2X%2X",
+		 "%X_%02X%02X%02X%02X%02X%02X",
 		 neighbour->ndm_ifindex,
 		 neighbour->mac[0],
 		 neighbour->mac[1],

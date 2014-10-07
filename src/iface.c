@@ -729,7 +729,7 @@ static void print_iface_diff(FILE* stream, const struct tracked_data old_data, c
 	print_ifi_flag_diff(stream, old->ifi_flags, new->ifi_flags);
 	if (memcmp(old->mac, new->mac, 6) != 0) {
 		fprintf(stream,
-			"\""JSON_IFLA_ADDRESS_STRING"\":\"%2X:%2X:%2X:%2X:%2X:%2X\",",
+			"\""JSON_IFLA_ADDRESS_STRING"\":\"%02X:%02X:%02X:%02X:%02X:%02X\",",
 			old->mac[0],
 			old->mac[1],
 			old->mac[2],
@@ -739,7 +739,7 @@ static void print_iface_diff(FILE* stream, const struct tracked_data old_data, c
 	}
 	if (memcmp(old->bmac, new->bmac, 6) != 0) {
 		fprintf(stream,
-			"\""JSON_IFLA_BROADCAST_STRING"\":\"%2X:%2X:%2X:%2X:%2X:%2X\",",
+			"\""JSON_IFLA_BROADCAST_STRING"\":\"%02X:%02X:%02X:%02X:%02X:%02X\",",
 			old->bmac[0],
 			old->bmac[1],
 			old->bmac[2],
@@ -775,7 +775,7 @@ static void print_iface(FILE* stream, const struct tracked_data data)
 	fprintf(stream, "\""JSON_IFI_TYPE_STRING"\":\"%s\",", get_arp_hw_type(current->ifi_type));
 	print_ifi_flag_diff(stream, current->ifi_flags, 0);
 	fprintf(stream,
-		"\""JSON_IFLA_ADDRESS_STRING"\":\"%2X:%2X:%2X:%2X:%2X:%2X\",",
+		"\""JSON_IFLA_ADDRESS_STRING"\":\"%02X:%02X:%02X:%02X:%02X:%02X\",",
 		current->mac[0],
 		current->mac[1],
 		current->mac[2],
@@ -783,7 +783,7 @@ static void print_iface(FILE* stream, const struct tracked_data data)
 		current->mac[4],
 		current->mac[5]);
 	fprintf(stream,
-		"\""JSON_IFLA_BROADCAST_STRING"\":\"%2X:%2X:%2X:%2X:%2X:%2X\",",
+		"\""JSON_IFLA_BROADCAST_STRING"\":\"%02X:%02X:%02X:%02X:%02X:%02X\",",
 		current->bmac[0],
 		current->bmac[1],
 		current->bmac[2],
