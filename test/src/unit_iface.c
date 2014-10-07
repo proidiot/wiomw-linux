@@ -258,6 +258,75 @@ void test_print_iface()
 	}
 }
 
+void test_print_iface_diff()
+{
+	note("running test_print_iface_diff");
+
+	const struct iface_history_data old_hdata =
+	{
+		.ifi_family = AF_UNSPEC,
+		.ifi_type = ARPHRD_ETHER,
+		.ifi_flags = IFF_UP | IFF_RUNNING | IFF_DYNAMIC,
+		.mac = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB},
+		.bmac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+		.mtu = 1500,
+		.link = 1,
+		.blacklisted = false,
+		.qdsp = "pfifo_fast",
+		.name = "eth0"
+	};
+	const struct iface_history_data new_hdata =
+	{
+		.ifi_family = AF_UNSPEC,
+		.ifi_type = ARPHRD_ETHER,
+		.ifi_flags = IFF_DYNAMIC,
+		.mac = {0x23, 0x45, 0x67, 0x89, 0xAB, 0x01},
+		.bmac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+		.mtu = 1500,
+		.link = 1,
+		.blacklisted = false,
+		.qdsp = "red",
+		.name = "eth0"
+	};
+	const struct iface_nohistory_data nhdata =
+	{
+		.ifi_index = 1
+	};
+	const struct tracked_data old_data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&old_hdata
+	};
+	const struct tracked_data new_data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&new_hdata
+	};
+	FILE* stream = tmpfile();
+
+	const char* expected = "\"up\":1,\"running\":1,\"volatile\":1,"
+		"\"mac\":\"01:23:45:67:89:AB\",\"qdsp\":\"pfifo_fast\",";
+	char actual[BUFSIZ];
+
+	print_iface_diff(stream, old_data, new_data);
+
+	rewind(stream);
+
+	if (fgets(actual, BUFSIZ, stream) == NULL) {
+		fail("unable to fgets");
+	}
+
+	fclose(stream);
+
+	if (strncmp(expected, actual, BUFSIZ) != 0) {
+		fail("print_iface_diff did not match");
+		note("expected: %s", expected);
+		note("actual: %s", actual);
+	} else {
+		pass("print_iface_diff matched");
+	}
+}
+
 int main()
 {
 	set_configuration(0, NULL);
@@ -267,6 +336,8 @@ int main()
 	test_iface_prepare_data_tracker();
 
 	test_print_iface();
+
+	test_print_iface_diff();
 
 	return 0;
 }
