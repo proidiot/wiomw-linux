@@ -331,6 +331,43 @@ void test_print_neighbour_data_tracker()
 	}
 }
 
+void test_gen_neighbour_index()
+{
+	note("running test_gen_neighbour_index");
+
+	const struct neighbour_history_data hdata =
+	{
+		.ndm_state = NUD_REACHABLE | NUD_STALE,
+		.ndm_flags = 0,
+		.local = false
+	};
+	const struct neighbour_nohistory_data nhdata =
+	{
+		.addr = {.ip4 = htonl(0xC0A80001)},
+		.ndm_ifindex = 1,
+		.ndm_family = AF_INET,
+		.mac = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB}
+	};
+	const struct tracked_data data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&hdata
+	};
+
+	const char* expected = "1_0123456789ABC0A80001000000000000000000000000";
+	char actual[BUFSIZ];
+
+	gen_neighbour_index(actual, data);
+
+	if (strncmp(expected, actual, BUFSIZ) != 0) {
+		fail("gen_neighbour_index did not match");
+		note("expected: %s", expected);
+		note("actual: %s", actual);
+	} else {
+		pass("gen_neighbour_index matched");
+	}
+}
+
 int main()
 {
 	set_configuration(0, NULL);
@@ -344,6 +381,8 @@ int main()
 	test_print_neighbour_diff();
 
 	test_print_neighbour_data_tracker();
+
+	test_gen_neighbour_index();
 
 	return 0;
 }

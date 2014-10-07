@@ -164,7 +164,7 @@ static void print_neighbour(FILE* stream, const struct tracked_data data)
 	fprintf(stream, "\""JSON_NDM_REFCNT_STRING"\":%d,", neighbour->stats.ndm_refcnt);
 }
 
-static const char* get_neighbour_index(char* index, const struct tracked_data data)
+static const char* gen_neighbour_index(char* index, const struct tracked_data data)
 {
 	const struct neighbour_nohistory_data* const neighbour = (const struct neighbour_nohistory_data*)data.nohistory_data;
 
@@ -178,7 +178,7 @@ static const char* get_neighbour_index(char* index, const struct tracked_data da
 		 neighbour->mac[3],
 		 neighbour->mac[4],
 		 neighbour->mac[5]);
-	stpnprint_ip_dump(index, NEIGHBOUR_INDEX_LENGTH - strlen(index), neighbour->addr);
+	stpnprint_ip_dump(index + strlen(index), NEIGHBOUR_INDEX_LENGTH - strlen(index), neighbour->addr);
 
 	return index;
 }
@@ -207,7 +207,7 @@ int add_ifaddr_entry(const int ifindex, const unsigned char family, const union 
 
 	current->local = true;
 
-	get_data_index(index, tracker, &get_neighbour_index);
+	get_data_index(index, tracker, &gen_neighbour_index);
 	if (save_data_tracker(&neighbour_table, &neighbour_mutex, index, tracker, &neighbour_changed)) {
 		return MNL_CB_OK;
 	} else {
@@ -236,7 +236,7 @@ int remove_ifaddr_entry(const int ifindex, const unsigned char family, const uni
 
 	set_deleted_data(tracker);
 
-	get_data_index(index, tracker, &get_neighbour_index);
+	get_data_index(index, tracker, &gen_neighbour_index);
 	if (save_data_tracker(&neighbour_table, &neighbour_mutex, index, tracker, &neighbour_changed)) {
 		return MNL_CB_OK;
 	} else {
@@ -302,7 +302,7 @@ int rtm_newneigh_cb(const struct nlmsghdr* nl_header, void* closure)
 {
 	char index[NEIGHBOUR_INDEX_LENGTH];
 	struct data_tracker* const tracker = prepare_data_tracker(neighbour_data_size, nl_header, &get_neighbour_header_cb, &get_neighbour_attr_cb);
-	get_data_index(index, tracker, &get_neighbour_index);
+	get_data_index(index, tracker, &gen_neighbour_index);
 	if (save_data_tracker(&neighbour_table, &neighbour_mutex, index, tracker, &neighbour_changed)) {
 		return MNL_CB_OK;
 	} else {
@@ -315,7 +315,7 @@ int rtm_delneigh_cb(const struct nlmsghdr* nl_header, void* closure)
 	char index[NEIGHBOUR_INDEX_LENGTH];
 	struct data_tracker* const tracker = prepare_data_tracker(neighbour_data_size, nl_header, &get_neighbour_header_cb, &get_neighbour_attr_cb);
 	set_deleted_data(tracker);
-	get_data_index(index, tracker, &get_neighbour_index);
+	get_data_index(index, tracker, &gen_neighbour_index);
 	if (save_data_tracker(&neighbour_table, &neighbour_mutex, index, tracker, &neighbour_changed)) {
 		return MNL_CB_OK;
 	} else {
