@@ -225,6 +225,7 @@ wiomw_agent_SOURCES = main.c \
 
 AM_CFLAGS = ${CURL_CFLAGS} ${PTHREAD_CFLAGS} ${LIBMNL_CFLAGS} -DSYSCONFDIR=\"${sysconfdir}\" --coverage
 wiomw_agent_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
+CLEANFILES = *.gcda *.gcno *.gcov
 all: all-am
 
 .SUFFIXES:
@@ -450,6 +451,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)

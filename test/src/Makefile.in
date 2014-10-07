@@ -49,23 +49,20 @@ am_unit_identity_out_OBJECTS = unit_identity.$(OBJEXT)
 unit_identity_out_OBJECTS = $(am_unit_identity_out_OBJECTS)
 unit_identity_out_LDADD = $(LDADD)
 am_unit_iface_out_OBJECTS = unit_iface.$(OBJEXT) bindiff.$(OBJEXT) \
-	configuration.$(OBJEXT) data_tracker.$(OBJEXT) ip.$(OBJEXT) \
-	mnl_helpers.$(OBJEXT) string_helpers.$(OBJEXT) \
-	syslog_syserror.$(OBJEXT)
+	configuration.$(OBJEXT) ip.$(OBJEXT) mnl_helpers.$(OBJEXT) \
+	string_helpers.$(OBJEXT) syslog_syserror.$(OBJEXT)
 unit_iface_out_OBJECTS = $(am_unit_iface_out_OBJECTS)
 am__DEPENDENCIES_1 =
 unit_iface_out_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 am_unit_ifaddr_out_OBJECTS = unit_ifaddr.$(OBJEXT) bindiff.$(OBJEXT) \
-	configuration.$(OBJEXT) data_tracker.$(OBJEXT) iface.$(OBJEXT) \
-	neighbour.$(OBJEXT) ip.$(OBJEXT) mnl_helpers.$(OBJEXT) \
+	configuration.$(OBJEXT) ip.$(OBJEXT) mnl_helpers.$(OBJEXT) \
 	string_helpers.$(OBJEXT) syslog_syserror.$(OBJEXT)
 unit_ifaddr_out_OBJECTS = $(am_unit_ifaddr_out_OBJECTS)
 unit_ifaddr_out_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 am_unit_neighbour_out_OBJECTS = unit_neighbour.$(OBJEXT) \
-	bindiff.$(OBJEXT) configuration.$(OBJEXT) \
-	data_tracker.$(OBJEXT) iface.$(OBJEXT) ip.$(OBJEXT) \
+	bindiff.$(OBJEXT) configuration.$(OBJEXT) ip.$(OBJEXT) \
 	mnl_helpers.$(OBJEXT) string_helpers.$(OBJEXT) \
 	syslog_syserror.$(OBJEXT)
 unit_neighbour_out_OBJECTS = $(am_unit_neighbour_out_OBJECTS)
@@ -187,8 +184,6 @@ unit_identity_out_SOURCES = unit_identity.c
 unit_neighbour_out_SOURCES = unit_neighbour.c \
 			 bindiff.c \
 			 ../../src/configuration.c \
-			 ../../src/data_tracker.c \
-			 ../../src/iface.c \
 			 ../../src/ip.c \
 			 ../../src/mnl_helpers.c \
 			 ../../src/string_helpers.c \
@@ -198,9 +193,6 @@ unit_neighbour_out_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 unit_ifaddr_out_SOURCES = unit_ifaddr.c \
 			 bindiff.c \
 			 ../../src/configuration.c \
-			 ../../src/data_tracker.c \
-			 ../../src/iface.c \
-			 ../../src/neighbour.c \
 			 ../../src/ip.c \
 			 ../../src/mnl_helpers.c \
 			 ../../src/string_helpers.c \
@@ -210,13 +202,13 @@ unit_ifaddr_out_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 unit_iface_out_SOURCES = unit_iface.c \
 			 bindiff.c \
 			 ../../src/configuration.c \
-			 ../../src/data_tracker.c \
 			 ../../src/ip.c \
 			 ../../src/mnl_helpers.c \
 			 ../../src/string_helpers.c \
 			 ../../src/syslog_syserror.c
 
 unit_iface_out_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
+CLEANFILES = *.gcda *.gcno *.gcov
 all: all-am
 
 .SUFFIXES:
@@ -275,11 +267,8 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bindiff.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/configuration.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/data_tracker.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ip.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mnl_helpers.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/neighbour.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string_helpers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/syslog_syserror.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unit_identity.Po@am__quote@
@@ -314,20 +303,6 @@ configuration.obj: ../../src/configuration.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/configuration.c' object='configuration.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o configuration.obj `if test -f '../../src/configuration.c'; then $(CYGPATH_W) '../../src/configuration.c'; else $(CYGPATH_W) '$(srcdir)/../../src/configuration.c'; fi`
-
-data_tracker.o: ../../src/data_tracker.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT data_tracker.o -MD -MP -MF $(DEPDIR)/data_tracker.Tpo -c -o data_tracker.o `test -f '../../src/data_tracker.c' || echo '$(srcdir)/'`../../src/data_tracker.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/data_tracker.Tpo $(DEPDIR)/data_tracker.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/data_tracker.c' object='data_tracker.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o data_tracker.o `test -f '../../src/data_tracker.c' || echo '$(srcdir)/'`../../src/data_tracker.c
-
-data_tracker.obj: ../../src/data_tracker.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT data_tracker.obj -MD -MP -MF $(DEPDIR)/data_tracker.Tpo -c -o data_tracker.obj `if test -f '../../src/data_tracker.c'; then $(CYGPATH_W) '../../src/data_tracker.c'; else $(CYGPATH_W) '$(srcdir)/../../src/data_tracker.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/data_tracker.Tpo $(DEPDIR)/data_tracker.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/data_tracker.c' object='data_tracker.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o data_tracker.obj `if test -f '../../src/data_tracker.c'; then $(CYGPATH_W) '../../src/data_tracker.c'; else $(CYGPATH_W) '$(srcdir)/../../src/data_tracker.c'; fi`
 
 ip.o: ../../src/ip.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ip.o -MD -MP -MF $(DEPDIR)/ip.Tpo -c -o ip.o `test -f '../../src/ip.c' || echo '$(srcdir)/'`../../src/ip.c
@@ -384,34 +359,6 @@ syslog_syserror.obj: ../../src/syslog_syserror.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/syslog_syserror.c' object='syslog_syserror.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o syslog_syserror.obj `if test -f '../../src/syslog_syserror.c'; then $(CYGPATH_W) '../../src/syslog_syserror.c'; else $(CYGPATH_W) '$(srcdir)/../../src/syslog_syserror.c'; fi`
-
-iface.o: ../../src/iface.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT iface.o -MD -MP -MF $(DEPDIR)/iface.Tpo -c -o iface.o `test -f '../../src/iface.c' || echo '$(srcdir)/'`../../src/iface.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/iface.Tpo $(DEPDIR)/iface.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/iface.c' object='iface.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o iface.o `test -f '../../src/iface.c' || echo '$(srcdir)/'`../../src/iface.c
-
-iface.obj: ../../src/iface.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT iface.obj -MD -MP -MF $(DEPDIR)/iface.Tpo -c -o iface.obj `if test -f '../../src/iface.c'; then $(CYGPATH_W) '../../src/iface.c'; else $(CYGPATH_W) '$(srcdir)/../../src/iface.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/iface.Tpo $(DEPDIR)/iface.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/iface.c' object='iface.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o iface.obj `if test -f '../../src/iface.c'; then $(CYGPATH_W) '../../src/iface.c'; else $(CYGPATH_W) '$(srcdir)/../../src/iface.c'; fi`
-
-neighbour.o: ../../src/neighbour.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT neighbour.o -MD -MP -MF $(DEPDIR)/neighbour.Tpo -c -o neighbour.o `test -f '../../src/neighbour.c' || echo '$(srcdir)/'`../../src/neighbour.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/neighbour.Tpo $(DEPDIR)/neighbour.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/neighbour.c' object='neighbour.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o neighbour.o `test -f '../../src/neighbour.c' || echo '$(srcdir)/'`../../src/neighbour.c
-
-neighbour.obj: ../../src/neighbour.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT neighbour.obj -MD -MP -MF $(DEPDIR)/neighbour.Tpo -c -o neighbour.obj `if test -f '../../src/neighbour.c'; then $(CYGPATH_W) '../../src/neighbour.c'; else $(CYGPATH_W) '$(srcdir)/../../src/neighbour.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/neighbour.Tpo $(DEPDIR)/neighbour.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/neighbour.c' object='neighbour.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o neighbour.obj `if test -f '../../src/neighbour.c'; then $(CYGPATH_W) '../../src/neighbour.c'; else $(CYGPATH_W) '$(srcdir)/../../src/neighbour.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -522,6 +469,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
