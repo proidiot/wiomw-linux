@@ -80,7 +80,11 @@ void test_ifaddr_header_cb()
 	}
 
 	if (memcmp(&actual_hdata, &expected_hdata, sizeof(struct ifaddr_history_data)) != 0) {
-		char* diff = bindiff((unsigned char*)&expected_hdata, (unsigned char*)&actual_hdata, sizeof(struct ifaddr_history_data), 0);
+		char* diff = bindiff(
+				(unsigned char*)&expected_hdata,
+				(unsigned char*)&actual_hdata,
+				sizeof(struct ifaddr_history_data),
+				0);
 		fail("history_data did not match");
 		note("\n%s", diff);
 		free(diff);
@@ -171,7 +175,11 @@ void test_ifaddr_prepare_data_tracker()
 	}
 
 	if (memcmp(actual_hdata, &expected_hdata, sizeof(struct ifaddr_history_data)) != 0) {
-		char* diff = bindiff((unsigned char*)&expected_hdata, (unsigned char*)actual_hdata, sizeof(struct ifaddr_history_data), 0);
+		char* diff = bindiff(
+				(unsigned char*)&expected_hdata,
+				(unsigned char*)actual_hdata,
+				sizeof(struct ifaddr_history_data),
+				0);
 		fail("history_data did not match");
 		note("\n%s", diff);
 		free(diff);
@@ -208,7 +216,13 @@ void test_print_ifaddr()
 	};
 	FILE* stream = tmpfile();
 
-	const char* expected = "\"family\":\"AF_INET\",\"prefixlen\":24,\"scope\":2,\"ipaddress\":\"192.168.0.1\",\"local\":\"127.0.0.1\",\"bcast\":\"192.168.0.255\",\"acast\":\"192.168.0.0\",\"label\":\"eth0:1\",\"blacklisted\":0,\"preferred\":0,\"valid\":0,\"cstamp\":0,\"tstamp\":0,\"parent\":{\"iface_status\":\"fake\",\"test_data\":1,\"index\":\"eth1\"},";
+	const char* expected = "\"family\":\"AF_INET\",\"prefixlen\":24,"
+		"\"scope\":2,\"ipaddress\":\"192.168.0.1\",\"local\":"
+		"\"127.0.0.1\",\"bcast\":\"192.168.0.255\",\"acast\":"
+		"\"192.168.0.0\",\"label\":\"eth0:1\",\"blacklisted\":0,"
+		"\"preferred\":0,\"valid\":0,\"cstamp\":0,\"tstamp\":0,"
+		"\"parent\":{\"iface_status\":\"fake\",\"test_data\":1,"
+		"\"index\":\"eth1\"},";
 	char actual[BUFSIZ];
 
 	print_ifaddr(stream, data);
@@ -296,6 +310,92 @@ void test_print_ifaddr_diff()
 	}
 }
 
+void test_print_ifaddr_data_tracker()
+{
+	note("running test_print_ifaddr_data_tracker");
+
+	struct ifaddr_history_data* actual_hdata;
+	struct ifaddr_nohistory_data* actual_nhdata;
+	struct data_tracker* tracker;
+
+	struct nlmsghdr* nlh = NULL;
+	struct ifaddrmsg* ifa = NULL;
+	unsigned char buf[MNL_SOCKET_BUFFER_SIZE];
+	unsigned int i = 0;
+	const unsigned char family = AF_INET;
+	const int ifindex = 1;
+	const unsigned char prefixlen = 24;
+	const unsigned char scope = 0x02;
+	const unsigned char ifa_flags = 0;
+	const char* label = "eth0:1";
+	const uint32_t ip4 = htonl(0xC0A80001);
+	const uint32_t lip4 = htonl(0x7F000001);
+	const uint32_t bip4 = htonl(0xC0A800FF);
+	const uint32_t aip4 = htonl(0xC0A80000);
+	srandom(time(NULL));
+	for (i = 0; i < MNL_SOCKET_BUFFER_SIZE; i++) {
+		buf[i] = (unsigned char)(((unsigned long int)random()) % 8);
+	}
+	nlh = mnl_nlmsg_put_header(buf);
+	nlh->nlmsg_type = RTM_GETLINK;
+	nlh->nlmsg_flags = 0;
+	ifa = mnl_nlmsg_put_extra_header(nlh, sizeof(struct ifaddrmsg));
+	ifa->ifa_family = family;
+	ifa->ifa_prefixlen = prefixlen;
+	ifa->ifa_flags = ifa_flags;
+	ifa->ifa_scope = scope;
+	ifa->ifa_index = ifindex;
+	if (!mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, IFA_BROADCAST, bip4)) {
+		fail("unable to put ifa_broadcast");
+	}
+	if (!mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, IFA_ADDRESS, ip4)) {
+		fail("unable to put ifa_address");
+	}
+	if (!mnl_attr_put_strz_check(nlh, MNL_SOCKET_BUFFER_SIZE, IFA_LABEL, label)) {
+		fail("unable to put ifa_label");
+	}
+	if (!mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, IFA_LOCAL, lip4)) {
+		fail("unable to put ifa_local");
+	}
+	if (!mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, IFA_ANYCAST, aip4)) {
+		fail("unable to put ifa_anycast");
+	}
+
+	if ((tracker = prepare_data_tracker(ifaddr_data_size, nlh, &ifaddr_header_cb, &ifaddr_attr_cb)) == NULL) {
+		fail("prepare_data_tracker returned NULL");
+	} else {
+		FILE* stream = tmpfile();
+
+		const char* expected = "{\"family\":\"AF_INET\",\"prefixlen\":"
+			"24,\"scope\":2,\"ipaddress\":\"192.168.0.1\","
+			"\"local\":\"127.0.0.1\",\"bcast\":\"192.168.0.255\","
+			"\"acast\":\"192.168.0.0\",\"label\":\"eth0:1\","
+			"\"blacklisted\":0,\"preferred\":0,\"valid\":0,"
+			"\"cstamp\":0,\"tstamp\":0,\"parent\":{"
+			"\"iface_status\":\"fake\",\"test_data\":1,\"index\":"
+			"\"eth1\"},\"last_changed\":";
+		char actual[BUFSIZ];
+
+		print_data_tracker(stream, tracker, &print_ifaddr, &print_ifaddr_diff, NULL);
+
+		rewind(stream);
+
+		if (fgets(actual, BUFSIZ, stream) == NULL) {
+			fail("unable to fgets");
+		}
+
+		fclose(stream);
+
+		if (strncmp(expected, actual, strnlen(expected, BUFSIZ)) != 0) {
+			fail("print_ifaddr_data_tracker did not match");
+			note("expected: %s", expected);
+			note("actual: %s", actual);
+		} else {
+			pass("print_ifaddr_data_tracker matched");
+		}
+	}
+}
+
 int main()
 {
 	set_configuration(0, NULL);
@@ -307,6 +407,8 @@ int main()
 	test_print_ifaddr();
 
 	test_print_ifaddr_diff();
+
+	test_print_ifaddr_data_tracker();
 
 	return 0;
 }
