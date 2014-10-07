@@ -396,6 +396,47 @@ void test_print_ifaddr_data_tracker()
 	}
 }
 
+void test_gen_ifaddr_index()
+{
+	note("running test_gen_ifaddr_index");
+
+	const struct ifaddr_history_data hdata =
+	{
+		.local = {.ip4 = htonl(0x7F000001)},
+		.bcast = {.ip4 = htonl(0xC0A800FF)},
+		.acast = {.ip4 = htonl(0xC0A80000)},
+		.blacklisted = false,
+		.ifa_prefixlen = 24,
+		.ifa_flags = 0,
+		.ifa_scope = 0x02,
+		.label = "eth0:1"
+	};
+	const struct ifaddr_nohistory_data nhdata =
+	{
+		.addr = {.ip4 = htonl(0xC0A80001)},
+		.ifa_index = 1,
+		.ifa_family = AF_INET
+	};
+	const struct tracked_data data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&hdata
+	};
+
+	const char* expected = "1_C0A80001000000000000000000000000";
+	char actual[BUFSIZ];
+
+	ifaddr_index(actual, data);
+
+	if (strncmp(expected, actual, BUFSIZ) != 0) {
+		fail("gen_ifaddr_index did not match");
+		note("expected: %s", expected);
+		note("actual: %s", actual);
+	} else {
+		pass("gen_ifaddr_index matched");
+	}
+}
+
 int main()
 {
 	set_configuration(0, NULL);
@@ -409,6 +450,8 @@ int main()
 	test_print_ifaddr_diff();
 
 	test_print_ifaddr_data_tracker();
+
+	test_gen_ifaddr_index();
 
 	return 0;
 }
