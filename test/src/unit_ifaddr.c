@@ -230,6 +230,72 @@ void test_print_ifaddr()
 	}
 }
 
+void test_print_ifaddr_diff()
+{
+	note("running test_print_ifaddr_diff");
+
+	const struct ifaddr_history_data old_hdata =
+	{
+		.local = {.ip4 = htonl(0x7F000001)},
+		.bcast = {.ip4 = htonl(0xC0A800FF)},
+		.acast = {.ip4 = htonl(0xC0A80000)},
+		.blacklisted = false,
+		.ifa_prefixlen = 24,
+		.ifa_flags = 0,
+		.ifa_scope = 0x02,
+		.label = "eth0:1"
+	};
+	const struct ifaddr_history_data new_hdata =
+	{
+		.local = {.ip4 = htonl(0x7F000001)},
+		.bcast = {.ip4 = htonl(0xC0A8008F)},
+		.acast = {.ip4 = htonl(0xC0A80000)},
+		.blacklisted = false,
+		.ifa_prefixlen = 25,
+		.ifa_flags = 0,
+		.ifa_scope = 0x02,
+		.label = "eth0:1"
+	};
+	const struct ifaddr_nohistory_data nhdata =
+	{
+		.addr = {.ip4 = htonl(0xC0A80001)},
+		.ifa_index = 1,
+		.ifa_family = AF_INET
+	};
+	const struct tracked_data old_data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&old_hdata
+	};
+	const struct tracked_data new_data =
+	{
+		.nohistory_data = (void*)&nhdata,
+		.history_data = (void*)&new_hdata
+	};
+	FILE* stream = tmpfile();
+
+	const char* expected = "\"prefixlen\":24,\"bcast\":\"192.168.0.255\",";
+	char actual[BUFSIZ];
+
+	print_ifaddr_diff(stream, old_data, new_data);
+
+	rewind(stream);
+
+	if (fgets(actual, BUFSIZ, stream) == NULL) {
+		fail("unable to fgets");
+	}
+
+	fclose(stream);
+
+	if (strncmp(expected, actual, BUFSIZ) != 0) {
+		fail("print_ifaddr_diff did not match");
+		note("expected: %s", expected);
+		note("actual: %s", actual);
+	} else {
+		pass("print_ifaddr_diff matched");
+	}
+}
+
 int main()
 {
 	set_configuration(0, NULL);
@@ -239,6 +305,8 @@ int main()
 	test_ifaddr_prepare_data_tracker();
 
 	test_print_ifaddr();
+
+	test_print_ifaddr_diff();
 
 	return 0;
 }
