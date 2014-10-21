@@ -304,45 +304,45 @@ void print_data_tracker(
 		void (* print_data_history_diff)(FILE* stream, const struct tracked_data old_data, const struct tracked_data new_data),
 		const struct data_history_entry* bottom)
 {
-			const struct tracked_data data = 
+	const struct tracked_data data = 
+	{
+		.nohistory_data = (void*)&(tracker->nohistory_data),
+		.history_data = (void*)&(tracker->current->history_data)
+	};
+
+	fprintf(stream, "{");
+
+	print_data(stream, data);
+
+	if (bottom !=  NULL && bottom != tracker->current) {
+		struct data_history_entry* newer = tracker->current;
+		fprintf(stream, "\""JSON_HISTORY_STRING"\":[{");
+		do {
+			struct data_history_entry* older = newer->older;
+			const struct tracked_data older_data =
 			{
 				.nohistory_data = (void*)&(tracker->nohistory_data),
-				.history_data = (void*)&(tracker->current->history_data)
+				.history_data = (void*)&(older->history_data)
 			};
-
-			fprintf(stream, "{");
-
-			print_data(stream, data);
-
-			if (bottom !=  NULL && bottom != tracker->current) {
-				struct data_history_entry* newer = tracker->current;
-				fprintf(stream, "\""JSON_HISTORY_STRING"\":[{");
-				do {
-					struct data_history_entry* older = newer->older;
-					const struct tracked_data older_data =
-					{
-						.nohistory_data = (void*)&(tracker->nohistory_data),
-						.history_data = (void*)&(older->history_data)
-					};
-					const struct tracked_data newer_data =
-					{
-						.nohistory_data = (void*)&(tracker->nohistory_data),
-						.history_data = (void*)&(newer->history_data)
-					};
-					print_data_history_diff(stream, older_data, newer_data);
-					fprintf(stream, "\""JSON_TIME_LAST_CHANGED_STRING"\":%ld", older->time);
-					if ((newer = older) != bottom) {
-						fprintf(stream, "},{");
-					}
-				} while (newer != bottom);
-				fprintf(stream, "}],");
+			const struct tracked_data newer_data =
+			{
+				.nohistory_data = (void*)&(tracker->nohistory_data),
+				.history_data = (void*)&(newer->history_data)
+			};
+			print_data_history_diff(stream, older_data, newer_data);
+			fprintf(stream, "\""JSON_TIME_LAST_CHANGED_STRING"\":%ld", older->time);
+			if ((newer = older) != bottom) {
+				fprintf(stream, "},{");
 			}
+		} while (newer != bottom);
+		fprintf(stream, "}],");
+	}
 
-			fprintf(
-					stream,
-					"\""JSON_TIME_LAST_CHANGED_STRING"\":%ld,\""JSON_TIME_LAST_SEEN_STRING"\":%ld}",
-					tracker->current->time,
-					tracker->time);
+	fprintf(
+			stream,
+			"\""JSON_TIME_LAST_CHANGED_STRING"\":%ld,\""JSON_TIME_LAST_SEEN_STRING"\":%ld}",
+			tracker->current->time,
+			tracker->time);
 }
 
 void print_data_trackers(

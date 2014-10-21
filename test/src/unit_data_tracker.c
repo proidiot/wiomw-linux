@@ -2,6 +2,7 @@
 #include <dejagnu.h>
 
 #include <string.h>
+#include "../../src/string_helpers.h"
 #include "../../src/mnl_helpers.h"
 
 #include "../../src/data_tracker.c"
@@ -76,6 +77,60 @@ bool test_attr_cb(const struct nlattr* nla, const struct tracked_data data)
 		break;
 	}
 	return true;
+}
+
+void test_print_data(FILE* stream, const struct tracked_data data)
+{
+	const struct test_nohistory_data* nh_data = (struct test_nohistory_data*)(data.nohistory_data);
+	const struct test_history_data* th_data = (struct test_history_data*)(data.history_data);
+	int i = 0;
+
+	fprintf(stream, "\"nh_header\":\"");
+	for (i = 0; i < NH_HEADER_LEN; i++) {
+		fprintf(stream, "%02X", nh_data->nh_header[i]);
+	}
+	fprintf(stream, "\",");
+
+	fprintf(stream, "\"nh_attr\":\"");
+	for (i = 0; i < NH_ATTR_LEN; i++) {
+		fprintf(stream, "%02X", nh_data->nh_attr[i]);
+	}
+	fprintf(stream, "\",");
+
+	fprintf(stream, "\"th_header\":\"");
+	for (i = 0; i < TH_HEADER_LEN; i++) {
+		fprintf(stream, "%02X", th_data->th_header[i]);
+	}
+	fprintf(stream, "\",");
+
+	fprintf(stream, "\"th_attr\":\"");
+	for (i = 0; i < TH_ATTR_LEN; i++) {
+		fprintf(stream, "%02X", th_data->th_attr[i]);
+	}
+	fprintf(stream, "\",");
+}
+
+void test_print_data_history_diff(FILE* stream, const struct tracked_data old_data, const struct tracked_data new_data)
+{
+	const struct test_history_data* old_th_data = (struct test_history_data*)(old_data.history_data);
+	const struct test_history_data* new_th_data = (struct test_history_data*)(new_data.history_data);
+	int i = 0;
+
+	if (memcmp(old_th_data->th_header, new_th_data->th_header, TH_HEADER_LEN) != 0) {
+		fprintf(stream, "\"th_header\":\"");
+		for (i = 0; i < TH_HEADER_LEN; i++) {
+			fprintf(stream, "%02X", old_th_data->th_header[i]);
+		}
+		fprintf(stream, "\",");
+	}
+
+	if (memcmp(old_th_data->th_attr, new_th_data->th_attr, TH_ATTR_LEN) != 0) {
+		fprintf(stream, "\"th_attr\":\"");
+		for (i = 0; i < TH_ATTR_LEN; i++) {
+			fprintf(stream, "%02X", old_th_data->th_attr[i]);
+		}
+		fprintf(stream, "\",");
+	}
 }
 
 void test_prepare_data_tracker()
@@ -168,9 +223,120 @@ void test_prepare_data_tracker()
 	abort_data_tracker(actual_tracker);
 }
 
+void test_print_data_tracker()
+{
+	note("running test_print_data_tracker");
+
+	struct nlmsghdr* nlh = NULL;
+	struct test_nlmsg* nlm = NULL;
+	unsigned char buf[MNL_SOCKET_BUFFER_SIZE];
+	unsigned int i = 0;
+	unsigned char nh_attr[NH_ATTR_LEN];
+	unsigned char th_attr[TH_ATTR_LEN];
+	srandom(time(NULL));
+	for (i = 0; i < MNL_SOCKET_BUFFER_SIZE; i++) {
+		buf[i] = (unsigned char)(((unsigned long int)random()) % 8);
+	}
+	nlh = mnl_nlmsg_put_header(buf);
+	nlh->nlmsg_type = 1;
+	nlh->nlmsg_flags = 0;
+	nlm = mnl_nlmsg_put_extra_header(nlh, sizeof(struct test_nlmsg));
+	for (i = 0; i < NH_HEADER_LEN; i++) {
+		nlm->nh_data[i] = (unsigned char)(((unsigned long int)random()) % 8);
+	}
+	for (i = 0; i < TH_HEADER_LEN; i++) {
+		nlm->th_data[i] = (unsigned char)(((unsigned long int)random()) % 8);
+	}
+	for (i = 0; i < NH_ATTR_LEN; i++) {
+		nh_attr[i] = (unsigned char)(((unsigned long int)random()) % 8);
+	}
+	if (!mnl_attr_put_check(nlh, MNL_SOCKET_BUFFER_SIZE, TEST_NLA_NH, NH_ATTR_LEN, nh_attr)) {
+		fail("unable to put nh_attr");
+	}
+	for (i = 0; i < TH_ATTR_LEN; i++) {
+		th_attr[i] = (unsigned char)(((unsigned long int)random()) % 8);
+	}
+	if (!mnl_attr_put_check(nlh, MNL_SOCKET_BUFFER_SIZE, TEST_NLA_TH, TH_ATTR_LEN, th_attr)) {
+		fail("unable to put th_attr");
+	}
+
+	const struct data_history_entry expected_dhe =
+	{
+		.older = NULL,
+		.deleted = false
+	};
+	const struct data_tracker expected_tracker =
+	{
+		.last_read = NULL,
+		.lower = NULL,
+		.older_count = 0,
+		.read_older_count = 0,
+		.read_locks = 0
+	};
+
+	FILE* stream = tmpfile();
+
+	char expected[BUFSIZ];
+	size_t tsiz = BUFSIZ;
+	char* texp = expected;
+	astpnprintf(&texp, &tsiz, "{\"nh_header\":\"");
+	for (i = 0; i < NH_HEADER_LEN; i++) {
+		astpnprintf(&texp, &tsiz, "%02X", nlm->nh_data[i]);
+	}
+	astpnprintf(&texp, &tsiz, "\",\"nh_attr\":\"");
+	for (i = 0; i < NH_ATTR_LEN; i++) {
+		astpnprintf(&texp, &tsiz, "%02X", nh_attr[i]);
+	}
+	astpnprintf(&texp, &tsiz, "\",\"th_header\":\"");
+	for (i = 0; i < TH_HEADER_LEN; i++) {
+		astpnprintf(&texp, &tsiz, "%02X", nlm->th_data[i]);
+	}
+	astpnprintf(&texp, &tsiz, "\",\"th_attr\":\"");
+	for (i = 0; i < TH_ATTR_LEN; i++) {
+		astpnprintf(&texp, &tsiz, "%02X", th_attr[i]);
+	}
+	astpnprintf(&texp, &tsiz, "\",\"last_changed\":");
+	char actual[BUFSIZ];
+
+
+	struct data_tracker* actual_tracker = prepare_data_tracker(
+			test_data_size,
+			nlh,
+			&test_header_cb,
+			&test_attr_cb);
+
+	if (actual_tracker == NULL) {
+		fail("prepare_data_tracker returned NULL");
+	}
+
+	print_data_tracker(stream, actual_tracker, &test_print_data, &test_print_data_history_diff, NULL);
+
+	rewind(stream);
+
+	if (fgets(actual, BUFSIZ, stream) == NULL) {
+		fail("unable to fgets");
+		fclose(stream);
+		return;
+	}
+
+	fclose(stream);
+
+	if (strncmp(actual, expected, strnlen(expected, BUFSIZ)) != 0) {
+		fail("print_data_tracker did not match");
+		note("expected: %s", expected);
+		note("actual: %s", actual);
+	} else {
+		pass("print_data_tracker matched");
+	}
+
+	abort_data_tracker(actual_tracker);
+}
+
 int main()
 {
 	test_prepare_data_tracker();
+
+	test_print_data_tracker();
 
 	return 0;
 }
