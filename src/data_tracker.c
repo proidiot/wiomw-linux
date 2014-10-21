@@ -40,10 +40,10 @@ struct data_tracker {
 const struct tracked_data get_tracked_data(const struct data_tracker* tracker)
 {
 	const struct tracked_data data =
-		{
-			.nohistory_data = (void*)&(tracker->nohistory_data),
-			.history_data = (void*)&(tracker->current->history_data)
-		};
+	{
+		.nohistory_data = (void*)&(tracker->nohistory_data),
+		.history_data = (void*)&(tracker->current->history_data)
+	};
 	return data;
 }
 
@@ -73,10 +73,10 @@ static int mnl_attr_cb(const struct nlattr* const nl_attr, void* const closure)
 {
 	const struct mnl_attr_cb_closure* const real_closure = (const struct mnl_attr_cb_closure*)closure;
 	const struct tracked_data data =
-		{
-			.nohistory_data = (void*)&(real_closure->tracker->nohistory_data),
-			.history_data = (void*)&(real_closure->tracker->current->history_data)
-		};
+	{
+		.nohistory_data = (void*)&(real_closure->tracker->nohistory_data),
+		.history_data = (void*)&(real_closure->tracker->current->history_data)
+	};
 	if (!real_closure->attr_cb(nl_attr, data)) {
 		return MNL_CB_ERROR;
 	} else {
@@ -101,15 +101,15 @@ struct data_tracker* prepare_data_tracker(
 	size_t nl_offset = 0;
 	struct data_tracker* const tracker = make_empty_data_tracker(size);
 	const struct mnl_attr_cb_closure closure = 
-		{
-			.attr_cb = attr_cb,
-			.tracker = tracker
-		};
+	{
+		.attr_cb = attr_cb,
+		.tracker = tracker
+	};
 	const struct tracked_data data =
-		{
-			.nohistory_data = (void*)&(tracker->nohistory_data),
-			.history_data = (void*)&(tracker->current->history_data)
-		};
+	{
+		.nohistory_data = (void*)&(tracker->nohistory_data),
+		.history_data = (void*)&(tracker->current->history_data)
+	};
 
 	if ((nl_offset = header_cb(nl_hdr, data)) == 0) {
 		abort_data_tracker(tracker);
@@ -143,10 +143,10 @@ const char* get_data_index(
 		const char* (* const index_cb)(char* index, const struct tracked_data data))
 {
 	const struct tracked_data data = 
-		{
-			.nohistory_data = (void*)&(tracker->nohistory_data),
-			.history_data = (void*)&(tracker->current->history_data)
-		};
+	{
+		.nohistory_data = (void*)&(tracker->nohistory_data),
+		.history_data = (void*)&(tracker->current->history_data)
+	};
 	return index_cb(index, data);
 }
 
@@ -164,10 +164,10 @@ bool save_data_tracker(
 	struct data_history_entry* freeable_entry = NULL;
 
 	const struct tracked_data newer_data =
-		{
-			.nohistory_data = (void*)&(tracker->nohistory_data),
-			.history_data = (void*)&(tracker->current->history_data)
-		};
+	{
+		.nohistory_data = (void*)&(tracker->nohistory_data),
+		.history_data = (void*)&(tracker->current->history_data)
+	};
 
 	/* Begin critical section */
 	pthread_mutex_lock(mutex);
@@ -177,10 +177,10 @@ bool save_data_tracker(
 	if ((struct data_tracker*)*temporary_judy_entry_pointer != NULL) {
 		lower = (struct data_tracker*)*temporary_judy_entry_pointer;
 		const struct tracked_data older_data =
-			{
-				.nohistory_data = (void*)&(tracker->nohistory_data),
-				.history_data = (void*)&(lower->current->history_data)
-			};
+		{
+			.nohistory_data = (void*)&(tracker->nohistory_data),
+			.history_data = (void*)&(lower->current->history_data)
+		};
 
 		if (history_changed_cb(older_data, newer_data)) {
 			tracker->current->older = lower->current;
@@ -305,10 +305,10 @@ void print_data_tracker(
 		const struct data_history_entry* bottom)
 {
 			const struct tracked_data data = 
-				{
-					.nohistory_data = (void*)&(tracker->nohistory_data),
-					.history_data = (void*)&(tracker->current->history_data)
-				};
+			{
+				.nohistory_data = (void*)&(tracker->nohistory_data),
+				.history_data = (void*)&(tracker->current->history_data)
+			};
 
 			fprintf(stream, "{");
 
@@ -320,15 +320,15 @@ void print_data_tracker(
 				do {
 					struct data_history_entry* older = newer->older;
 					const struct tracked_data older_data =
-						{
-							.nohistory_data = (void*)&(tracker->nohistory_data),
-							.history_data = (void*)&(older->history_data)
-						};
+					{
+						.nohistory_data = (void*)&(tracker->nohistory_data),
+						.history_data = (void*)&(older->history_data)
+					};
 					const struct tracked_data newer_data =
-						{
-							.nohistory_data = (void*)&(tracker->nohistory_data),
-							.history_data = (void*)&(newer->history_data)
-						};
+					{
+						.nohistory_data = (void*)&(tracker->nohistory_data),
+						.history_data = (void*)&(newer->history_data)
+					};
 					print_data_history_diff(stream, older_data, newer_data);
 					fprintf(stream, "\""JSON_TIME_LAST_CHANGED_STRING"\":%ld", older->time);
 					if ((newer = older) != bottom) {
@@ -538,10 +538,10 @@ bool process_data_from_table(
 	/* End critical section */
 
 	const struct tracked_data data = 
-		{
-			.nohistory_data = (void*)&(tracker->nohistory_data),
-			.history_data = (void*)&(tracker->current->history_data)
-		};
+	{
+		.nohistory_data = (void*)&(tracker->nohistory_data),
+		.history_data = (void*)&(tracker->current->history_data)
+	};
 	process_data_cb(closure, data);
 
 	/* Begin critical section */

@@ -33,7 +33,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 check_PROGRAMS = unit_identity.out$(EXEEXT) \
 	unit_neighbour.out$(EXEEXT) unit_ifaddr.out$(EXEEXT) \
-	unit_iface.out$(EXEEXT)
+	unit_iface.out$(EXEEXT) unit_data_tracker.out$(EXEEXT)
 subdir = test/src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -45,6 +45,13 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+am_unit_data_tracker_out_OBJECTS = unit_data_tracker.$(OBJEXT) \
+	bindiff.$(OBJEXT) mnl_helpers.$(OBJEXT) \
+	string_helpers.$(OBJEXT) syslog_syserror.$(OBJEXT)
+unit_data_tracker_out_OBJECTS = $(am_unit_data_tracker_out_OBJECTS)
+am__DEPENDENCIES_1 =
+unit_data_tracker_out_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am_unit_identity_out_OBJECTS = unit_identity.$(OBJEXT)
 unit_identity_out_OBJECTS = $(am_unit_identity_out_OBJECTS)
 unit_identity_out_LDADD = $(LDADD)
@@ -52,7 +59,6 @@ am_unit_iface_out_OBJECTS = unit_iface.$(OBJEXT) bindiff.$(OBJEXT) \
 	configuration.$(OBJEXT) ip.$(OBJEXT) mnl_helpers.$(OBJEXT) \
 	string_helpers.$(OBJEXT) syslog_syserror.$(OBJEXT)
 unit_iface_out_OBJECTS = $(am_unit_iface_out_OBJECTS)
-am__DEPENDENCIES_1 =
 unit_iface_out_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 am_unit_ifaddr_out_OBJECTS = unit_ifaddr.$(OBJEXT) bindiff.$(OBJEXT) \
@@ -76,9 +82,11 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(unit_identity_out_SOURCES) $(unit_iface_out_SOURCES) \
+SOURCES = $(unit_data_tracker_out_SOURCES) \
+	$(unit_identity_out_SOURCES) $(unit_iface_out_SOURCES) \
 	$(unit_ifaddr_out_SOURCES) $(unit_neighbour_out_SOURCES)
-DIST_SOURCES = $(unit_identity_out_SOURCES) $(unit_iface_out_SOURCES) \
+DIST_SOURCES = $(unit_data_tracker_out_SOURCES) \
+	$(unit_identity_out_SOURCES) $(unit_iface_out_SOURCES) \
 	$(unit_ifaddr_out_SOURCES) $(unit_neighbour_out_SOURCES)
 ETAGS = etags
 CTAGS = ctags
@@ -208,6 +216,13 @@ unit_iface_out_SOURCES = unit_iface.c \
 			 ../../src/syslog_syserror.c
 
 unit_iface_out_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
+unit_data_tracker_out_SOURCES = unit_data_tracker.c \
+				bindiff.c \
+				../../src/mnl_helpers.c \
+				../../src/string_helpers.c \
+				../../src/syslog_syserror.c
+
+unit_data_tracker_out_LDADD = ${CURL_LIBS} ${PTHREAD_LIBS} ${LIBMNL_LIBS}
 CLEANFILES = *.gcda *.gcno *.gcov
 all: all-am
 
@@ -246,6 +261,9 @@ $(am__aclocal_m4_deps):
 
 clean-checkPROGRAMS:
 	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
+unit_data_tracker.out$(EXEEXT): $(unit_data_tracker_out_OBJECTS) $(unit_data_tracker_out_DEPENDENCIES) $(EXTRA_unit_data_tracker_out_DEPENDENCIES) 
+	@rm -f unit_data_tracker.out$(EXEEXT)
+	$(LINK) $(unit_data_tracker_out_OBJECTS) $(unit_data_tracker_out_LDADD) $(LIBS)
 unit_identity.out$(EXEEXT): $(unit_identity_out_OBJECTS) $(unit_identity_out_DEPENDENCIES) $(EXTRA_unit_identity_out_DEPENDENCIES) 
 	@rm -f unit_identity.out$(EXEEXT)
 	$(LINK) $(unit_identity_out_OBJECTS) $(unit_identity_out_LDADD) $(LIBS)
@@ -271,6 +289,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mnl_helpers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string_helpers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/syslog_syserror.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unit_data_tracker.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unit_identity.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unit_iface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unit_ifaddr.Po@am__quote@
@@ -289,34 +308,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
-
-configuration.o: ../../src/configuration.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT configuration.o -MD -MP -MF $(DEPDIR)/configuration.Tpo -c -o configuration.o `test -f '../../src/configuration.c' || echo '$(srcdir)/'`../../src/configuration.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/configuration.Tpo $(DEPDIR)/configuration.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/configuration.c' object='configuration.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o configuration.o `test -f '../../src/configuration.c' || echo '$(srcdir)/'`../../src/configuration.c
-
-configuration.obj: ../../src/configuration.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT configuration.obj -MD -MP -MF $(DEPDIR)/configuration.Tpo -c -o configuration.obj `if test -f '../../src/configuration.c'; then $(CYGPATH_W) '../../src/configuration.c'; else $(CYGPATH_W) '$(srcdir)/../../src/configuration.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/configuration.Tpo $(DEPDIR)/configuration.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/configuration.c' object='configuration.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o configuration.obj `if test -f '../../src/configuration.c'; then $(CYGPATH_W) '../../src/configuration.c'; else $(CYGPATH_W) '$(srcdir)/../../src/configuration.c'; fi`
-
-ip.o: ../../src/ip.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ip.o -MD -MP -MF $(DEPDIR)/ip.Tpo -c -o ip.o `test -f '../../src/ip.c' || echo '$(srcdir)/'`../../src/ip.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/ip.Tpo $(DEPDIR)/ip.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/ip.c' object='ip.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ip.o `test -f '../../src/ip.c' || echo '$(srcdir)/'`../../src/ip.c
-
-ip.obj: ../../src/ip.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ip.obj -MD -MP -MF $(DEPDIR)/ip.Tpo -c -o ip.obj `if test -f '../../src/ip.c'; then $(CYGPATH_W) '../../src/ip.c'; else $(CYGPATH_W) '$(srcdir)/../../src/ip.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/ip.Tpo $(DEPDIR)/ip.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/ip.c' object='ip.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ip.obj `if test -f '../../src/ip.c'; then $(CYGPATH_W) '../../src/ip.c'; else $(CYGPATH_W) '$(srcdir)/../../src/ip.c'; fi`
 
 mnl_helpers.o: ../../src/mnl_helpers.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mnl_helpers.o -MD -MP -MF $(DEPDIR)/mnl_helpers.Tpo -c -o mnl_helpers.o `test -f '../../src/mnl_helpers.c' || echo '$(srcdir)/'`../../src/mnl_helpers.c
@@ -359,6 +350,34 @@ syslog_syserror.obj: ../../src/syslog_syserror.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/syslog_syserror.c' object='syslog_syserror.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o syslog_syserror.obj `if test -f '../../src/syslog_syserror.c'; then $(CYGPATH_W) '../../src/syslog_syserror.c'; else $(CYGPATH_W) '$(srcdir)/../../src/syslog_syserror.c'; fi`
+
+configuration.o: ../../src/configuration.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT configuration.o -MD -MP -MF $(DEPDIR)/configuration.Tpo -c -o configuration.o `test -f '../../src/configuration.c' || echo '$(srcdir)/'`../../src/configuration.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/configuration.Tpo $(DEPDIR)/configuration.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/configuration.c' object='configuration.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o configuration.o `test -f '../../src/configuration.c' || echo '$(srcdir)/'`../../src/configuration.c
+
+configuration.obj: ../../src/configuration.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT configuration.obj -MD -MP -MF $(DEPDIR)/configuration.Tpo -c -o configuration.obj `if test -f '../../src/configuration.c'; then $(CYGPATH_W) '../../src/configuration.c'; else $(CYGPATH_W) '$(srcdir)/../../src/configuration.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/configuration.Tpo $(DEPDIR)/configuration.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/configuration.c' object='configuration.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o configuration.obj `if test -f '../../src/configuration.c'; then $(CYGPATH_W) '../../src/configuration.c'; else $(CYGPATH_W) '$(srcdir)/../../src/configuration.c'; fi`
+
+ip.o: ../../src/ip.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ip.o -MD -MP -MF $(DEPDIR)/ip.Tpo -c -o ip.o `test -f '../../src/ip.c' || echo '$(srcdir)/'`../../src/ip.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/ip.Tpo $(DEPDIR)/ip.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/ip.c' object='ip.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ip.o `test -f '../../src/ip.c' || echo '$(srcdir)/'`../../src/ip.c
+
+ip.obj: ../../src/ip.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ip.obj -MD -MP -MF $(DEPDIR)/ip.Tpo -c -o ip.obj `if test -f '../../src/ip.c'; then $(CYGPATH_W) '../../src/ip.c'; else $(CYGPATH_W) '$(srcdir)/../../src/ip.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/ip.Tpo $(DEPDIR)/ip.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/ip.c' object='ip.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ip.obj `if test -f '../../src/ip.c'; then $(CYGPATH_W) '../../src/ip.c'; else $(CYGPATH_W) '$(srcdir)/../../src/ip.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
