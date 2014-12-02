@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <libmnl/libmnl.h>
 #include <syslog.h>
+#include <Judy.h>
 #include "syslog_syserror.h"
 #include "ip.h"
 #include "iface.h"
