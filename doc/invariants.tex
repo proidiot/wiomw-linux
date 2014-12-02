@@ -1,0 +1,80 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\title{Loop Invariants of $wiomw$}
+\author{Charles Southerland}
+\begin{document}
+Sets:
+\begin{description}
+	\item[\(T\)]
+		Tables
+	\item[\(E\)]
+		Entries
+	\item[\(N\)]
+		Data components whose changes are not tracked historically
+	\item[\(H\)]
+		Data components whose changes are tracked historically
+	\item[\(U\)]
+		Unix Timestamps
+\end{description}
+Functions:
+\begin{description}
+	\item[\(lastprinted: T \mapsto U\)]
+		The Unix timestamp (\(u \in U\)) of the last time a \(t \in T\) was printed.
+	\item[\(saved: T \times N \times H \mapsto \{\mathrm{true}, \mathrm{false}\}\)]
+		Whether or not a particular combination of \(n \in N\) and \(h \in H\) has been saved into a particular \(t \in T\)
+	\item[\(history: E \mapsto \mathcal{P}(H)\)]
+		The finite subset of \(H\) associated with a particular \(e \in E\). It is worth noting that this subset is a well-ordered set.
+	\item[\(latestN: E \mapsto N\)]
+		The most recent \(n \in N\) associated with a particular \(e \in E\).
+	\item[\(latestH: E \mapsto H\)]
+		The most recent \(h \in H\) associated with a particular \(e \in E\).
+	\item[\(oldestH: E \mapsto H\)]
+		The oldest \(h \in H\) associated with a particular \(e \in E\) (possibly the oldest non-cleared entry rather than the oldest cleared or not entry).
+	\item[\(timestamp: H \mapsto U\)]
+		The timestamp associated with the historical value.
+	\item[\(wasprintedN: N \mapsto \{\mathrm{true}, \mathrm{false}\}\)]
+		Whether or not a particular \(n \in N\) has been printed.
+	\item[\(wasprintedH: H \mapsto \{\mathrm{true}, \mathrm{false}\}\)]
+		Whether or not a particular \(h \in H\) has been printed.
+	\item[\(order: E \times H \mapsto \mathbb{N}\)]
+		For a given \(e \in E\), the ordinal value of \(h \in history(e)\).
+	\item[\(cleared: H \mapsto \{\mathrm{true}, \mathrm{false}\}\)]
+		Whether a particular \(h \in H\) has been cleared.
+	\item[\(updatedN: N \mapsto \mathcal{P}(N)\)]
+		The set of all non-historic values that were saved later.
+\end{description}
+% Basic Loop Invariants:\\
+% \(save\):
+% \begin{align*}
+% \forall e \in E, \forall t \in T: \\
+% e \in entries(t) \implies & saved(t, latestN(e), latestH(e)) \\
+% & {} \wedge ( \forall h \in H: h \in history(e) \implies order(h) \geq order(lastprintedH(e)) \\
+% &\phantom{{} \wedge (\forall h \in H: h \in history(e) \implies } {} \vee wasprintedH(h))
+% \end{align*}
+% \(print\):
+% \begin{align*}
+% \forall e \in E, \forall t \in T: \\
+% e \in entries(t) \implies & timestamp(oldestH(e)) > lastprinted(t) \\
+% &{} \vee ((wasprintedN(latestN(e)) \vee (\exists n \in N \bullet latestN(e) \in updates(n) \wedge wasprintedN(n))) \\
+% &\phantom{{} \vee ( } {} \wedge (\forall h \in H: h \in history(e) \implies wasprintedH(h) \vee timestamp(h) > lastprinted(t)))
+% \end{align*}
+% \(clear\):
+% \begin{align*}
+% \forall e \in E, \forall t \in T: \\
+% e \in entries(t) \implies & (\exists h \in H \bullet h \in history(e) \wedge \lnot cleared(h)) \\
+% & {} \wedge (\forall h \in H: h \in history(e) \wedge cleared(h) \implies wasprinted(h)) \\
+% & {} \wedge \lnot cleared(oldestH(e))
+% \end{align*}
+Combined Invariant:\\
+\begin{align*}
+&\forall (t,e) \in \{(t,e) \in T \times E | e \in entries(t)\}: \\
+&saved(t, latestN(e), latestH(e)) \\
+&\wedge (\forall h \in \{h \in H | h \in history(e)\}: (order(e, h) \geq order(e, lastprintedH(e)) \vee wasprintedH(h)) \\
+&\phantom{\wedge (\forall h \in \{h \in H | h \in history(e)\}: } \wedge (cleared(h) \implies wasprintedH(h))) \\
+&\wedge (timestamp(oldestH(e)) > lastprinted(t) \\
+&\phantom{\wedge ( } \vee ((wasprintedN(latestN(e)) \vee (\exists n \in N \bullet latestN(e) \in updatedN(n) \wedge wasprintedN(n))) \\
+&\phantom{\wedge ( \vee ( } \wedge (\forall h \in \{h \in H | h \in history(e)\}: wasprintedH(h) \vee timestamp(h) > lastprinted(t)))) \\
+&\wedge (\exists h \in \{h \in H | h \in history(e)\} \bullet \lnot cleared(h))
+\end{align*}
+\end{document}

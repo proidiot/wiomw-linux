@@ -7,6 +7,8 @@ Makefile
 /config.log
 /config.status
 /configure.scan
+/doc/*.aux
+/doc/*.fdb_latexmk
 /etc/ssl/certs/@sysconfig@
 /test/site.exp
 /test/site.bak
