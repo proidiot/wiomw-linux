@@ -1,5 +1,7 @@
 1.0.3:
-	TODO
+	- Switched behavior to report stale neighbours in addition to fresh
+	  neighbours
+	- Bugfixes
 
 1.0.2:
 	- Added backup implementations of potentially missing libc functions
