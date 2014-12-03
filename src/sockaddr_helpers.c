@@ -200,9 +200,11 @@ long increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr*
 		unsigned long base_ip = (ntohl(base->sin_addr.s_addr) >> suffix) << suffix;
 		unsigned long bcast_ip = (((ntohl(base->sin_addr.s_addr) >> suffix) + 1) << suffix) - 1;
 		unsigned long ip = ntohl(addr->sin_addr.s_addr);
+		addr_to_increment->sa_family = AF_INET;
 
 		if (ip == 0) {
 			ip = base_ip + 1;
+			addr_to_increment->sa_family = AF_INET;
 		} else if (ip >= base_ip && ip < bcast_ip) {
 			ip++;
 		} else {
@@ -221,6 +223,7 @@ long increment_addr(struct sockaddr* addr_base, uint8_t prefix, struct sockaddr*
 		bool first_addr = true;
 		unsigned long remaining = 0;
 		uint8_t tprefix = tprefix;
+		addr_to_increment->sa_family = AF_INET6;
 		for (i = 0; first_addr && i < 16; i++) {
 			if (addr->sin6_addr.s6_addr[i] != 0x00) {
 				first_addr = false;

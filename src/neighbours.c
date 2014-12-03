@@ -835,20 +835,22 @@ static int print_neigh_list_cb(const struct nlmsghdr* nl_head, void* cb_data)
 		struct ndmsg* nd_msg = mnl_nlmsg_get_payload(nl_head);
 		if_item_t* if_item = get_if_item_by_index(*(neigh_list_cb_data->if_list), nd_msg->ndm_ifindex);
 
-		if (if_item != NULL && (neigh_list_cb_data->config->show_unreachable_neighs || nd_msg->ndm_state & NUD_REACHABLE) && (neigh_list_cb_data->config->show_known_blacklist_iface_neighs || !if_item->blacklisted)) {
+		if (if_item != NULL && (neigh_list_cb_data->config->show_unreachable_neighs || nd_msg->ndm_state & NUD_REACHABLE || nd_msg->ndm_state & NUD_STALE) && (neigh_list_cb_data->config->show_known_blacklist_iface_neighs || !if_item->blacklisted)) {
 			print_neigh_cb_data_t neigh_cb_data = new_print_neigh_cb_data(neigh_list_cb_data->fd, nd_msg->ndm_family, neigh_list_cb_data->host_lookup_table);
 			fprintf(neigh_list_cb_data->fd, ",{");
 
 			if (nd_msg->ndm_state & NUD_INCOMPLETE) {
 				fprintf(neigh_list_cb_data->fd, "\"incomplete\":1,");
 			}
-			if (nd_msg->ndm_state & NUD_REACHABLE) {
-				fprintf(neigh_list_cb_data->fd, "\"reachable\":1,\"state\":\"reachable\",");
-			} else {
-				fprintf(neigh_list_cb_data->fd, "\"state\":\"unreachable\",");
-			}
 			if (nd_msg->ndm_state & NUD_STALE) {
 				fprintf(neigh_list_cb_data->fd, "\"stale\":1,");
+			}
+			if (nd_msg->ndm_state & NUD_REACHABLE) {
+				fprintf(neigh_list_cb_data->fd, "\"reachable\":1,\"state\":\"reachable\",");
+			} else if (nd_msg->ndm_state & NUD_STALE) {
+				fprintf(neigh_list_cb_data->fd, "\"reachable\":0,\"state\":\"stale\",");
+			} else {
+				fprintf(neigh_list_cb_data->fd, "\"reachable\":0,\"state\":\"unreachable\",");
 			}
 			if (nd_msg->ndm_state & NUD_DELAY) {
 				fprintf(neigh_list_cb_data->fd, "\"delay\":1,");
@@ -1189,7 +1191,12 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 	if (addr->sa_family == AF_INET) {
 		remote_addr_size = sizeof(struct sockaddr_in);
 	} else if (addr->sa_family == AF_INET6) {
-		remote_addr_size = sizeof(struct sockaddr_in6);
+		if (CONFIG_OPTION_IPV6_PROBES) {
+			remote_addr_size = sizeof(struct sockaddr_in6);
+		} else {
+			syslog(LOG_INFO, "Not configured to send IPv6 probes, skipping scan of IPv6 range");
+			return;
+		}
 	} else {
 		syslog(LOG_ERR, "Unexpected address family for network scanning");
 		return;
@@ -1365,10 +1372,10 @@ void print_neighbours(config_t* config, FILE* subnet_fd, FILE* devices_fd)
 	
 		print_neigh_list(nl_sock, devices_fd, if_list, config, lookup_table);
 	
-		mnl_socket_close(nl_sock);
-	
 		fprintf(devices_fd, "]");
 	}
+
+	mnl_socket_close(nl_sock);
 
 	destroy_host_lookup_table(&lookup_table);
 	destroy_if_list(&if_list);
