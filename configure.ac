@@ -272,6 +272,11 @@ AX_CONFIG_OPTION_NUMBER_RANGE([api_call_retry_length],
 	[maximum amount of time to spend retrying a single non-login API call],
 	[SECS])
 
+AX_CONFIG_OPTION_BOOL([ipv6_probes],
+	[no],
+	[scanning of IPv6 networks by using solicitation probes])
+
+
 
 
 # Generated files

@@ -51,6 +51,9 @@
    that will be scanned */
 #undef CONFIG_OPTION_IPV4_PUBLIC_PREFIX
 
+/* scanning of IPv6 networks by using solicitation probes */
+#undef CONFIG_OPTION_IPV6_PROBES
+
 /* minimum prefix of a publicly-accessible IPv6 network specified at runtime
    that will be scanned */
 #undef CONFIG_OPTION_IPV6_PUBLIC_PREFIX

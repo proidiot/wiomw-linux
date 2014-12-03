@@ -734,6 +734,7 @@ enable_authpriv_level_syslog
 enable_custom_scan_result_timeout
 enable_custom_backoff_ceiling
 enable_custom_api_call_retry_length
+enable_ipv6_probes
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1464,6 +1465,8 @@ Optional Features:
                           set custom maximum amount of time to spend retrying
                           a single non-login API call, default: 300, min: 30,
                           max: 28800
+  --enable-ipv6-probes    enable scanning of IPv6 networks by using
+                          solicitation probes, default: no
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6452,6 +6455,34 @@ fi
 cat >>confdefs.h <<_ACEOF
 #define CONFIG_OPTION_API_CALL_RETRY_LENGTH ${api_call_retry_length}
 _ACEOF
+
+
+
+  # Check whether --enable-ipv6_probes was given.
+if test "${enable_ipv6_probes+set}" = set; then :
+  enableval=$enable_ipv6_probes; case ${enableval} in #(
+  no) :
+    ipv6_probes=0 ;; #(
+  yes) :
+    ipv6_probes=1 ;; #(
+  "") :
+    ipv6_probes=1 ;; #(
+  *) :
+    as_fn_error $? "Only \"yes\" and \"no\" are accepted as values for scanning of IPv6 networks by using solicitation probes" "$LINENO" 5 ;;
+esac
+else
+  if test "xno" == xyes; then :
+  ipv6_probes=1
+else
+  ipv6_probes=0
+fi
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define CONFIG_OPTION_IPV6_PROBES ${ipv6_probes}
+_ACEOF
+
 
 
 

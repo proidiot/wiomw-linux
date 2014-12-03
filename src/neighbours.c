@@ -1191,7 +1191,12 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 	if (addr->sa_family == AF_INET) {
 		remote_addr_size = sizeof(struct sockaddr_in);
 	} else if (addr->sa_family == AF_INET6) {
-		remote_addr_size = sizeof(struct sockaddr_in6);
+		if (CONFIG_OPTION_IPV6_PROBES) {
+			remote_addr_size = sizeof(struct sockaddr_in6);
+		} else {
+			syslog(LOG_INFO, "Not configured to send IPv6 probes, skipping scan of IPv6 range");
+			return;
+		}
 	} else {
 		syslog(LOG_ERR, "Unexpected address family for network scanning");
 		return;
