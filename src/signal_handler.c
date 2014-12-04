@@ -26,6 +26,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 volatile sig_atomic_t bool_stop_received;
 
@@ -71,8 +72,8 @@ int stop_signal_received()
 bool full_sleep(unsigned int length)
 {
 	if (length != 0) {
-		alarm(length);
 		sigset_t sigset_emptyset;
+		alarm(length);
 		sigemptyset(&sigset_emptyset);
 		sigsuspend(&sigset_emptyset);
 	}
