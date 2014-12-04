@@ -1421,7 +1421,7 @@ Optional Features:
                           mins), minimum: 90
   --enable-custom-login-url=URL
                           set custom URL of login API, default:
-                          https://www.whoisonmywifi.net/api/v100/rest/login
+                          https://www.whoisonmywifi.net/api/v100/rest/hw_login
   --enable-custom-config-agent-url=URL
                           set custom URL of config_agent API, default:
                           https://www.whoisonmywifi.net/api/v100/rest/config_agent
@@ -6093,7 +6093,7 @@ _ACEOF
 if test "${enable_custom_login_url+set}" = set; then :
   enableval=$enable_custom_login_url; case ${enableval} in #(
   no) :
-    login_url=https://www.whoisonmywifi.net/api/v100/rest/login ;; #(
+    login_url=https://www.whoisonmywifi.net/api/v100/rest/hw_login ;; #(
   yes) :
     as_fn_error $? "Custom URL of login API not specified" "$LINENO" 5 ;; #(
   "") :
@@ -6102,7 +6102,7 @@ if test "${enable_custom_login_url+set}" = set; then :
     eval login_url=\${enableval} ;;
 esac
 else
-  login_url=https://www.whoisonmywifi.net/api/v100/rest/login
+  login_url=https://www.whoisonmywifi.net/api/v100/rest/hw_login
 fi
 
 

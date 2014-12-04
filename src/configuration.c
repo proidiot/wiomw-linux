@@ -34,6 +34,7 @@
 #include <grp.h>
 #include <limits.h>
 #include <syslog.h>
+#include <time.h>
 #include "syslog_syserror.h"
 #include "string_helpers.h"
 
@@ -75,8 +76,8 @@ char* nvram_get(char* name)
 #endif
 #endif
 
-#define USERNAME_CONFIG_PREFIX "USERNAME"
-#define PASSHASH_CONFIG_PREFIX "PASSHASH"
+#define PUBLIC_TOKEN_CONFIG_PREFIX "PUBTOKEN"
+#define PRIVATE_TOKEN_CONFIG_PREFIX "PRIVTOKEN"
 #define AGENTKEY_CONFIG_PREFIX "AGENTKEY"
 #define NETWORKS_CONFIG_PREFIX "NETWORKS"
 #define IFACE_BLACKLIST_REGEX_CONFIG_PREFIX "IFACE_BLACKLIST_REGEX"
@@ -102,6 +103,10 @@ char* nvram_get(char* name)
 /* #define UCI_PATH "wiomw.@wiomw-agent[0]" */
 #define UCI_PATH "wiomw.agent"
 #define NVRAM_PREFIX "wiomw"
+
+#ifndef SYSCONFDIR
+#define SYSCONFDIR "/etc/"
+#endif
 
 char* find_config_value(char* source, const char* prefix)
 {
@@ -134,8 +139,8 @@ config_t get_configuration(int argc, char** argv)
 	char raw_line[CONFIG_OPTION_CONFIG_LINE_LENGTH + 2];
 	config_t config;
 	char* config_file_location = CONFIG_OPTION_CONFIG_FILE;
-	bool config_username_is_set = false;
-	bool config_passhash_is_set = false;
+	bool config_pubtk_is_set = false;
+	bool config_privtk_is_set = false;
 	bool config_agentkey_is_set = false;
 	bool config_capath_is_set = false;
 	bool config_iface_blacklist_regex_is_set = false;
@@ -160,8 +165,8 @@ config_t get_configuration(int argc, char** argv)
 	/* Default config values
 	 * (If a value must be specified, set bad values here and check if they match after the file is closed.) */
 	config.next_session_request = 0;
-	config.username = NULL;
-	config.passhash = NULL;
+	config.pubtk = NULL;
+	config.privtk = NULL;
 	config.agentkey = NULL;
 	config.iface_blacklist_regex = NULL;
 	config.capath = string_chomp_copy(CONFIG_OPTION_CA_PATH);
@@ -184,15 +189,15 @@ config_t get_configuration(int argc, char** argv)
 
 	if (argc > 1) {
 		char c = '\0';
-		while (-1 != (c = getopt(argc, argv, "u:p:a:c:"))) {
+		while (-1 != (c = getopt(argc, argv, "p:r:a:c:"))) {
 			switch (c) {
-			case 'u':
-				config.username = optarg;
-				config_username_is_set = true;
-				break;
 			case 'p':
-				config.passhash = optarg;
-				config_passhash_is_set = true;
+				config.pubtk = optarg;
+				config_pubtk_is_set = true;
+				break;
+			case 'r':
+				config.privtk = optarg;
+				config_privtk_is_set = true;
 				break;
 			case 'a':
 				config.agentkey = optarg;
@@ -203,11 +208,11 @@ config_t get_configuration(int argc, char** argv)
 				config_file_location_is_set = true;
 				break;
 			case '?':
-				syslog(LOG_ERR, "Usage: %s [ -u USERNAME ] [ -p PASSHASH ] [ -a AGENTKEY ] [ -c CONFIG_FILE_PATH ]", argv[0]);
+				syslog(LOG_ERR, "Usage: %s [ -p PUBTOKEN ] [ -r PRIVTOKEN ] [ -a AGENTKEY ] [ -c CONFIG_FILE_PATH ]", argv[0]);
 				exit(EX_USAGE);
 				break;
 			default:
-				syslog(LOG_ERR, "Usage: %s [ -u USERNAME ] [ -p PASSHASH ] [ -a AGENTKEY ] [ -c CONFIG_FILE_PATH ]", argv[0]);
+				syslog(LOG_ERR, "Usage: %s [ -p PUBTOKEN ] [ -r PRIVTOKEN ] [ -a AGENTKEY ] [ -c CONFIG_FILE_PATH ]", argv[0]);
 				exit(EX_USAGE);
 			}
 		}
@@ -216,35 +221,35 @@ config_t get_configuration(int argc, char** argv)
 #if CONFIG_OPTION_UCI == 1
 	{
 		struct uci_context* ctx = uci_alloc_context();
-		if (!config_username_is_set) {
+		if (!config_pubtk_is_set) {
 			struct uci_ptr ptr;
-			char* path = strdup(UCI_PATH ".username");
+			char* path = strdup(UCI_PATH ".pubtoken");
 			int status = uci_lookup_ptr(ctx, &ptr, path, true);
 			if (UCI_OK == status) {
 				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
-					config_username_is_set = true;
-					config.username = strdup(ptr.o->v.string);
+					config_pubtk_is_set = true;
+					config.pubtk = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
 				uci_get_errorstr(ctx, temp_str, "");
-				syslog(LOG_CRIT, "Unable to retrieve username from UCI: %s", *temp_str);
+				syslog(LOG_CRIT, "Unable to retrieve public token from UCI: %s", *temp_str);
 				exit(EX_CONFIG);
 			}
 		}
-		if (!config_passhash_is_set) {
+		if (!config_privtk_is_set) {
 			struct uci_ptr ptr;
-			char* path = strdup(UCI_PATH ".passhash");
+			char* path = strdup(UCI_PATH ".privtoken");
 			int status = uci_lookup_ptr(ctx, &ptr, path, true);
 			if (UCI_OK == status) {
 				if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
-					config_passhash_is_set = true;
-					config.passhash = strdup(ptr.o->v.string);
+					config_privtk_is_set = true;
+					config.privtk = strdup(ptr.o->v.string);
 				}
 			} else if (UCI_ERR_NOTFOUND != status) {
 				char** temp_str = NULL;
 				uci_get_errorstr(ctx, temp_str, "");
-				syslog(LOG_CRIT, "Unable to retrieve passhash from UCI: %s", *temp_str);
+				syslog(LOG_CRIT, "Unable to retrieve private token from UCI: %s", *temp_str);
 				exit(EX_CONFIG);
 			}
 		}
@@ -288,13 +293,13 @@ config_t get_configuration(int argc, char** argv)
 	{
 		char* nvram_value = NULL;
 
-		if (!config_username_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_username")) && 0 < strlen(nvram_value)) {
-			config_username_is_set = true;
-			config.username = nvram_value;
+		if (!config_pubtk_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_pubtoken")) && 0 < strlen(nvram_value)) {
+			config_pubtk_is_set = true;
+			config.pubtk = nvram_value;
 		}
-		if (!config_passhash_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_passhash")) && 0 < strlen(nvram_value)) {
-			config_passhash_is_set = true;
-			config.passhash = nvram_value;
+		if (!config_privtk_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_privtoken")) && 0 < strlen(nvram_value)) {
+			config_privtk_is_set = true;
+			config.privtk = nvram_value;
 		}
 		if (!config_agentkey_is_set && NULL != (nvram_value = nvram_get(NVRAM_PREFIX "_agentkey")) && 0 < strlen(nvram_value)) {
 			config_agentkey_is_set = true;
@@ -310,7 +315,7 @@ config_t get_configuration(int argc, char** argv)
 	/* Time to get the file and read the data we want from it. */
 	config_file = fopen(config_file_location, "r");
 	if (config_file == NULL) {
-		if (!config_username_is_set || !config_passhash_is_set || !config_agentkey_is_set) {
+		if (!config_pubtk_is_set || !config_privtk_is_set || !config_agentkey_is_set) {
 			syslog_syserror(LOG_ERR, "Unable to open the configuration file (%s)", config_file_location);
 		}
 	} else {
@@ -329,19 +334,19 @@ config_t get_configuration(int argc, char** argv)
 				fclose(config_file);
 				/* TODO: Any remaining cleanup goes here. */
 				exit(EX_CONFIG);
-			} else if ((value = find_config_value(current_line, USERNAME_CONFIG_PREFIX)) != NULL) {
-				if (!config_username_is_set) {
-					config_username_is_set = true;
-					if ((config.username = string_chomp_copy(value)) == NULL) {
-						syslog(LOG_ERR, USERNAME_CONFIG_PREFIX " must not be empty");
+			} else if ((value = find_config_value(current_line, PUBLIC_TOKEN_CONFIG_PREFIX)) != NULL) {
+				if (!config_pubtk_is_set) {
+					config_pubtk_is_set = true;
+					if ((config.pubtk = string_chomp_copy(value)) == NULL) {
+						syslog(LOG_ERR, PUBLIC_TOKEN_CONFIG_PREFIX " must not be empty");
 						exit(EX_CONFIG);
 					}
 				}
-			} else if ((value = find_config_value(current_line, PASSHASH_CONFIG_PREFIX)) != NULL) {
-				if (!config_passhash_is_set) {
-					config_passhash_is_set = true;
-					if ((config.passhash = string_chomp_copy(value)) == NULL) {
-						syslog(LOG_ERR, PASSHASH_CONFIG_PREFIX " must not be empty");
+			} else if ((value = find_config_value(current_line, PRIVATE_TOKEN_CONFIG_PREFIX)) != NULL) {
+				if (!config_privtk_is_set) {
+					config_privtk_is_set = true;
+					if ((config.privtk = string_chomp_copy(value)) == NULL) {
+						syslog(LOG_ERR, PRIVATE_TOKEN_CONFIG_PREFIX " must not be empty");
 						exit(EX_CONFIG);
 					}
 				}
@@ -600,12 +605,12 @@ config_t get_configuration(int argc, char** argv)
 	}
 #endif
 
-	if (config.username == NULL) {
-		syslog(LOG_ERR, USERNAME_CONFIG_PREFIX " was not specified");
+	if (config.pubtk == NULL) {
+		syslog(LOG_ERR, PUBLIC_TOKEN_CONFIG_PREFIX " was not specified");
 		exit(EX_CONFIG);
 	}
-	if (config.passhash == NULL) {
-		syslog(LOG_ERR, PASSHASH_CONFIG_PREFIX " was not specified");
+	if (config.privtk == NULL) {
+		syslog(LOG_ERR, PRIVATE_TOKEN_CONFIG_PREFIX " was not specified");
 		exit(EX_CONFIG);
 	}
 	if (config.agentkey == NULL) {

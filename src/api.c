@@ -28,6 +28,8 @@
 #include "neighbours.h"
 #include "block.h"
 #include "string_helpers.h"
+#include "signal_handler.h"
+#include "exp_backoff.h"
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -135,7 +137,7 @@ void wiomw_login(config_t* config)
 		exit(EX_OSERR);
 	}
 
-	fprintf(fd, "{\"username\":\"%s\",\"password\":\"%s\",\"agentkey\":\"%s\"}", config->username, config->passhash, config->agentkey);
+	fprintf(fd, "{\"publictoken\":\"%s\",\"privatetoken\":\"%s\",\"agentkey\":\"%s\"}", config->pubtk, config->privtk, config->agentkey);
 
 	fseek(fd, 0, SEEK_END);
 	fd_size = ftell(fd);
@@ -308,7 +310,7 @@ bool sync_block(config_t* config)
 		syslog(LOG_CRIT, "Internal error during device blocking setup (empty config)");
 		exit(EX_SOFTWARE);
 	} else if (!config->allow_blocking) {
-		return;
+		return true;
 	}
 
 	holder_t_data = (holder_t)malloc(sizeof(struct holder_t_struct));

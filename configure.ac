@@ -194,7 +194,7 @@ AX_CONFIG_OPTION_NUMBER_GE([sync_block_frequency],
 	[300 (i.e. 5 mins)])
 
 AX_CONFIG_OPTION_STRING_NN([login_url],
-	[https://www.whoisonmywifi.net/api/v100/rest/login],
+	[https://www.whoisonmywifi.net/api/v100/rest/hw_login],
 	[URL of login API],
 	[URL])
 

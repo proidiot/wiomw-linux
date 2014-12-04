@@ -28,8 +28,8 @@
 
 typedef struct {
 	time_t next_session_request;
-	char* username;
-	char* passhash;
+	char* pubtk;
+	char* privtk;
 	char* agentkey;
 	char* session_id;
 	char* iface_blacklist_regex;
