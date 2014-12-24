@@ -1215,6 +1215,7 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 		unsigned int seq;
 		unsigned int portid;
 		const size_t bufsiz = MNL_SOCKET_BUFFER_SIZE;
+		const uint8_t blank_mac[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 		buf = (char*)malloc(bufsiz);
 		if (buf == NULL) {
 			syslog_syserror(LOG_EMERG, "Unable to allocate memory");
@@ -1243,6 +1244,11 @@ static void scan_network(struct sockaddr* addr, uint8_t mask, int ifindex, struc
 			}
 		} else {
 			syslog(LOG_CRIT, "Internal error (address iterator has an unexpected address family)");
+			exit(EX_SOFTWARE);
+		}
+
+		if (!mnl_attr_put_check(nl_head, MNL_SOCKET_BUFFER_SIZE, NDA_LLADDR, 6, blank_mac)) {
+			syslog(LOG_CRIT, "Unable to prepare netlink message with a placholder neighbour MAC address");
 			exit(EX_SOFTWARE);
 		}
 	
