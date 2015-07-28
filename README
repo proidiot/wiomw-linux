@@ -10,8 +10,8 @@ the network by toggling the block flag for the device on the website.
 
 Who Is On My WiFi Linux is a Who Is On My WiFi agent that uses some of the
 capabilities of the Linux kernel to perform its scanning. It was designed to be
-used on Linux-based wireless routers (e.g. WRT54G running Tomato firmware,
-OpenWRT-based routers), but the scanning functionality should work on most
+used on Linux-based wireless routers (e.g. OpenWRT-based routers, WRT54G
+running Tomato firmware), but the scanning functionality should work on most
 Linux-based devices where the relevant functionality of the Linux kernel can be
 accessed (e.g. desktops, servers, certain other embedded devices). When run on
 a router, this agent provides the most effective and most efficient blocking

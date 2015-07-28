@@ -1,5 +1,7 @@
 1.0.4:
-	TODO
+	- Switched from username/passhash to pubtoken/privtoken login system
+	- Removed legacy Tomato scripts
+	- Bugfixes
 
 1.0.3:
 	- Switched behavior to report stale neighbours in addition to fresh
