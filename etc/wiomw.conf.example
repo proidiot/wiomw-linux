@@ -1,0 +1,50 @@
+# Copyright 2013, 2014 Who Is On My WiFi.
+#
+# This file is part of Who Is On My WiFi Linux.
+#
+# Who Is On My WiFi Linux is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+#
+# Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+#
+# More information about Who Is On My WiFi Linux can be found at
+# <http://www.whoisonmywifi.com/>.
+#
+
+###########################
+# Example wiomw.conf file #
+###########################
+
+# Required values
+##################
+
+# Your username for whoisonmywifi.net (presumably your email address)
+USERNAME = email@example.com
+
+# These values must be obtained from the site.
+PASSHASH = 1234567890ABCDEF1234567890ABCDEF
+AGENTKEY = LINUX-PLACEHOLDER-12345
+
+
+# Optional values
+##################
+
+# Automatically scan all private networks that can be found
+# (except ones found through blacklisted interfaces, see below).
+# Default: TRUE
+
+#AUTOSCAN = FALSE
+
+# Interfaces that match this regular expression will not be autoscanned.
+# Default: (blank)
+
+#IFACE_BLACKLIST_REGEX = ^vlan1$
+
