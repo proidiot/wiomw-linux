@@ -23,11 +23,11 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_INIT([wiomw],
-	[1.0.4],
+	[1.0.5],
 	[bugs at whoisonmywifi dot com],
 	[wiomw],
 	[http://www.whoisonmywifi.net])
-AC_CONFIG_MACRO_DIR[(m4])
+AC_CONFIG_MACRO_DIRS[(m4])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror])
@@ -71,7 +71,7 @@ AS_IF([test "0$uci" -eq 01],
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h stddef.h stdint.h stdlib.h string.h sys/socket.h syslog.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
+AC_CHECK_HEADER_STDBOOL
 AC_TYPE_SIZE_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
