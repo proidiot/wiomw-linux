@@ -1,4 +1,4 @@
-# Copyright 2013, 2014 Who Is On My WiFi.
+# Copyright 2013 - 2015 Who Is On My WiFi.
 #
 # This file is part of Who Is On My WiFi Linux.
 #
@@ -23,7 +23,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_INIT([wiomw],
-	[1.0.5],
+	[1.1.0],
 	[bugs at whoisonmywifi dot com],
 	[wiomw],
 	[http://www.whoisonmywifi.net])
@@ -35,6 +35,9 @@ AM_INIT_AUTOMAKE([-Wall -Werror])
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
+AC_PATH_PROG([DPKG_BUILD], [dpkg-buildpackage], [notfound])
+AC_PATH_PROG([TAR], [tar gtar], [notfound])
+AC_PATH_PROG([DCH], [dch], [notfound])
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [rint], ,AC_MSG_ERROR([libm was not found]))
@@ -275,6 +278,23 @@ AX_CONFIG_OPTION_NUMBER_RANGE([api_call_retry_length],
 AX_CONFIG_OPTION_BOOL([ipv6_probes],
 	[no],
 	[scanning of IPv6 networks by using solicitation probes])
+
+AC_ARG_ENABLE([deb],
+	      [AS_HELP_STRING([--enable-deb],
+			      [Build debian package, default: no])],
+	      [AS_IF([test "x$enable_deb" = xyes],
+		     [AS_IF([test "x$DPKG_BUILD" = xnotfound],
+			    [AC_MSG_ERROR([Unable to find dpkg-buildpackage,]
+			   		  [ needed for building the debian]
+					  [ package])],
+			    [test "x$TAR" = xnotfound],
+			    [AC_MSG_ERROR([Unable to find tar, needed for]
+			   		  [ building the debian package])],
+			    [test "x$DCH" = xnotfound],
+			    [AC_MSG_ERROR([Unable to find dch, needed for]
+			   		  [ building the debian package])])])],
+	      [enable_deb=no])
+AM_CONDITIONAL([BUILD_DEB], [test "x$enable_deb" = xyes])
 
 
 

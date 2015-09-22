@@ -5,6 +5,13 @@
 /config.log
 /config.status
 /configure.scan
+/wiomw-*.tar.gz
+/wiomw-*.*.*/*
+/wiomw_*.build
+/wiomw_*.changes
+/wiomw_*.deb
+/wiomw_*.dsc
+/wiomw_*.tar.gz
 /src/wiomw-agent
 *~
 *.o

@@ -1,0 +1,24 @@
+Source: wiomw
+Section: net
+Priority: optional
+Maintainer: Charles Southerland <support@whoisonmywifi.com>
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, libmnl-dev (>=1.0), libcurl4-openssl-dev (>=7.16.2-1), libyajl-dev (>=2.0)
+Standards-Version: 3.9.4
+Homepage: https://www.whoisonmywifi.com/
+#Vcs-Git: git://git.debian.org/collab-maint/wiomw.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/wiomw.git;a=summary
+
+Package: wiomw
+Architecture: any
+#Depends: libmnl0 (>=1.0), libcurl3 (>=7.16.2-1), libyajl2 (>=2.0), iptables (>=1.4)
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Who Is On My WiFi scanning agent for Linux
+ Who Is On My WiFi is a software-as-a-service solution to monitor network
+ devices for small businesses and home users. Network data is collected from
+ any of a variety of "agents" and sent to our cloud servers for collection and
+ processing. From there, network owners can be notified by any of several means
+ (including text message) of the presence of any unknown devices. Additionally,
+ in certain circumstances, administrators can prevent a device from accessing
+ the network by toggling the block flag for the device on the website. Who Is
+ On My WiFi Linux is a Who Is On My WiFi agent that uses some of the
+ capabilities of the Linux kernel to perform its scanning.

@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# Copyright 2013, 2014 Who Is On My WiFi.
+# Copyright 2013 - 2015 Who Is On My WiFi.
 #
 # This file is part of Who Is On My WiFi Linux.
 #
@@ -227,8 +227,10 @@ CPPFLAGS = @CPPFLAGS@
 CURL_CFLAGS = @CURL_CFLAGS@
 CURL_LIBS = @CURL_LIBS@
 CYGPATH_W = @CYGPATH_W@
+DCH = @DCH@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DPKG_BUILD = @DPKG_BUILD@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -265,6 +267,7 @@ PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TAR = @TAR@
 VERSION = @VERSION@
 _libcurl_config = @_libcurl_config@
 abs_builddir = @abs_builddir@
@@ -311,6 +314,16 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src etc
+PKGVER = $(PACKAGE)-$(VERSION)
+PKG_VER = $(PACKAGE)_$(VERSION)
+CLEANFILES = $(PACKAGE)_*.*.*-1_*.build
+DISTCLEANFILES = $(PACKAGE)-*.*.*.tar.gz \
+		 $(PACKAGE)_*.*.*.orig.tar.gz \
+		 $(PACKAGE)_*.*.*-1.dsc \
+		 $(PACKAGE)_*.*.*-1.debian.tar.gz \
+		 $(PACKAGE)_*.*.*-1_*.changes \
+		 $(PACKAGE)_*.*.*-1_*.deb
+
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -686,17 +699,19 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic mostlyclean-am
+clean-am: clean-generic clean-local mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -767,9 +782,9 @@ uninstall-am:
 
 .PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am \
 	am--refresh check check-am clean clean-cscope clean-generic \
-	cscope cscopelist-am ctags ctags-am dist dist-all dist-bzip2 \
-	dist-gzip dist-lzip dist-shar dist-tarZ dist-xz dist-zip \
-	distcheck distclean distclean-generic distclean-hdr \
+	clean-local cscope cscopelist-am ctags ctags-am dist dist-all \
+	dist-bzip2 dist-gzip dist-lzip dist-shar dist-tarZ dist-xz \
+	dist-zip distcheck distclean distclean-generic distclean-hdr \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-data install-data-am install-dvi install-dvi-am \
@@ -781,6 +796,35 @@ uninstall-am:
 	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
 	uninstall-am
 
+
+clean-local: clean-local-deb
+.PHONY: clean-local-deb
+clean-local-deb:
+	-rm -rf $(PKGVER)
+
+@BUILD_DEB_TRUE@deb: dist
+@BUILD_DEB_TRUE@	@echo "Building debian package..."; \
+@BUILD_DEB_TRUE@	if test ! -d debian; then \
+@BUILD_DEB_TRUE@		echo "To build a debian package," \
+@BUILD_DEB_TRUE@		" you must get a fresh copy of the source package," \
+@BUILD_DEB_TRUE@		" not a copy of the dist tarball."; \
+@BUILD_DEB_TRUE@		exit 1; \
+@BUILD_DEB_TRUE@	fi; \
+@BUILD_DEB_TRUE@	cp -v $(PKGVER).tar.gz $(PKG_VER).orig.tar.gz && \
+@BUILD_DEB_TRUE@	$(TAR) xvzf $(PKG_VER).orig.tar.gz && \
+@BUILD_DEB_TRUE@	cd $(PKGVER) && \
+@BUILD_DEB_TRUE@	cp -rv ../debian ./. && \
+@BUILD_DEB_TRUE@	DEBEMAIL="support@whoisonmywifi.com" DEBFULLNAME="Who's On My WiFi" \
+@BUILD_DEB_TRUE@	$(DCH) --create -v $(VERSION)-1 --package $(PACKAGE) \
+@BUILD_DEB_TRUE@	"Debian package generated from source" && \
+@BUILD_DEB_TRUE@	$(DPKG_BUILD) -rfakeroot -us -uc; \
+@BUILD_DEB_TRUE@	cd $(srcdir); \
+@BUILD_DEB_TRUE@	rm -vf $(PKG_VER).orig.tar.gz; \
+@BUILD_DEB_TRUE@	rm -rvf $(PKGVER)
+@BUILD_DEB_FALSE@deb:
+@BUILD_DEB_FALSE@	@echo "To build a debian package," \
+@BUILD_DEB_FALSE@		" you must run configure with the --enable-deb flag."; \
+@BUILD_DEB_FALSE@	exit 1
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
