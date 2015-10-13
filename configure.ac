@@ -27,7 +27,7 @@ AC_INIT([wiomw],
 	[bugs at whoisonmywifi dot com],
 	[wiomw],
 	[http://www.whoisonmywifi.net])
-AC_CONFIG_MACRO_DIRS[(m4])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror])
@@ -38,6 +38,7 @@ AM_PROG_CC_C_O
 AC_PATH_PROG([DPKG_BUILD], [dpkg-buildpackage], [notfound])
 AC_PATH_PROG([TAR], [tar gtar], [notfound])
 AC_PATH_PROG([DCH], [dch], [notfound])
+#AC_PATH_PROG([SYSTEMD], [systemd], [notfound], [/sbin:/bin])
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [rint], ,AC_MSG_ERROR([libm was not found]))
@@ -296,8 +297,61 @@ AC_ARG_ENABLE([deb],
 	      [enable_deb=no])
 AM_CONDITIONAL([BUILD_DEB], [test "x$enable_deb" = xyes])
 
-
-
+#AC_ARG_ENABLE([systemd],
+#	      [AS_HELP_STRING([--enable-systemd],
+#			      [Build systemd init support, default: check])],
+#	      [AS_IF([test "x$enable_systemd" = xyes],
+#		     [AS_IF([test "x$SYSTEMD" = xnotfound],
+#			    [AC_MSG_ERROR([Unable to find systemd])],
+#			    [enable_systemd=yes])],
+#		     [enable_systemd=no])],
+#	      [AS_IF([test "x$SYSTEMD" = xnotfound],
+#		     [enable_systemd=no],
+#		     [enable_systemd=yes])])
+#AM_CONDITIONAL([BUILD_SYSTEMD], [test "x$enable_systemd" = xyes])
+#
+#AC_ARG_ENABLE([upstart],
+#	      [AS_HELP_STRING([--enable-upstart],
+#			      [Build upstart init support, default: check])],
+#	      [AS_IF([test "x$enable_upstart" = xyes],
+#		     [AS_IF([test "x$UPSTART" = xnotfound],
+#			    [AC_MSG_ERROR([Unable to find upstart])],
+#			    [enable_upstart=yes])],
+#		     [enable_upstart=no])],
+#	      [AS_IF([test "x$UPSTART" = xnotfound],
+#		     [enable_upstart=no],
+#		     [enable_upstart=yes])])
+#AM_CONDITIONAL([BUILD_UPSTART], [test "x$enable_upstart" = xyes])
+#
+#AC_ARG_ENABLE([procd],
+#	      [AS_HELP_STRING([--enable-procd],
+#			      [Build procd init support, default: check])],
+#	      [AS_IF([test "x$enable_procd" = xyes],
+#		     [AS_IF([test "x$PROCD" = xnotfound],
+#			    [AC_MSG_ERROR([Unable to find procd])],
+#			    [enable_procd=yes])],
+#		     [enable_procd=no])],
+#	      [AS_IF([test "x$PROCD" = xnotfound],
+#		     [enable_procd=no],
+#		     [enable_procd=yes])])
+#AM_CONDITIONAL([BUILD_PROCD], [test "x$enable_procd" = xyes])
+#
+#AC_ARG_ENABLE([sysv],
+#	      [AS_HELP_STRING([--enable-sysv],
+#			      [Build System V init support, default: yes]
+#			      [ unless another init is enabled])],
+#	      [AS_IF([test "x$enable_sysv" = xno],
+#		     [enable_sysv=no],
+#		     [enable_sysv=yes])],
+#	      [AS_IF([test "x$enable_systemd" = xyes],
+#		     [enable_sysv=no],
+##		     [test "x$enable_upstart" = xyes],
+##		     [enable_sysv=no],
+##		     [test "x$enable_procd" = xyes],
+##		     [enable_sysv=no],
+#		     [enable_sysv=yes])])
+#AM_CONDITIONAL([BUILD_SYSV], [test "x$enable_sysv" = xyes])
+#
 
 # Generated files
 AC_CONFIG_FILES([Makefile
