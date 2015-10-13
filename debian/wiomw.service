@@ -1,0 +1,13 @@
+[Unit]
+Description=Who Is On My WiFi scanning agent
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/wiomw-agent
+
+[Install]
+WantedBy=multi-user.target
+Alias=wiomw-agent.service
+

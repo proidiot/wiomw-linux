@@ -1,4 +1,4 @@
-# Copyright 2013, 2014 Who Is On My WiFi.
+# Copyright 2013 - 2015 Who Is On My WiFi.
 #
 # This file is part of Who Is On My WiFi Linux.
 #
@@ -19,8 +19,8 @@
 # <http://www.whoisonmywifi.com/>.
 #
 
-configdir=@sysconfdir@
-dist_config_DATA=wiomw.conf.example
+configdir = @sysconfdir@
+dist_config_DATA = wiomw.conf.example
 
-SUBDIRS=ssl
+SUBDIRS = ssl
 

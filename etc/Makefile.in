@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# Copyright 2013, 2014 Who Is On My WiFi.
+# Copyright 2013 - 2015 Who Is On My WiFi.
 #
 # This file is part of Who Is On My WiFi Linux.
 #
@@ -234,8 +234,10 @@ CPPFLAGS = @CPPFLAGS@
 CURL_CFLAGS = @CURL_CFLAGS@
 CURL_LIBS = @CURL_LIBS@
 CYGPATH_W = @CYGPATH_W@
+DCH = @DCH@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DPKG_BUILD = @DPKG_BUILD@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -272,6 +274,7 @@ PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TAR = @TAR@
 VERSION = @VERSION@
 _libcurl_config = @_libcurl_config@
 abs_builddir = @abs_builddir@
