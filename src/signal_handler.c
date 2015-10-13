@@ -1,5 +1,5 @@
 /**
- * Copyright 2013, 2014 Who Is On My WiFi.
+ * Copyright 2013 - 2015 Who Is On My WiFi.
  *
  * This file is part of Who Is On My WiFi Linux.
  *
@@ -57,10 +57,9 @@ void set_signal_handlers()
 	sigaction(SIGHUP, &struct_sigaction_ignore_handler, NULL);
 
 	/* Handle termination and alarm signals. */
-	/*
 	sigaction(SIGTERM, &struct_sigaction_callback_handler, NULL);
+	sigaction(SIGQUIT, &struct_sigaction_callback_handler, NULL);
 	sigaction(SIGINT, &struct_sigaction_callback_handler, NULL);
-	*/
 	sigaction(SIGALRM, &struct_sigaction_callback_handler, NULL);
 }
 
@@ -72,10 +71,10 @@ int stop_signal_received()
 bool full_sleep(unsigned int length)
 {
 	if (length != 0) {
-		sigset_t sigset_emptyset;
+		sigset_t sigset_termonly;
 		alarm(length);
-		sigemptyset(&sigset_emptyset);
-		sigsuspend(&sigset_emptyset);
+		sigemptyset(&sigset_termonly);
+		sigsuspend(&sigset_termonly);
 	}
 	return !stop_signal_received();
 }
