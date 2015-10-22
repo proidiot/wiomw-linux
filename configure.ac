@@ -23,7 +23,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_INIT([wiomw],
-	[1.1.0],
+	[1.1.1],
 	[bugs at whoisonmywifi dot com],
 	[wiomw],
 	[http://www.whoisonmywifi.net])
