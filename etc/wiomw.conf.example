@@ -1,4 +1,4 @@
-# Copyright 2013, 2014 Who Is On My WiFi.
+# Copyright 2013 - 2015 Who Is On My WiFi.
 #
 # This file is part of Who Is On My WiFi Linux.
 #
@@ -26,12 +26,10 @@
 # Required values
 ##################
 
-# Your username for whoisonmywifi.net (presumably your email address)
-USERNAME = email@example.com
-
 # These values must be obtained from the site.
-PASSHASH = 1234567890ABCDEF1234567890ABCDEF
-AGENTKEY = LINUX-PLACEHOLDER-12345
+PUBTOKEN  =
+PRIVTOKEN =
+AGENTKEY  = 
 
 
 # Optional values
