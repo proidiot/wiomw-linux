@@ -34,11 +34,17 @@
 /* URL of config_subnet API */
 #undef CONFIG_OPTION_CONFIG_SUBNET_URL
 
+/* dch args - for use with debian packages */
+#undef CONFIG_OPTION_DCH_ARGS
+
 /* dnsmasq lease file location */
 #undef CONFIG_OPTION_DNSMASQ_LEASE_FILE
 
 /* dnsmasq.lease-based hostname lookup */
 #undef CONFIG_OPTION_DNSMASQ_LEASE_LOOKUP
+
+/* dpkg_build_args - for use with debian packages */
+#undef CONFIG_OPTION_DPKG_BUILD_ARGS
 
 /* maximum allowable length of an interface blacklist regular expression
    defined at runtime */

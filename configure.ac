@@ -23,7 +23,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_INIT([wiomw],
-	[1.1.2],
+	[1.1.3],
 	[bugs at whoisonmywifi dot com],
 	[wiomw],
 	[http://www.whoisonmywifi.net])
@@ -296,6 +296,17 @@ AC_ARG_ENABLE([deb],
 			   		  [ building the debian package])])])],
 	      [enable_deb=no])
 AM_CONDITIONAL([BUILD_DEB], [test "x$enable_deb" = xyes])
+
+AX_CONFIG_OPTION_STRING_NN([dch_args],
+	[" --create "],
+	[dch args - for use with debian packages])
+AC_SUBST([DCH_ARGS], [$dch_args])
+
+AX_CONFIG_OPTION_STRING_NN([dpkg_build_args],
+	[" -rfakeroot -us -uc "],
+	[dpkg_build_args - for use with debian packages])
+AC_SUBST([DPKG_BUILD_ARGS], [$dpkg_build_args])
+
 
 #AC_ARG_ENABLE([systemd],
 #	      [AS_HELP_STRING([--enable-systemd],

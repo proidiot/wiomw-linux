@@ -54,9 +54,9 @@ deb: dist
 	cd $(PKGVER) && \
 	cp -rv ../debian ./. && \
 	DEBEMAIL="support@whoisonmywifi.com" DEBFULLNAME="Who's On My WiFi" \
-	$(DCH) --create -v $(VERSION)-1 --package $(PACKAGE) \
+	$(DCH) $(DCH_ARGS) -v $(VERSION)-1 --package $(PACKAGE) \
 	"Debian package generated from source" && \
-	$(DPKG_BUILD) -rfakeroot -us -uc; \
+	$(DPKG_BUILD) $(DPKG_BUILD_ARGS); \
 	cd $(srcdir); \
 	rm -vf $(PKG_VER).orig.tar.gz; \
 	rm -rvf $(PKGVER)
